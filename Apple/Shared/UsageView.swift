@@ -1,5 +1,6 @@
 import Charts
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct UsageView: View {
@@ -8,7 +9,7 @@ struct UsageView: View {
     var body: some View {
         let summary = session.usageSummary
         List {
-            SessionStatusSection(session: session)
+            SessionStatusSection(session: session, scope: .usage)
             Section {
                 HStack(spacing: 12) {
                     StatTile(title: "Requests", value: summary.total)

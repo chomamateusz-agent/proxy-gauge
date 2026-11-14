@@ -1,4 +1,5 @@
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct ClientLimitsView: View {
@@ -6,7 +7,7 @@ struct ClientLimitsView: View {
 
     var body: some View {
         List {
-            SessionStatusSection(session: session)
+            SessionStatusSection(session: session, scope: .limits)
             if let limits = session.fleetLimits {
                 content(limits)
             } else if session.limitsLoaded {
@@ -18,7 +19,7 @@ struct ClientLimitsView: View {
                     }
                 }
             } else {
-                Section { NotLoadedRow(phase: session.loadPhase(loaded: false)) }
+                Section { NotLoadedRow(phase: session.loadPhase(for: .limits, loaded: false)) }
             }
         }
     }

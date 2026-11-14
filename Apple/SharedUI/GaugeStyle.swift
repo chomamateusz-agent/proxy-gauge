@@ -170,3 +170,12 @@ struct ProviderHeadroomRow: View {
         }
     }
 }
+
+extension AuthPauseReason {
+    var symbol: String {
+        switch self {
+        case .keyRejected: "key.slash"
+        case .ipBanned: "exclamationmark.shield"
+        }
+    }
+}

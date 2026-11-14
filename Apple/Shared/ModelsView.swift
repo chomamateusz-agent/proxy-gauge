@@ -1,4 +1,5 @@
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct ModelsView: View {
@@ -7,7 +8,7 @@ struct ModelsView: View {
 
     var body: some View {
         List {
-            SessionStatusSection(session: session)
+            SessionStatusSection(session: session, scope: .models)
             Section {
                 ForEach(filtered) { model in
                     VStack(alignment: .leading, spacing: 2) {
@@ -31,7 +32,7 @@ struct ModelsView: View {
                 if session.modelsLoaded && session.models.isEmpty {
                     Text("The server lists no models.").foregroundStyle(.secondary)
                 } else if !session.modelsLoaded {
-                    NotLoadedRow(phase: session.loadPhase(loaded: false))
+                    NotLoadedRow(phase: session.loadPhase(for: .models, loaded: false))
                 }
             } header: {
                 Text("Models: \(session.models.count)")

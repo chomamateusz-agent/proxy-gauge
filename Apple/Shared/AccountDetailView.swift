@@ -1,5 +1,6 @@
 import Charts
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct AccountDetailView: View {

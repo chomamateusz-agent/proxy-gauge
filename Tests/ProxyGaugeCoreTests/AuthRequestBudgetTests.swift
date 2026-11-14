@@ -16,7 +16,7 @@ struct AuthRequestBudgetTests {
         let management = ManagementClient(baseURL: testBaseURL, managementKey: "rotated", transport: stub)
         let client = ClientKeyClient(baseURL: testBaseURL, clientKey: "rotated", transport: stub)
         do {
-            _ = try await ScopeLoader.load(scope, authMode: .management, management: management, client: client)
+            try await ScopeLoader.load(scope, authMode: .management, management: management, client: client) { _ in }
             return (nil, stub.managementRequestCount)
         } catch {
             return (error, stub.managementRequestCount)
@@ -64,7 +64,7 @@ struct AuthRequestBudgetTests {
         }
         let management = ManagementClient(baseURL: testBaseURL, managementKey: "k", transport: stub)
         await #expect(throws: APIError.unauthorized("invalid management key")) {
-            try await ScopeLoader.load(.settings, authMode: .management, management: management, client: ClientKeyClient(baseURL: testBaseURL, clientKey: "k", transport: stub))
+            try await ScopeLoader.load(.settings, authMode: .management, management: management, client: ClientKeyClient(baseURL: testBaseURL, clientKey: "k", transport: stub)) { _ in }
         }
     }
 
@@ -95,7 +95,7 @@ struct AuthRequestBudgetTests {
             let management = ManagementClient(baseURL: testBaseURL, managementKey: "k", transport: stub)
             let client = ClientKeyClient(baseURL: testBaseURL, clientKey: "k", transport: stub)
             await #expect(throws: APIError.unauthorized("unauthorized")) {
-                try await ScopeLoader.load(scope, authMode: .clientKey, management: management, client: client)
+                try await ScopeLoader.load(scope, authMode: .clientKey, management: management, client: client) { _ in }
             }
             #expect(stub.requests.count == 1)
         }

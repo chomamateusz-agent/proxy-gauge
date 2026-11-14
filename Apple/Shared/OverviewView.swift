@@ -1,4 +1,5 @@
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct OverviewView: View {
@@ -6,7 +7,7 @@ struct OverviewView: View {
 
     var body: some View {
         List {
-            SessionStatusSection(session: session)
+            SessionStatusSection(session: session, scope: .accounts)
             Section("Server") {
                 LabeledContent("Version") {
                     Text(verbatim: session.version?.version ?? "–")
@@ -37,7 +38,7 @@ struct OverviewView: View {
                         Text("No accounts on this server yet.")
                             .foregroundStyle(.secondary)
                     } else {
-                        NotLoadedRow(phase: session.loadPhase(loaded: false))
+                        NotLoadedRow(phase: session.loadPhase(for: .accounts, loaded: false))
                     }
                 }
                 ForEach(headroom) { provider in

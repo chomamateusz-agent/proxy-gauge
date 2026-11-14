@@ -7,8 +7,8 @@ public struct AccountList: Sendable {
 
 public enum ScopeData: Sendable {
     case accounts(AccountList)
-    case usage(AccountList, ClientKeyUsageReport?)
-    case models(AccountList, ModelCatalog)
+    case tokenUsage(ClientKeyUsageReport?)
+    case catalog(ModelCatalog)
     case settings(RoutingStrategySetting?, clientKeyCount: Int?)
     case clientModels([ModelInfo])
     case fleetLimits(FleetLimits?)
@@ -16,29 +16,32 @@ public enum ScopeData: Sendable {
 }
 
 public enum ScopeLoader {
+    public typealias Publish = @Sendable (ScopeData) async -> Void
+
     public static let usageWindow: TimeInterval = 7 * 86_400
 
-    public static func load(_ scope: RefreshScope, authMode: AuthMode, management: ManagementClient, client: ClientKeyClient, now: Date = Date()) async throws -> ScopeData {
+    public static func load(_ scope: RefreshScope, authMode: AuthMode, management: ManagementClient, client: ClientKeyClient, now: Date = Date(), publish: Publish) async throws {
         switch (authMode, scope) {
         case (.management, .accounts), (.management, .limits):
-            return .accounts(try await accounts(management))
+            await publish(.accounts(try await accounts(management)))
         case (.management, .usage):
-            let list = try await accounts(management)
-            return .usage(list, try await management.clientKeyUsage(since: now.addingTimeInterval(-usageWindow)))
+            await publish(.accounts(try await accounts(management)))
+            await publish(.tokenUsage(try await management.clientKeyUsage(since: now.addingTimeInterval(-usageWindow))))
         case (.management, .models):
             let list = try await accounts(management)
-            return .models(list, try await ModelCatalog.load(from: management, credentials: list.credentials.value.files))
+            await publish(.accounts(list))
+            await publish(.catalog(try await ModelCatalog.load(from: management, credentials: list.credentials.value.files)))
         case (.management, .settings):
             let routing = try await management.routingStrategy()
-            return .settings(routing, clientKeyCount: try await optional { try await management.clientKeyPolicyCount() } ?? nil)
+            await publish(.settings(routing, clientKeyCount: try await optional { try await management.clientKeyPolicyCount() } ?? nil))
         case (.management, .accountModels(let name)):
-            return .accountModels(name: name, try await management.credentialModels(name: name))
+            await publish(.accountModels(name: name, try await management.credentialModels(name: name)))
         case (.clientKey, .models):
-            return .clientModels(try await client.models().sorted { $0.id < $1.id })
+            await publish(.clientModels(try await client.models().sorted { $0.id < $1.id }))
         case (.clientKey, .accountModels(let name)):
-            return .accountModels(name: name, [])
+            await publish(.accountModels(name: name, []))
         case (.clientKey, _):
-            return .fleetLimits(try await client.fleetLimits())
+            await publish(.fleetLimits(try await client.fleetLimits()))
         }
     }
 

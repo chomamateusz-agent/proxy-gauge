@@ -20,7 +20,7 @@ struct HeadroomEntry: TimelineEntry {
     var date: Date
     var snapshot: HeadroomSnapshot?
     var isStale: Bool
-    var keyRejected = false
+    var pauseReason: AuthPauseReason?
 }
 
 struct HeadroomTimelineProvider: AppIntentTimelineProvider {
@@ -46,8 +46,8 @@ struct HeadroomTimelineProvider: AppIntentTimelineProvider {
         let store = ProfileStore()
         let profile = store.load().defaultProfile
         let latchGeneration = store.authGeneration(for: profile.id)
-        var latch = store.authFailureLatch(for: profile.id)
-        guard latch.admit(.automatic) else { return cachedEntry(store, profile, keyRejected: true) }
+        var latch = profile.isDemo ? AuthFailureLatch() : store.authFailureLatch(for: profile.id, generation: latchGeneration)
+        guard latch.admit(.automatic) else { return cachedEntry(store, profile, pauseReason: latch.pauseReason) }
         do {
             let connection = try ServerConnection(profile: profile, secretStore: KeychainSecretStore(), liveTransport: URLSessionTransport(timeout: 12))
             let snapshot = try await HeadroomLoader.load(profile: profile, secret: connection.secret, transport: connection.transport)
@@ -58,13 +58,13 @@ struct HeadroomTimelineProvider: AppIntentTimelineProvider {
             if latch.isBlocked && !profile.isDemo {
                 store.saveAuthFailureLatch(latch, for: profile.id, generation: latchGeneration)
             }
-            return cachedEntry(store, profile, keyRejected: latch.isBlocked)
+            return cachedEntry(store, profile, pauseReason: latch.pauseReason)
         }
     }
 
-    private func cachedEntry(_ store: ProfileStore, _ profile: ServerProfile, keyRejected: Bool) -> HeadroomEntry {
+    private func cachedEntry(_ store: ProfileStore, _ profile: ServerProfile, pauseReason: AuthPauseReason?) -> HeadroomEntry {
         let cached = store.loadSnapshot().flatMap { $0.serverID == profile.id ? $0 : nil }
-        return HeadroomEntry(date: .now, snapshot: cached, isStale: true, keyRejected: keyRejected)
+        return HeadroomEntry(date: .now, snapshot: cached, isStale: true, pauseReason: pauseReason)
     }
 
     static let sample = HeadroomSnapshot(
@@ -100,8 +100,8 @@ struct HeadroomWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 6 : 8) {
             header
-            if entry.keyRejected {
-                Text("The server rejected the key. Open Proxy Gauge to fix it.")
+            if let reason = entry.pauseReason {
+                Text(reason.widgetNote)
                     .font(.caption2)
                     .foregroundStyle(.red)
             }
@@ -131,8 +131,8 @@ struct HeadroomWidgetView: View {
             .font(.caption.weight(.semibold))
             .lineLimit(1)
             Spacer(minLength: 0)
-            if entry.keyRejected {
-                Image(systemName: "key.slash")
+            if let reason = entry.pauseReason {
+                Image(systemName: reason.symbol)
                     .font(.caption2)
                     .foregroundStyle(.red)
                     .accessibilityHidden(true)
@@ -166,6 +166,15 @@ struct HeadroomWidgetView: View {
             Text("Updated \(Text(snapshot.generatedAt, style: .relative)) ago")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+        }
+    }
+}
+
+extension AuthPauseReason {
+    var widgetNote: LocalizedStringResource {
+        switch self {
+        case .keyRejected: "The server rejected the key. Open Proxy Gauge to fix it."
+        case .ipBanned: "The server has temporarily blocked this network address. Open Proxy Gauge to retry later."
         }
     }
 }

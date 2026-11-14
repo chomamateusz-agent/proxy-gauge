@@ -6,7 +6,7 @@ ASC_ENV ?= $(HOME)/.appstoreconnect/asc.env
 PLATFORM ?= all
 BUMP ?= patch
 
-.PHONY: build test generate build-ios build-mac strings integration icon testflight bump
+.PHONY: build test generate build-ios build-mac strings integration icon testflight testflight-confirm bump
 
 build:
 	swift build
@@ -36,8 +36,11 @@ integration:
 icon:
 	swift scripts/render-icon.swift Apple/Assets.xcassets/AppIcon.appiconset
 
-testflight:
-	@set -eu; test -n "$(CONFIRM)" || { echo "Refusing to upload: run make testflight CONFIRM=<bundle id> after checking the build." >&2; exit 2; }; test -f "$(ASC_ENV)" || { echo "Missing $(ASC_ENV)" >&2; exit 2; }; set -a; . "$(ASC_ENV)"; set +a; bash scripts/appstore-upload.sh --confirm "$(CONFIRM)" --platform "$(PLATFORM)"
+testflight-confirm:
+	@test -n "$(CONFIRM)" || { echo "Refusing to upload: run make testflight CONFIRM=<bundle id> after checking the build." >&2; exit 2; }; test -f "$(ASC_ENV)" || { echo "Missing $(ASC_ENV)" >&2; exit 2; }
+
+testflight: testflight-confirm test build-ios build-mac
+	@set -eu; set -a; . "$(ASC_ENV)"; set +a; bash scripts/appstore-upload.sh --confirm "$(CONFIRM)" --platform "$(PLATFORM)"
 
 bump:
 	bash scripts/bump-version.sh $(BUMP)

@@ -353,6 +353,22 @@
         }
       }
     },
+    "Automatic refresh is paused because the server has temporarily blocked this network address after too many failed key attempts, possibly by another client. The key may be fine. Refresh to try again once the block ends.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic refresh is paused because the server has temporarily blocked this network address after too many failed key attempts, possibly by another client. The key may be fine. Refresh to try again once the block ends."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatyczne odświeżanie jest wstrzymane, bo serwer tymczasowo zablokował ten adres sieciowy po zbyt wielu nieudanych próbach klucza, być może z innego klienta. Klucz może być poprawny. Odśwież ręcznie, gdy blokada minie."
+          }
+        }
+      }
+    },
     "Automatic refresh is paused because the server rejected the key, so repeated attempts do not get this device banned. Edit the server to fix the key, or refresh to try again.": {
       "localizations": {
         "en": {
@@ -2893,6 +2909,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Serwer tymczasowo zablokował ten adres sieciowy po zbyt wielu nieudanych próbach klucza z niego, być może z innego klienta. Spróbuj ponownie później."
+          }
+        }
+      }
+    },
+    "The server has temporarily blocked this network address. Open Proxy Gauge to retry later.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server has temporarily blocked this network address. Open Proxy Gauge to retry later."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer tymczasowo zablokował ten adres sieciowy. Otwórz Proxy Gauge, aby spróbować później."
           }
         }
       }

@@ -44,6 +44,8 @@ targetTemplates:
         product: ProxyGaugeCore
       - package: ProxyGaugePackage
         product: ProxyGaugeStore
+      - package: ProxyGaugePackage
+        product: ProxyGaugeSession
 targets:
   PhoneApp:
     templates: [GaugeApplication]

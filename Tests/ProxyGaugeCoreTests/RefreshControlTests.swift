@@ -35,7 +35,7 @@ struct AuthFailureLatchTests {
     }
 
     @Test func manualRefreshRetriesOnceAndReblocksOnAnotherFailure() {
-        var latch = AuthFailureLatch(isBlocked: true)
+        var latch = AuthFailureLatch(pauseReason: .keyRejected)
         let manualAdmitted = latch.admit(.manual)
         #expect(manualAdmitted)
         #expect(!latch.isBlocked)
@@ -44,8 +44,18 @@ struct AuthFailureLatchTests {
         #expect(!automaticAdmitted)
     }
 
+    @Test func pauseRemembersWhetherTheKeyOrTheAddressWasBlocked() {
+        var latch = AuthFailureLatch()
+        latch.record(.ipBanned(retryAt: nil))
+        #expect(latch.pauseReason == .ipBanned)
+        latch.record(.unauthorized(nil))
+        #expect(latch.pauseReason == .keyRejected)
+        latch.record(.transport("offline"))
+        #expect(latch.pauseReason == .keyRejected)
+    }
+
     @Test func successClearsTheBlock() {
-        var latch = AuthFailureLatch(isBlocked: true)
+        var latch = AuthFailureLatch(pauseReason: .keyRejected)
         latch.recordSuccess()
         let admitted = latch.admit(.automatic)
         #expect(admitted)
@@ -64,56 +74,6 @@ struct AuthFailureLatchTests {
         }
         #expect(failedAttempts == 1)
         #expect(failedAttempts < serverBanThreshold)
-    }
-}
-
-@Suite("Response sequencer")
-struct ResponseSequencerTests {
-    @Test func olderResponseCannotOverwriteANewerOne() {
-        var sequencer = ResponseSequencer()
-        let slowRefresh = sequencer.issue()
-        let mutationReload = sequencer.issue()
-        let newerAccepted = sequencer.accept(mutationReload)
-        let olderAccepted = sequencer.accept(slowRefresh)
-        #expect(newerAccepted)
-        #expect(!olderAccepted)
-    }
-
-    @Test func inOrderResponsesAreAccepted() {
-        var sequencer = ResponseSequencer()
-        let first = sequencer.issue()
-        let firstAccepted = sequencer.accept(first)
-        let second = sequencer.issue()
-        let secondAccepted = sequencer.accept(second)
-        #expect(firstAccepted)
-        #expect(secondAccepted)
-    }
-
-    @Test func discardingOutstandingRejectsResponsesIssuedBefore() {
-        var sequencer = ResponseSequencer()
-        let inFlight = sequencer.issue()
-        sequencer.discardOutstanding()
-        let staleAccepted = sequencer.accept(inFlight)
-        let next = sequencer.issue()
-        let nextAccepted = sequencer.accept(next)
-        #expect(!staleAccepted)
-        #expect(nextAccepted)
-    }
-}
-
-@Suite("Refresh planner")
-struct RefreshPlannerTests {
-    @Test func idleServerStartsAtOnce() {
-        #expect(RefreshPlanner.step(for: .models, inFlight: nil) == .start)
-    }
-
-    @Test func sameScopeJoinsTheRunningRefresh() {
-        #expect(RefreshPlanner.step(for: .accounts, inFlight: .accounts) == .joinInFlight)
-    }
-
-    @Test func otherScopeWaitsInsteadOfBeingDropped() {
-        #expect(RefreshPlanner.step(for: .models, inFlight: .accounts) == .waitForInFlight)
-        #expect(RefreshPlanner.step(for: .accountModels("a.json"), inFlight: .accountModels("b.json")) == .waitForInFlight)
     }
 }
 
@@ -204,6 +164,88 @@ struct RefreshRunnerTests {
         gate.open()
         await caller.value
         #expect(finished)
+    }
+
+    @Test func cancelledWaiterThatMayBeDroppedNeverStarts() async {
+        let runner = RefreshRunner()
+        let gate = Gate()
+        var log: [String] = []
+        let first = Task { await runner.run(.accounts, admit: { true }) { await gate.wait(); log.append("accounts") } }
+        await settle()
+        let obsolete = Task { await runner.run(.models, dropIfCancelled: true, admit: { log.append("models admitted"); return true }) { log.append("models") } }
+        await settle()
+        #expect(runner.isPending(.models))
+        obsolete.cancel()
+        gate.open()
+        await first.value
+        await obsolete.value
+        #expect(log == ["accounts"])
+        #expect(!runner.isPending(.models))
+    }
+
+    @Test func cancelledWaiterThatMustNotBeDroppedStillRuns() async {
+        let runner = RefreshRunner()
+        let gate = Gate()
+        var log: [String] = []
+        let first = Task { await runner.run(.accounts, admit: { true }) { await gate.wait(); log.append("accounts") } }
+        await settle()
+        let detail = Task { await runner.run(.accountModels("a.json"), admit: { true }) { log.append("account models") } }
+        await settle()
+        detail.cancel()
+        gate.open()
+        await first.value
+        await detail.value
+        #expect(log == ["accounts", "account models"])
+    }
+
+    @Test func refreshesAndMutationsRunOneAtATimeInArrivalOrder() async throws {
+        let runner = RefreshRunner()
+        let refreshGate = Gate()
+        let mutationGate = Gate()
+        var log: [String] = []
+        let refresh = Task { await runner.run(.accounts, admit: { true }) { log.append("refresh start"); await refreshGate.wait(); log.append("refresh end") } }
+        await settle()
+        let mutation = Task { try await runner.exclusive { log.append("mutation start"); await mutationGate.wait(); log.append("mutation end"); return 7 } }
+        await settle()
+        let later = Task { await runner.run(.usage, admit: { true }) { log.append("later refresh") } }
+        await settle()
+        #expect(log == ["refresh start"])
+        #expect(runner.isPending(.usage))
+        refreshGate.open()
+        await refresh.value
+        await settle()
+        #expect(log == ["refresh start", "refresh end", "mutation start"])
+        #expect(runner.isBusy)
+        #expect(runner.inFlight == nil)
+        mutationGate.open()
+        #expect(try await mutation.value == 7)
+        await later.value
+        #expect(log == ["refresh start", "refresh end", "mutation start", "mutation end", "later refresh"])
+        #expect(!runner.isBusy)
+    }
+
+    @Test func queuedRefreshOfTheSameScopeIsJoinedNotRepeated() async {
+        let runner = RefreshRunner()
+        let gate = Gate()
+        var runs: [RefreshScope] = []
+        let first = Task { await runner.run(.models, admit: { true }) { runs.append(.models); await gate.wait() } }
+        await settle()
+        let menuBar = Task { await runner.run(.accounts, admit: { true }) { runs.append(.accounts) } }
+        let root = Task { await runner.run(.accounts, admit: { true }) { runs.append(.accounts) } }
+        await settle()
+        gate.open()
+        await first.value
+        await menuBar.value
+        await root.value
+        #expect(runs == [.models, .accounts])
+    }
+
+    @Test func mutationErrorsReachTheCaller() async {
+        let runner = RefreshRunner()
+        await #expect(throws: APIError.preconditionFailed) {
+            try await runner.exclusive { () async throws -> Void in throw APIError.preconditionFailed }
+        }
+        #expect(!runner.isBusy)
     }
 
     @Test func pausedRefreshDoesNotStart() async {

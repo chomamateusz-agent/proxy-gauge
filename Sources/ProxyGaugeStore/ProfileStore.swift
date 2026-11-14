@@ -58,7 +58,7 @@ public struct StoredSettings: Codable, Equatable, Sendable {
 public final class ProfileStore: @unchecked Sendable {
     static let settingsKey = "proxygauge.settings.v1"
     static let snapshotKey = "proxygauge.snapshot.v1"
-    static let authBlockedKeyPrefix = "proxygauge.auth-blocked.v2."
+    static let authPauseKeyPrefix = "proxygauge.auth-pause.v3."
     static let authGenerationKeyPrefix = "proxygauge.auth-generation.v1."
 
     private let defaults: UserDefaults
@@ -91,24 +91,37 @@ public final class ProfileStore: @unchecked Sendable {
         defaults.set(data, forKey: Self.snapshotKey)
     }
 
-    public func authFailureLatch(for serverID: UUID) -> AuthFailureLatch {
-        AuthFailureLatch(isBlocked: defaults.bool(forKey: Self.authBlockedKeyPrefix + serverID.uuidString))
-    }
-
     public func authGeneration(for serverID: UUID) -> Int {
         defaults.integer(forKey: Self.authGenerationKeyPrefix + serverID.uuidString)
     }
 
-    @discardableResult
-    public func saveAuthFailureLatch(_ latch: AuthFailureLatch, for serverID: UUID, generation: Int) -> Bool {
-        guard authGeneration(for: serverID) == generation else { return false }
-        defaults.set(latch.isBlocked, forKey: Self.authBlockedKeyPrefix + serverID.uuidString)
-        return true
+    public func authFailureLatch(for serverID: UUID, generation: Int) -> AuthFailureLatch {
+        let stored = defaults.string(forKey: Self.authPauseKey(serverID, generation: generation))
+        return AuthFailureLatch(pauseReason: stored.flatMap(AuthPauseReason.init(rawValue:)))
     }
 
-    public func resetAuthFailureLatch(for serverID: UUID) {
-        defaults.set(authGeneration(for: serverID) + 1, forKey: Self.authGenerationKeyPrefix + serverID.uuidString)
-        defaults.removeObject(forKey: Self.authBlockedKeyPrefix + serverID.uuidString)
+    public func saveAuthFailureLatch(_ latch: AuthFailureLatch, for serverID: UUID, generation: Int) {
+        let key = Self.authPauseKey(serverID, generation: generation)
+        if let reason = latch.pauseReason {
+            defaults.set(reason.rawValue, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    public func resetAuthFailureLatch(for serverID: UUID, pausedBy reason: AuthPauseReason? = nil) {
+        let next = authGeneration(for: serverID) + 1
+        saveAuthFailureLatch(AuthFailureLatch(pauseReason: reason), for: serverID, generation: next)
+        defaults.set(next, forKey: Self.authGenerationKeyPrefix + serverID.uuidString)
+        let current = Self.authPauseKey(serverID, generation: next)
+        let serverPrefix = Self.authPauseKeyPrefix + serverID.uuidString + "."
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(serverPrefix) && key != current {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    static func authPauseKey(_ serverID: UUID, generation: Int) -> String {
+        "\(authPauseKeyPrefix)\(serverID.uuidString).\(generation)"
     }
 }
 

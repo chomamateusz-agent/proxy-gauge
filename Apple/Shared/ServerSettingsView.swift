@@ -1,4 +1,5 @@
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct PendingRoutingChange: Identifiable {
@@ -18,7 +19,7 @@ struct ServerSettingsView: View {
 
     var body: some View {
         List {
-            SessionStatusSection(session: session)
+            SessionStatusSection(session: session, scope: .settings)
             if let actionError {
                 Section { Text(actionError.userMessage).foregroundStyle(.red) }
             }
@@ -34,7 +35,7 @@ struct ServerSettingsView: View {
                     Text("This server does not expose its routing strategy through the v8 management API.")
                         .foregroundStyle(.secondary)
                 } else {
-                    NotLoadedRow(phase: session.loadPhase(loaded: false))
+                    NotLoadedRow(phase: session.loadPhase(for: .settings, loaded: false))
                 }
             } header: {
                 Text("Routing")

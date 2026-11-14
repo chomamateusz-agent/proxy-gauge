@@ -1,4 +1,5 @@
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct AccountsView: View {
@@ -7,7 +8,7 @@ struct AccountsView: View {
 
     var body: some View {
         List {
-            SessionStatusSection(session: session)
+            SessionStatusSection(session: session, scope: .accounts)
             Section {
                 Picker("State", selection: $filter) {
                     Text("All").tag(CredentialState?.none)

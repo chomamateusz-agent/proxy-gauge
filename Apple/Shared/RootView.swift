@@ -1,4 +1,5 @@
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct RootView: View {
@@ -76,7 +77,7 @@ struct RootView: View {
 
     private func refreshSelection(trigger: RefreshTrigger) async {
         guard let profile = model.selectedProfile, let section = model.selectedSection else { return }
-        await model.session(for: profile).refresh(section.refreshScope, trigger: trigger)
+        await model.session(for: profile).refresh(section.refreshScope, trigger: trigger, dropIfCancelled: true)
     }
 
     private func delete(_ profile: ServerProfile) {

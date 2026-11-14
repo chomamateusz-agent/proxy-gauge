@@ -1,5 +1,6 @@
 import AppKit
 import ProxyGaugeCore
+import ProxyGaugeSession
 import SwiftUI
 
 struct MenuBarLabel: View {
@@ -38,13 +39,13 @@ struct MenuBarContent: View {
                 Spacer()
                 RefreshFooter(lastRefresh: session.lastRefresh, isRefreshing: session.isRefreshing)
             }
-            if let error = session.lastError {
+            if let error = session.failure(for: session.headroomScope) {
                 Text(error.userMessage)
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
-            if session.isAutomaticRefreshPaused {
-                Text(AutoRefreshPausedNote.message)
+            if let reason = session.pauseReason {
+                Text(reason.pausedNote)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

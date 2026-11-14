@@ -6,17 +6,31 @@ public enum RefreshTrigger: Sendable, Equatable {
     case manual
 }
 
-public struct AuthFailureLatch: Sendable, Equatable {
-    public private(set) var isBlocked: Bool
+public enum AuthPauseReason: String, Sendable, Codable {
+    case keyRejected
+    case ipBanned
+}
 
-    public init(isBlocked: Bool = false) {
-        self.isBlocked = isBlocked
+extension APIError {
+    public var authPauseReason: AuthPauseReason? {
+        if case .ipBanned = self { return .ipBanned }
+        return isAuthenticationFailure ? .keyRejected : nil
     }
+}
+
+public struct AuthFailureLatch: Sendable, Equatable {
+    public private(set) var pauseReason: AuthPauseReason?
+
+    public init(pauseReason: AuthPauseReason? = nil) {
+        self.pauseReason = pauseReason
+    }
+
+    public var isBlocked: Bool { pauseReason != nil }
 
     public mutating func admit(_ trigger: RefreshTrigger) -> Bool {
         switch trigger {
         case .manual:
-            isBlocked = false
+            pauseReason = nil
             return true
         case .automatic:
             return !isBlocked
@@ -24,36 +38,13 @@ public struct AuthFailureLatch: Sendable, Equatable {
     }
 
     public mutating func recordSuccess() {
-        isBlocked = false
+        pauseReason = nil
     }
 
     public mutating func record(_ error: APIError) {
-        if error.isAuthenticationFailure {
-            isBlocked = true
+        if let reason = error.authPauseReason {
+            pauseReason = reason
         }
-    }
-}
-
-public struct ResponseSequencer: Sendable, Equatable {
-    private var issued = 0
-    private var applied = 0
-    private var oldestAcceptable = 0
-
-    public init() {}
-
-    public mutating func issue() -> Int {
-        issued += 1
-        return issued
-    }
-
-    public mutating func discardOutstanding() {
-        oldestAcceptable = issued + 1
-    }
-
-    public mutating func accept(_ ticket: Int) -> Bool {
-        guard ticket >= oldestAcceptable, ticket > applied else { return false }
-        applied = ticket
-        return true
     }
 }
 
@@ -64,66 +55,116 @@ public enum RefreshScope: Hashable, Sendable {
     case settings
     case limits
     case accountModels(String)
-
-    var includesAccountList: Bool {
-        switch self {
-        case .accounts, .usage, .models, .limits: true
-        case .settings, .accountModels: false
-        }
-    }
-}
-
-public enum RefreshStep: Sendable, Equatable {
-    case start
-    case joinInFlight
-    case waitForInFlight
-}
-
-public enum RefreshPlanner {
-    public static func step(for requested: RefreshScope, inFlight: RefreshScope?) -> RefreshStep {
-        guard let inFlight else { return .start }
-        return inFlight == requested ? .joinInFlight : .waitForInFlight
-    }
 }
 
 @MainActor
 @Observable
 public final class RefreshRunner {
-    private struct Running {
-        let scope: RefreshScope
-        let id: Int
-        let task: Task<Void, Never>
+    private enum Operation: Equatable {
+        case refresh(RefreshScope)
+        case mutation
     }
 
-    private var running: Running?
-    @ObservationIgnored private var issued = 0
+    @MainActor
+    private final class Turn {
+        let operation: Operation
+        var task: Task<Void, Never>?
+        var start: CheckedContinuation<Void, Never>?
+        var followers: [CheckedContinuation<Void, Never>] = []
+
+        init(_ operation: Operation) {
+            self.operation = operation
+        }
+    }
+
+    @MainActor
+    private final class Outcome<Value> {
+        var result: Result<Value, any Error>?
+    }
+
+    private var current: Turn?
+    private var queue: [Turn] = []
 
     public init() {}
 
-    public var inFlight: RefreshScope? { running?.scope }
+    public var inFlight: RefreshScope? {
+        if case .refresh(let scope) = current?.operation { return scope }
+        return nil
+    }
 
-    public func run(_ scope: RefreshScope, admit: () -> Bool, work: @escaping @MainActor () async -> Void) async {
-        while let current = running {
-            let step = RefreshPlanner.step(for: scope, inFlight: current.scope)
-            await current.task.value
-            if step == .joinInFlight { return }
+    public var isBusy: Bool { current != nil }
+
+    public func isPending(_ scope: RefreshScope) -> Bool {
+        turn(for: .refresh(scope)) != nil
+    }
+
+    public func run(_ scope: RefreshScope, dropIfCancelled: Bool = false, admit: () -> Bool, work: @escaping @MainActor () async -> Void) async {
+        if let existing = turn(for: .refresh(scope)) {
+            await withCheckedContinuation { existing.followers.append($0) }
+            return
         }
-        guard admit() else { return }
-        issued += 1
-        let id = issued
-        let task = Task { @MainActor in
-            await work()
-            self.finish(id)
+        let turn = await enqueue(.refresh(scope))
+        guard !(dropIfCancelled && Task.isCancelled), admit() else {
+            complete(turn)
+            return
         }
-        running = Running(scope: scope, id: id, task: task)
-        await task.value
+        await execute(turn, work)
+    }
+
+    public func exclusive<Value>(_ work: @escaping @MainActor () async throws -> Value) async throws -> Value {
+        let turn = await enqueue(.mutation)
+        let outcome = Outcome<Value>()
+        await execute(turn) {
+            do {
+                outcome.result = .success(try await work())
+            } catch {
+                outcome.result = .failure(error)
+            }
+        }
+        guard let result = outcome.result else { throw CancellationError() }
+        return try result.get()
     }
 
     public func cancel() {
-        running?.task.cancel()
+        current?.task?.cancel()
     }
 
-    private func finish(_ id: Int) {
-        if running?.id == id { running = nil }
+    private func turn(for operation: Operation) -> Turn? {
+        if let current, current.operation == operation { return current }
+        return queue.first { $0.operation == operation }
+    }
+
+    private func enqueue(_ operation: Operation) async -> Turn {
+        let turn = Turn(operation)
+        guard current != nil else {
+            current = turn
+            return turn
+        }
+        queue.append(turn)
+        await withCheckedContinuation { turn.start = $0 }
+        return turn
+    }
+
+    private func execute(_ turn: Turn, _ work: @escaping @MainActor () async -> Void) async {
+        let task = Task { @MainActor in
+            await work()
+            self.complete(turn)
+        }
+        turn.task = task
+        await task.value
+    }
+
+    private func complete(_ turn: Turn) {
+        let followers = turn.followers
+        turn.followers = []
+        followers.forEach { $0.resume() }
+        guard current === turn else { return }
+        guard !queue.isEmpty else {
+            current = nil
+            return
+        }
+        let next = queue.removeFirst()
+        current = next
+        next.start?.resume()
     }
 }

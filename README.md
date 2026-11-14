@@ -31,7 +31,7 @@ Early release. Build it from source (see [Building](#building)); TestFlight and 
   - Models available across your accounts.
   - Server settings: routing strategy (read and change, protected against concurrent config edits; when the server reports no config version, the app asks once more before an unconditional write), and the number of configured client keys on servers that publish client-key policies. Key values are never read or shown.
 - **Client key mode**: the models the key may call, and per-credential quota bars, summary and exclusions on servers that offer `/v1/fleet/limits`. Stock CLIProxyAPI does not have that endpoint; the app says so plainly.
-- **Pull to refresh** and auto refresh of the visible screen while the app is open (default 60 s, configurable). When the server rejects the key, automatic refresh (app, menu bar and widget) pauses until you refresh by hand or save the server again, so a wrong key never runs into the proxy's ban on repeated failed logins. Each refresh sends its management requests one after another and stops at the first rejection, so a rejected key costs one failed attempt per refresh. When the proxy has already banned this network address (for example after failed logins from another client), the app says so and shows when the ban ends.
+- **Pull to refresh** and auto refresh of the visible screen while the app is open (default 60 s, configurable). When the server rejects the key, automatic refresh (app, menu bar and widget) pauses until you refresh by hand, a change to the server succeeds, or you save the server again ("Save anyway" after a rejected check keeps the pause on), so a wrong key never runs into the proxy's ban on repeated failed logins. Each refresh sends its management requests one after another and stops at the first rejection, so a rejected key costs one failed attempt per refresh. When the proxy has already banned this network address (for example after failed logins from another client), the app and the menu bar say so and show when the ban ends, and neither they nor the widget blame the key.
 - **iPhone home-screen widget** (small and medium) with the lowest headroom per provider on your default server.
 - **Mac**: a split-view window plus a menu bar item with headroom per provider.
 - English and Polish.
@@ -88,12 +88,13 @@ The portable logic lives in the Swift package at the repository root:
 
 - `ProxyGaugeCore` (Foundation only): API models and decoding, the HTTP client over an injectable transport, quota math and the demo server.
 - `ProxyGaugeStore`: Keychain and App Group storage.
+- `ProxyGaugeSession`: the per-server session the app screens observe. Refreshes and changes to the server run one at a time through one queue, so an older response never overwrites newer data or a newer key result.
 
 The app targets live in `Apple/`: `Shared` (app screens for iPhone and Mac), `SharedUI` (views shared with the widget, plus the string catalog), `iOS`, `macOS` and `Widgets`. The app name, bundle identifier and team are set only in `Apple/Config/Identity.xcconfig`.
 
 After changing UI strings, build both apps and run `make strings` to sync `Apple/SharedUI/Localizable.xcstrings`, then add the Polish translations. `make test` fails while any catalog entry lacks English or Polish or is stale. `make build-ios` and `make build-mac` then compare every string the Swift compiler extracted during that build (its `.stringsdata` output, the same input Xcode uses to fill the catalog) with the catalog, and fail on any key that is missing, so a new UI string cannot ship untranslated.
 
-Uploading to TestFlight is never automatic: `make testflight CONFIRM=<bundle id>` requires the bundle identifier from the caller and uploads only the packages built in that run.
+Uploading to TestFlight is never automatic: `make testflight CONFIRM=<bundle id>` requires the bundle identifier from the caller, runs `make test`, `make build-ios` and `make build-mac` first (so the extracted-strings check gates every upload) and uploads only the packages built in that run.
 
 The API contract the app relies on is documented in [docs/api.md](docs/api.md), with captured responses in `docs/fixtures`.
 

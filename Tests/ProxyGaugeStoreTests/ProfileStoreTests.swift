@@ -17,43 +17,62 @@ struct ProfileStoreTests {
         let failing = UUID()
         let healthy = UUID()
         let writer = ProfileStore(defaults: defaults)
-        var latch = writer.authFailureLatch(for: failing)
+        let generation = writer.authGeneration(for: failing)
+        var latch = writer.authFailureLatch(for: failing, generation: generation)
         latch.record(.unauthorized("invalid management key"))
-        #expect(writer.saveAuthFailureLatch(latch, for: failing, generation: writer.authGeneration(for: failing)))
+        writer.saveAuthFailureLatch(latch, for: failing, generation: generation)
 
         let reader = ProfileStore(defaults: defaults)
-        #expect(reader.authFailureLatch(for: failing).isBlocked)
-        #expect(!reader.authFailureLatch(for: healthy).isBlocked)
+        #expect(reader.authFailureLatch(for: failing, generation: reader.authGeneration(for: failing)).pauseReason == .keyRejected)
+        #expect(!reader.authFailureLatch(for: healthy, generation: reader.authGeneration(for: healthy)).isBlocked)
 
         reader.resetAuthFailureLatch(for: failing)
-        #expect(!ProfileStore(defaults: defaults).authFailureLatch(for: failing).isBlocked)
+        let fresh = ProfileStore(defaults: defaults)
+        #expect(!fresh.authFailureLatch(for: failing, generation: fresh.authGeneration(for: failing)).isBlocked)
     }
 
-    @Test func eachServerHasItsOwnLatchKey() {
+    @Test func eachServerAndGenerationHasItsOwnLatchKey() {
         let defaults = isolatedDefaults()
         let first = UUID()
         let second = UUID()
         let store = ProfileStore(defaults: defaults)
-        store.saveAuthFailureLatch(AuthFailureLatch(isBlocked: true), for: first, generation: 0)
-        store.saveAuthFailureLatch(AuthFailureLatch(isBlocked: true), for: second, generation: 0)
+        store.saveAuthFailureLatch(AuthFailureLatch(pauseReason: .ipBanned), for: first, generation: 0)
+        store.saveAuthFailureLatch(AuthFailureLatch(pauseReason: .keyRejected), for: second, generation: 0)
         store.saveAuthFailureLatch(AuthFailureLatch(), for: second, generation: 0)
-        #expect(store.authFailureLatch(for: first).isBlocked)
-        #expect(!store.authFailureLatch(for: second).isBlocked)
-        let latchKeys = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix(ProfileStore.authBlockedKeyPrefix) }
-        #expect(Set(latchKeys) == [ProfileStore.authBlockedKeyPrefix + first.uuidString, ProfileStore.authBlockedKeyPrefix + second.uuidString])
+        #expect(store.authFailureLatch(for: first, generation: 0).pauseReason == .ipBanned)
+        #expect(!store.authFailureLatch(for: second, generation: 0).isBlocked)
+        let latchKeys = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix(ProfileStore.authPauseKeyPrefix) }
+        #expect(Set(latchKeys) == [ProfileStore.authPauseKey(first, generation: 0)])
     }
 
-    @Test func staleWriterCannotBlockAServerAfterItsKeyIsSaved() {
+    @Test func lateWriteForARetiredGenerationIsInert() {
+        let defaults = isolatedDefaults()
+        let server = UUID()
+        let widget = ProfileStore(defaults: defaults)
+        let app = ProfileStore(defaults: defaults)
+        let widgetGeneration = widget.authGeneration(for: server)
+        #expect(!widget.authFailureLatch(for: server, generation: widgetGeneration).isBlocked)
+
+        app.resetAuthFailureLatch(for: server)
+        widget.saveAuthFailureLatch(AuthFailureLatch(pauseReason: .keyRejected), for: server, generation: widgetGeneration)
+
+        let current = app.authGeneration(for: server)
+        #expect(current == widgetGeneration + 1)
+        #expect(!app.authFailureLatch(for: server, generation: current).isBlocked)
+        app.saveAuthFailureLatch(AuthFailureLatch(pauseReason: .keyRejected), for: server, generation: current)
+        #expect(app.authFailureLatch(for: server, generation: current).isBlocked)
+    }
+
+    @Test func resetCanStartTheNewGenerationAlreadyPaused() {
         let defaults = isolatedDefaults()
         let server = UUID()
         let store = ProfileStore(defaults: defaults)
-        let staleGeneration = store.authGeneration(for: server)
-        store.resetAuthFailureLatch(for: server)
-        let written = store.saveAuthFailureLatch(AuthFailureLatch(isBlocked: true), for: server, generation: staleGeneration)
-        #expect(!written)
-        #expect(!store.authFailureLatch(for: server).isBlocked)
-        #expect(store.saveAuthFailureLatch(AuthFailureLatch(isBlocked: true), for: server, generation: store.authGeneration(for: server)))
-        #expect(store.authFailureLatch(for: server).isBlocked)
+        store.saveAuthFailureLatch(AuthFailureLatch(pauseReason: .ipBanned), for: server, generation: 0)
+        store.resetAuthFailureLatch(for: server, pausedBy: .keyRejected)
+        #expect(store.authGeneration(for: server) == 1)
+        #expect(store.authFailureLatch(for: server, generation: 1).pauseReason == .keyRejected)
+        let latchKeys = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix(ProfileStore.authPauseKeyPrefix) }
+        #expect(Set(latchKeys) == [ProfileStore.authPauseKey(server, generation: 1)])
     }
 
     @Test func emptyStoreStillOffersTheDemo() {

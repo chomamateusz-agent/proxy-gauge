@@ -1,4 +1,5 @@
 import ProxyGaugeCore
+import ProxyGaugeSession
 import ProxyGaugeStore
 import SwiftUI
 
@@ -72,25 +73,34 @@ struct NotLoadedRow: View {
     }
 }
 
-enum AutoRefreshPausedNote {
-    static let message: LocalizedStringResource = "Automatic refresh is paused because the server rejected the key, so repeated attempts do not get this device banned. Edit the server to fix the key, or refresh to try again."
+extension AuthPauseReason {
+    var pausedNote: LocalizedStringResource {
+        switch self {
+        case .keyRejected:
+            "Automatic refresh is paused because the server rejected the key, so repeated attempts do not get this device banned. Edit the server to fix the key, or refresh to try again."
+        case .ipBanned:
+            "Automatic refresh is paused because the server has temporarily blocked this network address after too many failed key attempts, possibly by another client. The key may be fine. Refresh to try again once the block ends."
+        }
+    }
 }
 
 struct SessionStatusSection: View {
     let session: ServerSession
+    let scope: RefreshScope
 
     var body: some View {
-        if session.lastError != nil || session.isAutomaticRefreshPaused {
+        let failure = session.failure(for: scope)
+        if failure != nil || session.pauseReason != nil {
             Section {
-                if let error = session.lastError {
-                    ErrorBanner(error: error)
+                if let failure {
+                    ErrorBanner(error: failure)
                 }
-                if session.isAutomaticRefreshPaused {
+                if let reason = session.pauseReason {
                     Label {
-                        Text(AutoRefreshPausedNote.message)
+                        Text(reason.pausedNote)
                             .font(.callout)
                     } icon: {
-                        Image(systemName: "key.slash")
+                        Image(systemName: reason.symbol)
                             .foregroundStyle(.red)
                     }
                     .padding(.vertical, 4)

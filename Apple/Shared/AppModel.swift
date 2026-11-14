@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import ProxyGaugeCore
+import ProxyGaugeSession
 import ProxyGaugeStore
 #if canImport(WidgetKit)
 import WidgetKit
@@ -104,7 +105,7 @@ final class AppModel {
         selectedSection = ServerSection.sections(for: profile.authMode).first
     }
 
-    func save(_ profile: ServerProfile, secret: String?) throws {
+    func save(_ profile: ServerProfile, secret: String?, pausedBy pauseReason: AuthPauseReason? = nil) throws {
         if profile.isDemo {
             settings.demoAuthMode = profile.authMode
         } else {
@@ -120,7 +121,7 @@ final class AppModel {
                 }
             }
         }
-        retireSession(for: profile.id)
+        retireSession(for: profile.id, pausedBy: profile.isDemo ? nil : pauseReason)
         persist()
         if selectedServerID == profile.id {
             select(profile)
@@ -153,12 +154,12 @@ final class AppModel {
     }
 
     func refreshDefaultHeadroom(trigger: RefreshTrigger) async {
-        let profile = defaultProfile
-        await session(for: profile).refresh(profile.authMode == .management ? .accounts : .limits, trigger: trigger)
+        let defaultSession = session(for: defaultProfile)
+        await defaultSession.refresh(defaultSession.headroomScope, trigger: trigger, dropIfCancelled: true)
     }
 
-    private func retireSession(for serverID: UUID) {
-        store.resetAuthFailureLatch(for: serverID)
+    private func retireSession(for serverID: UUID, pausedBy pauseReason: AuthPauseReason? = nil) {
+        store.resetAuthFailureLatch(for: serverID, pausedBy: pauseReason)
         sessions.removeValue(forKey: serverID)?.retire()
     }
 

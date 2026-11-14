@@ -201,7 +201,7 @@ struct ServerEditor: View {
             guard result.succeeded else { return }
         }
         guard !Task.isCancelled else { return }
-        persist(profile, secret: secret.isEmpty ? nil : secret)
+        persist(profile, secret: secret.isEmpty ? nil : secret, pausedBy: force ? report?.failure?.authPauseReason : nil)
     }
 
     private func existingSecret(for profile: ServerProfile) throws -> String? {
@@ -209,9 +209,9 @@ struct ServerEditor: View {
         return try model.secrets.secret(for: profile.id)
     }
 
-    private func persist(_ profile: ServerProfile, secret: String?) {
+    private func persist(_ profile: ServerProfile, secret: String?, pausedBy pauseReason: AuthPauseReason? = nil) {
         do {
-            try model.save(profile, secret: secret)
+            try model.save(profile, secret: secret, pausedBy: pauseReason)
             self.secret = ""
             saved = true
             if report == nil || report?.succeeded == false {
