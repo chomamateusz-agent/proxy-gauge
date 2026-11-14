@@ -1,0 +1,11 @@
+.DS_Store
+/dist/
+/build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.build/
+/Apple/*.xcodeproj
+Apple/Config/Version.generated.xcconfig
+.swiftpm/
+/.claude/state.md

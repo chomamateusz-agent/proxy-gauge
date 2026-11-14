@@ -1,0 +1,122 @@
+name: ProxyGauge
+configFiles:
+  Debug: Config/Identity.xcconfig
+  Release: Config/Identity.xcconfig
+configs:
+  Debug: debug
+  Release: release
+options:
+  developmentLanguage: en
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "26.0"
+    macOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_STYLE: Automatic
+    DEAD_CODE_STRIPPING: YES
+    GENERATE_INFOPLIST_FILE: NO
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    PRODUCT_NAME: $(APP_DISPLAY_NAME)
+    PRODUCT_MODULE_NAME: ProxyGaugeApp
+packages:
+  ProxyGaugePackage:
+    path: ..
+targetTemplates:
+  GaugeApplication:
+    type: application
+    sources:
+      - path: Shared
+        excludes:
+          - PrivacyInfo.xcprivacy
+      - path: SharedUI
+      - path: Assets.xcassets
+      - path: Shared/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    dependencies:
+      - package: ProxyGaugePackage
+        product: ProxyGaugeCore
+      - package: ProxyGaugePackage
+        product: ProxyGaugeStore
+targets:
+  PhoneApp:
+    templates: [GaugeApplication]
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: iOS
+        excludes:
+          - Info.plist
+          - App.entitlements
+    settings:
+      base:
+        INFOPLIST_FILE: iOS/Info.plist
+        CODE_SIGN_ENTITLEMENTS: iOS/App.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
+    dependencies:
+      - target: PhoneWidgets
+  PhoneWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Widgets
+        excludes:
+          - Info.plist
+          - Widgets.entitlements
+      - path: SharedUI
+    dependencies:
+      - package: ProxyGaugePackage
+        product: ProxyGaugeCore
+      - package: ProxyGaugePackage
+        product: ProxyGaugeStore
+    settings:
+      base:
+        INFOPLIST_FILE: Widgets/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Widgets/Widgets.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: $(WIDGET_BUNDLE_IDENTIFIER)
+        PRODUCT_NAME: $(TARGET_NAME)
+        PRODUCT_MODULE_NAME: ProxyGaugeWidgets
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
+  MacApp:
+    templates: [GaugeApplication]
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: macOS
+        excludes:
+          - Info.plist
+          - App.entitlements
+    settings:
+      base:
+        INFOPLIST_FILE: macOS/Info.plist
+        CODE_SIGN_ENTITLEMENTS: macOS/App.entitlements
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+    scheme: {}
+schemes:
+  PhoneApp:
+    build:
+      targets:
+        PhoneApp: all
+        PhoneWidgets: all
+    run:
+      config: Debug
+    archive:
+      config: Release

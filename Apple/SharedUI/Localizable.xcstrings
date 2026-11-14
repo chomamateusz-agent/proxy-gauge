@@ -1,0 +1,3398 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%@ cooling down for %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ cooling down for %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: wstrzymane jeszcze przez %2$@"
+          }
+        }
+      }
+    },
+    "%@ used": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ used"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zużyto %@"
+          }
+        }
+      }
+    },
+    "%@: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %lld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$lld"
+          }
+        }
+      }
+    },
+    "%lld requests · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld requests · %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapytania: %1$lld · %2$@"
+          }
+        }
+      }
+    },
+    "%lld-minute window": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld-minute window"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Okno %lld-minutowe"
+          }
+        }
+      }
+    },
+    "(%lld failed)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(%lld failed)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(nieudane: %lld)"
+          }
+        }
+      }
+    },
+    "5-hour": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5-hour"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5-godzinny"
+          }
+        }
+      }
+    },
+    "A client key (from access.api-keys) shows models and, on servers that offer /v1/fleet/limits, quota bars. It cannot change anything.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A client key (from access.api-keys) shows models and, on servers that offer /v1/fleet/limits, quota bars. It cannot change anything."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klucz klienta (z access.api-keys) pokazuje modele, a na serwerach z /v1/fleet/limits także paski limitów. Nie pozwala niczego zmieniać."
+          }
+        }
+      }
+    },
+    "About": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informacje"
+          }
+        }
+      }
+    },
+    "About CLIProxyAPI": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About CLIProxyAPI"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O CLIProxyAPI"
+          }
+        }
+      }
+    },
+    "Access": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostęp"
+          }
+        }
+      }
+    },
+    "Access denied.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access denied."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odmowa dostępu."
+          }
+        }
+      }
+    },
+    "Access denied: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access denied: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odmowa dostępu: %@"
+          }
+        }
+      }
+    },
+    "Account not found": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account not found"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie znaleziono konta"
+          }
+        }
+      }
+    },
+    "Accounts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konta"
+          }
+        }
+      }
+    },
+    "Accounts by state": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts by state"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konta według stanu"
+          }
+        }
+      }
+    },
+    "Active": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktywne"
+          }
+        }
+      }
+    },
+    "Add provider accounts on the server, then refresh.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add provider accounts on the server, then refresh."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj konta dostawców na serwerze i odśwież."
+          }
+        }
+      }
+    },
+    "Add server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj serwer"
+          }
+        }
+      }
+    },
+    "Address": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Address"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adres"
+          }
+        }
+      }
+    },
+    "All": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wszystkie"
+          }
+        }
+      }
+    },
+    "Auto refresh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto refresh"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatyczne odświeżanie"
+          }
+        }
+      }
+    },
+    "Automatic refresh is paused because the server rejected the key, so repeated attempts do not get this device banned. Edit the server to fix the key, or refresh to try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic refresh is paused because the server rejected the key, so repeated attempts do not get this device banned. Edit the server to fix the key, or refresh to try again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatyczne odświeżanie jest wstrzymane, bo serwer odrzucił klucz; kolejne próby mogłyby zablokować to urządzenie. Popraw klucz w edycji serwera albo odśwież ręcznie, aby spróbować ponownie."
+          }
+        }
+      }
+    },
+    "Available": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Available"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępne"
+          }
+        }
+      }
+    },
+    "Best remaining quota across usable accounts, from rate-limit headers the proxy already observed. Proxy Gauge never asks providers for quota.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best remaining quota across usable accounts, from rate-limit headers the proxy already observed. Proxy Gauge never asks providers for quota."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Największy pozostały limit spośród dostępnych kont, według nagłówków limitów, które proxy już zarejestrowało. Proxy Gauge nigdy nie odpytuje dostawców o limity."
+          }
+        }
+      }
+    },
+    "Built": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Built"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zbudowano"
+          }
+        }
+      }
+    },
+    "CLIProxyAPI %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CLIProxyAPI %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CLIProxyAPI %@"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anuluj"
+          }
+        }
+      }
+    },
+    "Change the routing strategy?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change the routing strategy?"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zmienić strategię routingu?"
+          }
+        }
+      }
+    },
+    "Check and save": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check and save"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdź i zapisz"
+          }
+        }
+      }
+    },
+    "Choose a section": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a section"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wybierz sekcję"
+          }
+        }
+      }
+    },
+    "Choose a server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wybierz serwer"
+          }
+        }
+      }
+    },
+    "Client key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Client key"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klucz klienta"
+          }
+        }
+      }
+    },
+    "Client keys on the server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Client keys on the server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klucze klientów na serwerze"
+          }
+        }
+      }
+    },
+    "Client-key token report": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Client-key token report"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raport tokenów kluczy klientów"
+          }
+        }
+      }
+    },
+    "Collected from the model registry of each enabled account.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collected from the model registry of each enabled account."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zebrane z rejestru modeli każdego włączonego konta."
+          }
+        }
+      }
+    },
+    "Commit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commit"
+          }
+        }
+      }
+    },
+    "Connected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Połączono"
+          }
+        }
+      }
+    },
+    "Cooldown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cooldown"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstrzymane"
+          }
+        }
+      }
+    },
+    "Cooldowns": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cooldowns"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstrzymania"
+          }
+        }
+      }
+    },
+    "Cooling down for %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cooling down for %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstrzymane jeszcze przez %@"
+          }
+        }
+      }
+    },
+    "Could not reach the server: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not reach the server: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie można połączyć się z serwerem: %@"
+          }
+        }
+      }
+    },
+    "Could not read the models of %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read the models of %@."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się odczytać modeli kont: %@."
+          }
+        }
+      }
+    },
+    "Counted by the proxy since it started, across accounts and upstream API keys.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Counted by the proxy since it started, across accounts and upstream API keys."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liczone przez proxy od jego uruchomienia, dla wszystkich kont i kluczy API dostawców."
+          }
+        }
+      }
+    },
+    "Counted by the proxy since it started. The upstream API-key counters could not be refreshed, so their share may be out of date.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Counted by the proxy since it started. The upstream API-key counters could not be refreshed, so their share may be out of date."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liczone przez proxy od jego uruchomienia. Nie udało się odświeżyć liczników kluczy API dostawców, więc ich udział może być nieaktualny."
+          }
+        }
+      }
+    },
+    "Credentials": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credentials"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poświadczenia"
+          }
+        }
+      }
+    },
+    "Credits: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credits: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kredyty: %@"
+          }
+        }
+      }
+    },
+    "Daily": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dzienny"
+          }
+        }
+      }
+    },
+    "Default server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer domyślny"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usuń"
+          }
+        }
+      }
+    },
+    "Delete this server?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this server?"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usunąć ten serwer?"
+          }
+        }
+      }
+    },
+    "Demo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demo"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demo"
+          }
+        }
+      }
+    },
+    "Demo server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demo server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer demo"
+          }
+        }
+      }
+    },
+    "Details": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Szczegóły"
+          }
+        }
+      }
+    },
+    "Disable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyłącz"
+          }
+        }
+      }
+    },
+    "Disable account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable account"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyłącz konto"
+          }
+        }
+      }
+    },
+    "Disable this account?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable this account?"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyłączyć to konto?"
+          }
+        }
+      }
+    },
+    "Disabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disabled"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyłączone"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gotowe"
+          }
+        }
+      }
+    },
+    "Edit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edytuj"
+          }
+        }
+      }
+    },
+    "Edit server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edytuj serwer"
+          }
+        }
+      }
+    },
+    "Enable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Włącz"
+          }
+        }
+      }
+    },
+    "Enable account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable account"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Włącz konto"
+          }
+        }
+      }
+    },
+    "Enable this account?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable this account?"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Włączyć to konto?"
+          }
+        }
+      }
+    },
+    "Error": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Error"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Błąd"
+          }
+        }
+      }
+    },
+    "Excluded by the server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluded by the server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wykluczone przez serwer"
+          }
+        }
+      }
+    },
+    "Excluded models": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluded models"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wykluczone modele"
+          }
+        }
+      }
+    },
+    "Failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieudane"
+          }
+        }
+      }
+    },
+    "Failure rate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failure rate"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odsetek błędów"
+          }
+        }
+      }
+    },
+    "File": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plik"
+          }
+        }
+      }
+    },
+    "Fill first": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill first"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najpierw wypełniaj"
+          }
+        }
+      }
+    },
+    "Filter models": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter models"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtruj modele"
+          }
+        }
+      }
+    },
+    "From the server's client-key usage report.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From the server's client-key usage report."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z raportu użycia kluczy klientów na serwerze."
+          }
+        }
+      }
+    },
+    "Generated by the server %@ ago from quota samples it already holds.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generated by the server %@ ago from quota samples it already holds."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wygenerowane przez serwer %@ temu z próbek limitów, które już posiada."
+          }
+        }
+      }
+    },
+    "Headroom": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Headroom"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapas"
+          }
+        }
+      }
+    },
+    "Headroom per provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Headroom per provider"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapas według dostawcy"
+          }
+        }
+      }
+    },
+    "Health check (/healthz, informational)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health check (/healthz, informational)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrola stanu (/healthz, informacyjnie)"
+          }
+        }
+      }
+    },
+    "Home server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer domowy"
+          }
+        }
+      }
+    },
+    "How the proxy picks among accounts that can serve a request. Changes are written to the server's config file.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How the proxy picks among accounts that can serve a request. Changes are written to the server's config file."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sposób, w jaki proxy wybiera konto do obsługi zapytania. Zmiany trafiają do pliku konfiguracyjnego serwera."
+          }
+        }
+      }
+    },
+    "Include the port and any path prefix, for example https://proxy.example.com/cpa.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Include the port and any path prefix, for example https://proxy.example.com/cpa."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podaj port i ewentualny prefiks ścieżki, na przykład https://proxy.example.com/cpa."
+          }
+        }
+      }
+    },
+    "It may have been removed on the server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It may have been removed on the server."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mogło zostać usunięte na serwerze."
+          }
+        }
+      }
+    },
+    "Key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klucz"
+          }
+        }
+      }
+    },
+    "Key policy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key policy"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polityka klucza"
+          }
+        }
+      }
+    },
+    "Key type": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key type"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rodzaj klucza"
+          }
+        }
+      }
+    },
+    "Keys": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keys"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klucze"
+          }
+        }
+      }
+    },
+    "Keys stay in the Keychain on this device. Proxy Gauge talks only to the servers you add. No analytics, no tracking, no accounts.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keys stay in the Keychain on this device. Proxy Gauge talks only to the servers you add. No analytics, no tracking, no accounts."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klucze zostają w pęku kluczy na tym urządzeniu. Proxy Gauge łączy się tylko z dodanymi serwerami. Bez analityki, śledzenia i kont."
+          }
+        }
+      }
+    },
+    "Label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Label"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etykieta"
+          }
+        }
+      }
+    },
+    "Last 200 minutes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last 200 minutes"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostatnie 200 minut"
+          }
+        }
+      }
+    },
+    "Last refresh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last refresh"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostatnie odświeżenie"
+          }
+        }
+      }
+    },
+    "Leave empty to keep the stored key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave empty to keep the stored key"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zostaw puste, aby zachować zapisany klucz"
+          }
+        }
+      }
+    },
+    "Limited by %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limited by %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogranicza: %@"
+          }
+        }
+      }
+    },
+    "Limited by %@ · resets in %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limited by %1$@ · resets in %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogranicza: %1$@ · odnowienie za %2$@"
+          }
+        }
+      }
+    },
+    "Limits": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limits"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limity"
+          }
+        }
+      }
+    },
+    "Lowest remaining quota per provider on your default server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lowest remaining quota per provider on your default server."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najmniejszy pozostały limit każdego dostawcy na serwerze domyślnym."
+          }
+        }
+      }
+    },
+    "Make default": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make default"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ustaw jako domyślny"
+          }
+        }
+      }
+    },
+    "Management API v8": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Management API v8"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API zarządzania v8"
+          }
+        }
+      }
+    },
+    "Management key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Management key"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klucz zarządzania"
+          }
+        }
+      }
+    },
+    "Mode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryb"
+          }
+        }
+      }
+    },
+    "Model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model"
+          }
+        }
+      }
+    },
+    "Model list (/v1/models)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model list (/v1/models)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lista modeli (/v1/models)"
+          }
+        }
+      }
+    },
+    "Models": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Models"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modele"
+          }
+        }
+      }
+    },
+    "Models: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Models: %lld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modele: %lld"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nazwa"
+          }
+        }
+      }
+    },
+    "No accounts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No accounts"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak kont"
+          }
+        }
+      }
+    },
+    "No accounts on this server yet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No accounts on this server yet."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na tym serwerze nie ma jeszcze kont."
+          }
+        }
+      }
+    },
+    "No accounts yet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No accounts yet."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak kont."
+          }
+        }
+      }
+    },
+    "No credentials are visible to this client key.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No credentials are visible to this client key."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten klucz klienta nie widzi żadnych poświadczeń."
+          }
+        }
+      }
+    },
+    "No key is stored for this server. Edit the server to add one.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No key is stored for this server. Edit the server to add one."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dla tego serwera nie zapisano klucza. Edytuj serwer, aby go dodać."
+          }
+        }
+      }
+    },
+    "No models registered for this account.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No models registered for this account."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To konto nie ma zarejestrowanych modeli."
+          }
+        }
+      }
+    },
+    "No quota data for client keys": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No quota data for client keys"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak danych o limitach dla kluczy klientów"
+          }
+        }
+      }
+    },
+    "No quota data reported yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No quota data reported yet"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak danych o limitach"
+          }
+        }
+      }
+    },
+    "No quota data yet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No quota data yet."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak danych o limitach."
+          }
+        }
+      }
+    },
+    "Not available": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niedostępne"
+          }
+        }
+      }
+    },
+    "Not loaded. See the message above.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not loaded. See the message above."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie wczytano. Zobacz komunikat powyżej."
+          }
+        }
+      }
+    },
+    "Not needed for the demo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not needed for the demo"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niepotrzebny w trybie demo"
+          }
+        }
+      }
+    },
+    "Not refreshed yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not refreshed yet"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jeszcze nie odświeżono"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Open Proxy Gauge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Proxy Gauge"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otwórz Proxy Gauge"
+          }
+        }
+      }
+    },
+    "Open Proxy Gauge and choose a default server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Proxy Gauge and choose a default server."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otwórz Proxy Gauge i wybierz serwer domyślny."
+          }
+        }
+      }
+    },
+    "Output": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Output"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyjście"
+          }
+        }
+      }
+    },
+    "Overview": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overview"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przegląd"
+          }
+        }
+      }
+    },
+    "Paste the key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste the key"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wklej klucz"
+          }
+        }
+      }
+    },
+    "Plain HTTP sends your key unencrypted over this route. Prefer HTTPS, or a private network such as Tailscale.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plain HTTP sends your key unencrypted over this route. Prefer HTTPS, or a private network such as Tailscale."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwykłe HTTP przesyła klucz tą trasą bez szyfrowania. Lepiej użyć HTTPS albo sieci prywatnej, na przykład Tailscale."
+          }
+        }
+      }
+    },
+    "Priority": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Priority"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Priorytet"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prywatność"
+          }
+        }
+      }
+    },
+    "Project": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Project"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projekt"
+          }
+        }
+      }
+    },
+    "Proxy Gauge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Gauge"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Gauge"
+          }
+        }
+      }
+    },
+    "Proxy Gauge never reads or shows client key values. Servers that publish client-key policies also show how many keys are configured.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Gauge never reads or shows client key values. Servers that publish client-key policies also show how many keys are configured."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Gauge nigdy nie odczytuje ani nie pokazuje wartości kluczy klientów. Serwery, które udostępniają zasady kluczy klientów, pokazują też, ile kluczy skonfigurowano."
+          }
+        }
+      }
+    },
+    "Proxy Gauge refreshes only the screen you are looking at, and only while the app is open. It reads what the proxy already knows and never asks providers for quota.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Gauge refreshes only the screen you are looking at, and only while the app is open. It reads what the proxy already knows and never asks providers for quota."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Gauge odświeża tylko oglądany ekran i tylko wtedy, gdy aplikacja jest otwarta. Odczytuje to, co proxy już wie, i nigdy nie odpytuje dostawców o limity."
+          }
+        }
+      }
+    },
+    "Quit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zakończ"
+          }
+        }
+      }
+    },
+    "Quota": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quota"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limity"
+          }
+        }
+      }
+    },
+    "Quota for client keys (/v1/fleet/limits)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quota for client keys (/v1/fleet/limits)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limity dla kluczy klientów (/v1/fleet/limits)"
+          }
+        }
+      }
+    },
+    "Refresh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odśwież"
+          }
+        }
+      }
+    },
+    "Refresh every": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh every"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odświeżaj co"
+          }
+        }
+      }
+    },
+    "Remote management is disabled on this server. Set management.allow-remote to true in its config.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote management is disabled on this server. Set management.allow-remote to true in its config."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zdalne zarządzanie jest na tym serwerze wyłączone. Ustaw management.allow-remote na true w jego konfiguracji."
+          }
+        }
+      }
+    },
+    "Remove the user name and password from the address. Proxy Gauge only sends the key entered below.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove the user name and password from the address. Proxy Gauge only sends the key entered below."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usuń nazwę użytkownika i hasło z adresu. Proxy Gauge wysyła tylko klucz wpisany poniżej."
+          }
+        }
+      }
+    },
+    "Requests": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requests"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapytania"
+          }
+        }
+      }
+    },
+    "Requests in the last 200 minutes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requests in the last 200 minutes"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapytania z ostatnich 200 minut"
+          }
+        }
+      }
+    },
+    "Requests per provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requests per provider"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapytania według dostawcy"
+          }
+        }
+      }
+    },
+    "Reset cooldown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset cooldown"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zakończ wstrzymanie"
+          }
+        }
+      }
+    },
+    "Reset cooldown clears the proxy's local routing block only. It does not reset the provider's quota or spend credits.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset cooldown clears the proxy's local routing block only. It does not reset the provider's quota or spend credits."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zakończenie wstrzymania usuwa tylko lokalną blokadę routingu w proxy. Nie odnawia limitu u dostawcy i nie zużywa kredytów."
+          }
+        }
+      }
+    },
+    "Reset the cooldown?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset the cooldown?"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zakończyć wstrzymanie?"
+          }
+        }
+      }
+    },
+    "Reset time passed; waiting for a new sample": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset time passed; waiting for a new sample"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Czas odnowienia minął; czekam na nową próbkę"
+          }
+        }
+      }
+    },
+    "Resets in %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resets in %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odnowienie za %@"
+          }
+        }
+      }
+    },
+    "Result": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Result"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wynik"
+          }
+        }
+      }
+    },
+    "Round robin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Round robin"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po kolei"
+          }
+        }
+      }
+    },
+    "Routing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routing"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routing"
+          }
+        }
+      }
+    },
+    "Routing strategy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routing strategy"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strategia routingu"
+          }
+        }
+      }
+    },
+    "Sampled %@ ago": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sampled %@ ago"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próbka sprzed %@"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapisz"
+          }
+        }
+      }
+    },
+    "Save anyway": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save anyway"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapisz mimo to"
+          }
+        }
+      }
+    },
+    "Saves the server without a successful check, for example when it is offline right now.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saves the server without a successful check, for example when it is offline right now."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapisuje serwer bez udanego sprawdzenia, na przykład gdy jest teraz niedostępny."
+          }
+        }
+      }
+    },
+    "Server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer"
+          }
+        }
+      }
+    },
+    "Server error %lld: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server error %lld: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Błąd serwera %1$lld: %2$@"
+          }
+        }
+      }
+    },
+    "Server settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server settings"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ustawienia serwera"
+          }
+        }
+      }
+    },
+    "Server time": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server time"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Czas serwera"
+          }
+        }
+      }
+    },
+    "Servers": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servers"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwery"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ustawienia"
+          }
+        }
+      }
+    },
+    "Showing the last saved values": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing the last saved values"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokazuję ostatnio zapisane wartości"
+          }
+        }
+      }
+    },
+    "State": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "State"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stan"
+          }
+        }
+      }
+    },
+    "Stored in this device's Keychain": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stored in this device's Keychain"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapisany w pęku kluczy tego urządzenia"
+          }
+        }
+      }
+    },
+    "Strategy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strategy"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strategia"
+          }
+        }
+      }
+    },
+    "Succeeded": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Succeeded"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Udane"
+          }
+        }
+      }
+    },
+    "The configuration changed on the server in the meantime. The current value is shown now; try again if you still want the change.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The configuration changed on the server in the meantime. The current value is shown now; try again if you still want the change."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "W międzyczasie konfiguracja na serwerze się zmieniła. Widać teraz bieżącą wartość; spróbuj ponownie, jeśli nadal chcesz ją zmienić."
+          }
+        }
+      }
+    },
+    "The default server feeds the widget and the menu bar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The default server feeds the widget and the menu bar."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer domyślny zasila widżet i pasek menu."
+          }
+        }
+      }
+    },
+    "The demo uses built-in sample data shaped like a real server. It makes no network requests.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The demo uses built-in sample data shaped like a real server. It makes no network requests."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demo korzysta z wbudowanych przykładowych danych w formacie prawdziwego serwera. Nie łączy się z siecią."
+          }
+        }
+      }
+    },
+    "The key could not be read from the Keychain right now (%@). Try again in a moment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The key could not be read from the Keychain right now (%@). Try again in a moment."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się teraz odczytać klucza z pęku kluczy (%@). Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
+    "The key could not be removed from the Keychain right now (%@). Try again in a moment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The key could not be removed from the Keychain right now (%@). Try again in a moment."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się teraz usunąć klucza z pęku kluczy (%@). Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
+    "The key could not be saved to the Keychain right now (%@). Try again in a moment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The key could not be saved to the Keychain right now (%@). Try again in a moment."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się teraz zapisać klucza w pęku kluczy (%@). Spróbuj ponownie za chwilę."
+          }
+        }
+      }
+    },
+    "The management key (management.secret-key) unlocks accounts, usage and settings. For remote access the server needs management.allow-remote: true.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The management key (management.secret-key) unlocks accounts, usage and settings. For remote access the server needs management.allow-remote: true."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klucz zarządzania (management.secret-key) daje dostęp do kont, użycia i ustawień. Do zdalnego dostępu serwer potrzebuje management.allow-remote: true."
+          }
+        }
+      }
+    },
+    "The models of this account could not be read.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The models of this account could not be read."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się odczytać modeli tego konta."
+          }
+        }
+      }
+    },
+    "The proxy applies the new strategy to the next requests.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy applies the new strategy to the next requests."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy zastosuje nową strategię do kolejnych zapytań."
+          }
+        }
+      }
+    },
+    "The proxy starts routing requests to this account again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy starts routing requests to this account again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy znów zacznie kierować zapytania do tego konta."
+          }
+        }
+      }
+    },
+    "The proxy stops routing requests to this account until you enable it again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy stops routing requests to this account until you enable it again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy przestanie kierować zapytania do tego konta, dopóki go nie włączysz."
+          }
+        }
+      }
+    },
+    "The proxy will try this account again right away. If the provider still limits it, it will cool down again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy will try this account again right away. If the provider still limits it, it will cool down again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy od razu spróbuje znowu użyć tego konta. Jeśli dostawca nadal je ogranicza, konto znów zostanie wstrzymane."
+          }
+        }
+      }
+    },
+    "The server address is not valid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server address is not valid."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adres serwera jest nieprawidłowy."
+          }
+        }
+      }
+    },
+    "The server and its key are removed from this device. Nothing changes on the server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server and its key are removed from this device. Nothing changes on the server."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer i jego klucz zostaną usunięte z tego urządzenia. Na serwerze nic się nie zmieni."
+          }
+        }
+      }
+    },
+    "The server did not report a configuration version, so this write is unconditional: if someone changed the routing strategy on the server since it was read here, their change is overwritten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server did not report a configuration version, so this write is unconditional: if someone changed the routing strategy on the server since it was read here, their change is overwritten."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer nie podał wersji konfiguracji, więc ten zapis jest bezwarunkowy: jeśli ktoś zmienił strategię routingu na serwerze, odkąd została tu odczytana, jego zmiana zostanie nadpisana."
+          }
+        }
+      }
+    },
+    "The server does not offer this endpoint (HTTP 404). Management may be disabled or the address may include the wrong path.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server does not offer this endpoint (HTTP 404). Management may be disabled or the address may include the wrong path."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer nie udostępnia tego adresu (HTTP 404). Zarządzanie może być wyłączone albo adres zawiera złą ścieżkę."
+          }
+        }
+      }
+    },
+    "The server has temporarily blocked this network address after too many failed key attempts from it, possibly by another client. It accepts keys again at %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server has temporarily blocked this network address after too many failed key attempts from it, possibly by another client. It accepts keys again at %@."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer tymczasowo zablokował ten adres sieciowy po zbyt wielu nieudanych próbach klucza z niego, być może z innego klienta. Ponownie przyjmie klucze o %@."
+          }
+        }
+      }
+    },
+    "The server has temporarily blocked this network address after too many failed key attempts from it, possibly by another client. Try again later.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server has temporarily blocked this network address after too many failed key attempts from it, possibly by another client. Try again later."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer tymczasowo zablokował ten adres sieciowy po zbyt wielu nieudanych próbach klucza z niego, być może z innego klienta. Spróbuj ponownie później."
+          }
+        }
+      }
+    },
+    "The server lists no models.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server lists no models."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer nie podaje żadnych modeli."
+          }
+        }
+      }
+    },
+    "The server rejected the key.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server rejected the key."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer odrzucił klucz."
+          }
+        }
+      }
+    },
+    "The server rejected the key. Open Proxy Gauge to fix it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server rejected the key. Open Proxy Gauge to fix it."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer odrzucił klucz. Otwórz Proxy Gauge, aby go poprawić."
+          }
+        }
+      }
+    },
+    "The server rejected the key: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server rejected the key: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer odrzucił klucz: %@"
+          }
+        }
+      }
+    },
+    "The server reported a conflict: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server reported a conflict: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer zgłosił konflikt: %@"
+          }
+        }
+      }
+    },
+    "The server was not deleted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server was not deleted"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer nie został usunięty"
+          }
+        }
+      }
+    },
+    "The server's config file does not set a routing strategy, so the proxy uses its default, round robin. Choosing one writes it to the config file.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server's config file does not set a routing strategy, so the proxy uses its default, round robin. Choosing one writes it to the config file."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plik konfiguracyjny serwera nie ustawia strategii routingu, więc proxy używa domyślnej: po kolei. Wybór strategii zapisze ją w pliku konfiguracyjnym."
+          }
+        }
+      }
+    },
+    "This provider has not reported quota headers yet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This provider has not reported quota headers yet."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten dostawca nie przesłał jeszcze nagłówków limitów."
+          }
+        }
+      }
+    },
+    "This server answered 404 for /v1/fleet/limits, so it does not share quota with client keys. Stock CLIProxyAPI does not have this endpoint. The model list still works; for quotas, add the server with its management key.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This server answered 404 for /v1/fleet/limits, so it does not share quota with client keys. Stock CLIProxyAPI does not have this endpoint. The model list still works; for quotas, add the server with its management key."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten serwer odpowiedział 404 na /v1/fleet/limits, więc nie udostępnia limitów kluczom klientów. Standardowe CLIProxyAPI nie ma tego adresu. Lista modeli nadal działa; aby widzieć limity, dodaj serwer z kluczem zarządzania."
+          }
+        }
+      }
+    },
+    "This server does not expose its routing strategy through the v8 management API.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This server does not expose its routing strategy through the v8 management API."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten serwer nie udostępnia strategii routingu przez API zarządzania v8."
+          }
+        }
+      }
+    },
+    "This server does not keep a token report. Stock CLIProxyAPI only exposes a one-shot usage queue, which Proxy Gauge leaves alone so it does not take records from other tools.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This server does not keep a token report. Stock CLIProxyAPI only exposes a one-shot usage queue, which Proxy Gauge leaves alone so it does not take records from other tools."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten serwer nie prowadzi raportu tokenów. Standardowe CLIProxyAPI udostępnia tylko jednorazową kolejkę użycia, której Proxy Gauge nie rusza, żeby nie zabierać wpisów innym narzędziom."
+          }
+        }
+      }
+    },
+    "This server shares no quota with client keys.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This server shares no quota with client keys."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten serwer nie udostępnia limitów kluczom klientów."
+          }
+        }
+      }
+    },
+    "Time": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Czas"
+          }
+        }
+      }
+    },
+    "Token refreshed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token refreshed"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token odświeżony"
+          }
+        }
+      }
+    },
+    "Tokens": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tokens"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tokeny"
+          }
+        }
+      }
+    },
+    "Tokens per model, last 7 days": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tokens per model, last 7 days"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tokeny według modelu, ostatnie 7 dni"
+          }
+        }
+      }
+    },
+    "Unexpected response from the server (%@).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unexpected response from the server (%@)."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieoczekiwana odpowiedź serwera (%@)."
+          }
+        }
+      }
+    },
+    "Unknown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieznane"
+          }
+        }
+      }
+    },
+    "Updated %@ ago": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updated %@ ago"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaktualizowano %@ temu"
+          }
+        }
+      }
+    },
+    "Usage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Użycie"
+          }
+        }
+      }
+    },
+    "Use %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Użyj: %@"
+          }
+        }
+      }
+    },
+    "Version": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wersja"
+          }
+        }
+      }
+    },
+    "Weekly": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekly"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tygodniowy"
+          }
+        }
+      }
+    },
+    "Weekly (model)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekly (model)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tygodniowy (model)"
+          }
+        }
+      }
+    },
+    "Weighted round robin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weighted round robin"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po kolei z wagami"
+          }
+        }
+      }
+    },
+    "What the server answered": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What the server answered"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Co odpowiedział serwer"
+          }
+        }
+      }
+    },
+    "What this client key may call, from /v1/models.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What this client key may call, from /v1/models."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modele dostępne dla tego klucza klienta, z /v1/models."
+          }
+        }
+      }
+    },
+    "Whole account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whole account"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Całe konto"
+          }
+        }
+      }
+    },
+    "Write anyway": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write anyway"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapisz mimo to"
+          }
+        }
+      }
+    },
+    "Write without a version check?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write without a version check?"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapisać bez sprawdzenia wersji?"
+          }
+        }
+      }
+    },
+    "until %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "until %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "do %@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
