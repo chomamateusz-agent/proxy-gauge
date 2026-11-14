@@ -40,6 +40,10 @@ extension APIError {
             "Unexpected response from the server (\(detail))."
         case .transport(let detail):
             "Could not reach the server: \(detail)"
+        case .pausedBeforeSending(.keyRejected):
+            "The change was not sent because the server rejected the key while it was waiting. Refresh to check the key, then try the change again."
+        case .pausedBeforeSending(.ipBanned):
+            "The change was not sent because the server blocked this network address while it was waiting. Refresh once the block ends, then try the change again."
         }
     }
 }
@@ -66,6 +70,9 @@ struct NotLoadedRow: View {
             ProgressView()
         case .unavailable:
             Text("Not loaded. See the message above.")
+                .foregroundStyle(.secondary)
+        case .lastAttemptFailed:
+            Text("Not loaded. Refresh to try again.")
                 .foregroundStyle(.secondary)
         case .loaded:
             EmptyView()

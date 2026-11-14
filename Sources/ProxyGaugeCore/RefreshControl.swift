@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Synchronization
 
 public enum RefreshTrigger: Sendable, Equatable {
     case automatic
@@ -65,15 +66,41 @@ public final class RefreshRunner {
         case mutation
     }
 
+    private final class Waiter: Sendable {
+        let trigger: RefreshTrigger
+        let mayBeDropped: Bool
+        private let cancelled = Mutex(false)
+
+        init(trigger: RefreshTrigger, mayBeDropped: Bool) {
+            self.trigger = trigger
+            self.mayBeDropped = mayBeDropped
+        }
+
+        func markCancelled() {
+            cancelled.withLock { $0 = true }
+        }
+
+        var stillWantsTheRefresh: Bool {
+            !(mayBeDropped && cancelled.withLock { $0 })
+        }
+    }
+
     @MainActor
     private final class Turn {
         let operation: Operation
         var task: Task<Void, Never>?
         var start: CheckedContinuation<Void, Never>?
+        var waiters: [Waiter] = []
         var followers: [CheckedContinuation<Void, Never>] = []
 
         init(_ operation: Operation) {
             self.operation = operation
+        }
+
+        var wantedTrigger: RefreshTrigger? {
+            let wanted = waiters.filter(\.stillWantsTheRefresh)
+            guard !wanted.isEmpty else { return nil }
+            return wanted.contains { $0.trigger == .manual } ? .manual : .automatic
         }
     }
 
@@ -95,24 +122,31 @@ public final class RefreshRunner {
     public var isBusy: Bool { current != nil }
 
     public func isPending(_ scope: RefreshScope) -> Bool {
-        turn(for: .refresh(scope)) != nil
+        current?.operation == .refresh(scope) || queue.contains { $0.operation == .refresh(scope) }
     }
 
-    public func run(_ scope: RefreshScope, dropIfCancelled: Bool = false, admit: () -> Bool, work: @escaping @MainActor () async -> Void) async {
-        if let existing = turn(for: .refresh(scope)) {
-            await withCheckedContinuation { existing.followers.append($0) }
-            return
+    public func run(
+        _ scope: RefreshScope,
+        trigger: RefreshTrigger,
+        dropIfCancelled: Bool = false,
+        admit: @escaping @MainActor (RefreshTrigger) -> Bool,
+        work: @escaping @MainActor () async -> Void
+    ) async {
+        let waiter = Waiter(trigger: trigger, mayBeDropped: dropIfCancelled)
+        await withTaskCancellationHandler {
+            if let existing = joinableTurn(for: scope) {
+                await follow(existing, as: waiter)
+            } else {
+                await runOwnTurn(scope, waiter: waiter, admit: admit, work: work)
+            }
+        } onCancel: {
+            waiter.markCancelled()
         }
-        let turn = await enqueue(.refresh(scope))
-        guard !(dropIfCancelled && Task.isCancelled), admit() else {
-            complete(turn)
-            return
-        }
-        await execute(turn, work)
     }
 
     public func exclusive<Value>(_ work: @escaping @MainActor () async throws -> Value) async throws -> Value {
-        let turn = await enqueue(.mutation)
+        let turn = Turn(.mutation)
+        await enqueue(turn)
         let outcome = Outcome<Value>()
         await execute(turn) {
             do {
@@ -129,20 +163,56 @@ public final class RefreshRunner {
         current?.task?.cancel()
     }
 
-    private func turn(for operation: Operation) -> Turn? {
+    private func follow(_ turn: Turn, as waiter: Waiter) async {
+        turn.waiters.append(waiter)
+        await withCheckedContinuation { turn.followers.append($0) }
+    }
+
+    private func runOwnTurn(
+        _ scope: RefreshScope,
+        waiter: Waiter,
+        admit: @escaping @MainActor (RefreshTrigger) -> Bool,
+        work: @escaping @MainActor () async -> Void
+    ) async {
+        let turn = Turn(.refresh(scope))
+        turn.waiters = [waiter]
+        await enqueue(turn)
+        guard let trigger = turn.wantedTrigger, admit(trigger) else {
+            complete(turn)
+            return
+        }
+        await execute(turn) {
+            await work()
+            if Self.manualRetryIsWanted(after: trigger, by: turn, admit: admit) {
+                await work()
+            }
+        }
+    }
+
+    private static func manualRetryIsWanted(after trigger: RefreshTrigger, by turn: Turn, admit: (RefreshTrigger) -> Bool) -> Bool {
+        trigger == .automatic
+            && turn.wantedTrigger == .manual
+            && !Task.isCancelled
+            && !admit(.automatic)
+            && admit(.manual)
+    }
+
+    private func joinableTurn(for scope: RefreshScope) -> Turn? {
+        let operation = Operation.refresh(scope)
+        if let lastMutation = queue.lastIndex(where: { $0.operation == .mutation }) {
+            return queue[(lastMutation + 1)...].first { $0.operation == operation }
+        }
         if let current, current.operation == operation { return current }
         return queue.first { $0.operation == operation }
     }
 
-    private func enqueue(_ operation: Operation) async -> Turn {
-        let turn = Turn(operation)
+    private func enqueue(_ turn: Turn) async {
         guard current != nil else {
             current = turn
-            return turn
+            return
         }
         queue.append(turn)
         await withCheckedContinuation { turn.start = $0 }
-        return turn
     }
 
     private func execute(_ turn: Turn, _ work: @escaping @MainActor () async -> Void) async {

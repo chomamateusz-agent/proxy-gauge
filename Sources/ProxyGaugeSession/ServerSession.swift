@@ -7,6 +7,7 @@ public enum LoadPhase: Sendable {
     case loading
     case loaded
     case unavailable
+    case lastAttemptFailed
 }
 
 @MainActor
@@ -20,6 +21,8 @@ public final class ServerSession {
     @ObservationIgnored private let transport: any HTTPTransport
     @ObservationIgnored private var cachedConnection: ServerConnection?
     @ObservationIgnored private var isRetired = false
+    @ObservationIgnored private var authFailuresSeen = 0
+    @ObservationIgnored private var lastAuthPauseReason: AuthPauseReason = .keyRejected
     private let runner = RefreshRunner()
     @ObservationIgnored public var onHeadroomUpdate: ((HeadroomSnapshot) -> Void)?
 
@@ -47,6 +50,7 @@ public final class ServerSession {
     public private(set) var authError: APIError?
     public private(set) var connectionError: APIError?
     public private(set) var scopeErrors: [RefreshScope: APIError] = [:]
+    private var scopesWhoseLastLoadFailed: Set<RefreshScope> = []
 
     public init(profile: ServerProfile, secrets: any SecretStore, latchStore: ProfileStore?, transport: any HTTPTransport = URLSessionTransport()) {
         self.profile = profile
@@ -76,6 +80,7 @@ public final class ServerSession {
         if loaded { return .loaded }
         if runner.isPending(scope) { return .loading }
         if failure(for: scope) != nil || isAutomaticRefreshPaused { return .unavailable }
+        if scopesWhoseLastLoadFailed.contains(scope) { return .lastAttemptFailed }
         return .loading
     }
 
@@ -100,20 +105,24 @@ public final class ServerSession {
     }
 
     public func refresh(_ scope: RefreshScope, trigger: RefreshTrigger, dropIfCancelled: Bool = false) async {
-        await runner.run(scope, dropIfCancelled: dropIfCancelled, admit: { admit(trigger) }) { [self] in
+        await runner.run(scope, trigger: trigger, dropIfCancelled: dropIfCancelled, admit: { [self] in admit($0) }) { [self] in
             await load(scope)
         }
     }
 
     private func load(_ scope: RefreshScope) async {
-        guard !isRetired, let live = liveConnection() else { return }
+        guard !isRetired else { return }
+        guard let live = liveConnection() else {
+            markLastLoadFailed(scope)
+            return
+        }
         do {
             try await ScopeLoader.load(scope, authMode: profile.authMode, management: live.management, client: live.client) { [self] stage in
                 await apply(stage)
             }
             guard !isRetired else { return }
-            scopeErrors[scope] = nil
-            if case .accountModels = scope {} else { lastRefresh = .now }
+            markLoaded(scope)
+            if !scope.isPerAccount { lastRefresh = .now }
         } catch is CancellationError {
             return
         } catch {
@@ -134,12 +143,22 @@ public final class ServerSession {
     }
 
     private func recordLoadFailure(_ failure: APIError, scope: RefreshScope) {
+        markLastLoadFailed(scope)
+        if !failure.isAuthenticationFailure, !scope.isPerAccount { scopeErrors[scope] = failure }
+        recordAuthFailure(failure)
+    }
+
+    private func markLastLoadFailed(_ scope: RefreshScope) {
         if case .accountModels(let name) = scope {
             accountModelsFailed.insert(name)
         } else {
-            scopeErrors[scope] = failure
+            scopesWhoseLastLoadFailed.insert(scope)
         }
-        recordAuthFailure(failure)
+    }
+
+    private func markLoaded(_ scope: RefreshScope) {
+        scopeErrors[scope] = nil
+        scopesWhoseLastLoadFailed.remove(scope)
     }
 
     private func apply(_ data: ScopeData) {
@@ -186,7 +205,7 @@ public final class ServerSession {
             keyCountersError = error
         }
         accountsLoaded = true
-        scopeErrors[.accounts] = nil
+        markLoaded(.accounts)
         publishHeadroom()
     }
 
@@ -238,9 +257,14 @@ public final class ServerSession {
     }
 
     private func mutate(_ work: @escaping @MainActor (ServerConnection) async throws -> Void) async throws {
+        syncLatchFromStore()
+        let authFailuresAtSubmit = authFailuresSeen
         try await runner.exclusive { [self] in
             guard !isRetired else { throw CancellationError() }
             syncLatchFromStore()
+            if authFailuresSeen != authFailuresAtSubmit {
+                throw APIError.pausedBeforeSending(lastAuthPauseReason)
+            }
             let live = try connection()
             do {
                 try await work(live)
@@ -259,6 +283,8 @@ public final class ServerSession {
     private func recordAuthFailure(_ failure: APIError) {
         guard failure.isAuthenticationFailure, !isRetired else { return }
         authError = failure
+        authFailuresSeen += 1
+        if let reason = failure.authPauseReason { lastAuthPauseReason = reason }
         updateLatch { $0.record(failure) }
     }
 
@@ -280,6 +306,10 @@ public final class ServerSession {
 
     private func syncLatchFromStore() {
         guard !profile.isDemo, let stored = latchStore?.authFailureLatch(for: profile.id, generation: latchGeneration), stored != authLatch else { return }
+        if let reason = stored.pauseReason {
+            authFailuresSeen += 1
+            lastAuthPauseReason = reason
+        }
         authLatch = stored
     }
 
@@ -310,5 +340,11 @@ public final class ServerSession {
             source: source,
             providers: headroom
         ))
+    }
+}
+
+private extension RefreshScope {
+    var isPerAccount: Bool {
+        if case .accountModels = self { true } else { false }
     }
 }

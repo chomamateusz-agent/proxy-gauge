@@ -50,9 +50,9 @@ actor DemoServer {
         accounts = DemoServer.initialAccounts
     }
 
-    static let claudeModels = ["claude-opus-4-1", "claude-sonnet-4-5", "claude-haiku-4-5"]
-    static let codexModels = ["gpt-5-codex", "gpt-5", "gpt-5-mini"]
-    static let geminiModels = ["gemini-2.5-pro", "gemini-2.5-flash"]
+    static let claudeModels = ["claude-opus-5-5", "claude-sonnet-5-5"]
+    static let codexModels = ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna"]
+    static let geminiModels = ["gemini-3-pro", "gemini-3-flash"]
 
     static let initialAccounts: [DemoAccount] = [
         DemoAccount(name: "claude-studio.json", authIndex: "a1f3c9", provider: "claude", email: "studio@example.com", label: "Studio", plan: "max", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 42, weeklyUsed: 63, weeklyModelUsed: 18, sessionResetMinutes: 134, weeklyResetHours: 61, success: 18_402, failed: 211, seed: 3, models: claudeModels),
@@ -105,7 +105,7 @@ actor DemoServer {
         var headers = ["Content-Type": "application/json; charset=utf-8"]
         if versioned {
             headers["X-CPA-VERSION"] = "8.0.69"
-            headers["X-CPA-COMMIT"] = "demo"
+            headers["X-CPA-COMMIT"] = "c41d9e07"
             headers["X-CPA-BUILD-DATE"] = "2026-11-12T18:27:10Z"
         }
         return HTTPResponse(statusCode: 200, headers: headers, body: data)
@@ -166,7 +166,7 @@ actor DemoServer {
         let name = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "name" }?.value
         guard let name, !name.isEmpty else { return failure(400, "name is required") }
         let models = accounts.first { $0.name == name }?.models ?? []
-        return json(["models": models.map { ["id": $0, "display_name": $0, "type": "chat", "owned_by": "demo"] }])
+        return json(["models": models.map { ["id": $0, "display_name": $0, "type": "chat", "owned_by": ownerOf($0)] }])
     }
 
     private func credentialList(now: Date) -> [String: Any] {
@@ -333,12 +333,12 @@ actor DemoServer {
             "granularity": "hour",
             "keys": [
                 key("laptop", [
-                    model("claude", "claude-sonnet-4-5", 4_210, 18_400_000, 2_100_000, 0, 41_000_000),
-                    model("codex", "gpt-5-codex", 1_880, 9_700_000, 1_400_000, 820_000, 12_500_000)
+                    model("claude", "claude-sonnet-5-5", 4_210, 18_400_000, 2_100_000, 0, 41_000_000),
+                    model("codex", "gpt-6.1-sol", 1_880, 9_700_000, 1_400_000, 820_000, 12_500_000)
                 ]),
                 key("ci-runner", [
-                    model("claude", "claude-haiku-4-5", 6_020, 7_900_000, 640_000, 0, 3_100_000),
-                    model("gemini-cli", "gemini-2.5-flash", 990, 2_200_000, 310_000, 120_000, 0)
+                    model("codex", "gpt-6-luna", 6_020, 7_900_000, 640_000, 0, 3_100_000),
+                    model("gemini-cli", "gemini-3-flash", 990, 2_200_000, 310_000, 120_000, 0)
                 ])
             ]
         ]
@@ -397,7 +397,7 @@ actor DemoServer {
                 ["id": id, "providers": Array(Set(visible.filter { $0.models.contains(id) }.map(\.provider))).sorted()]
             },
             "exclusions": [
-                ["pattern": "claude-opus-4-1", "provider": "claude", "source": "key-policy", "until": NSNull(), "until_source": NSNull()]
+                ["pattern": "claude-opus-5-5", "provider": "claude", "source": "key-policy", "until": NSNull(), "until_source": NSNull()]
             ],
             "credentials": credentials,
             "summary": summary

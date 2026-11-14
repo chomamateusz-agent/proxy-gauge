@@ -8,6 +8,9 @@ struct RootView: View {
     @State private var showingAppSettings = false
     @State private var pendingDeletion: ServerProfile?
     @State private var deletionError: Error?
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     var body: some View {
         NavigationSplitView {
@@ -32,6 +35,11 @@ struct RootView: View {
         .autoRefresh(every: autoRefreshInterval, target: autoRefreshTarget) {
             await refreshSelection(trigger: .automatic)
         }
+        #if os(iOS)
+        .onChange(of: horizontalSizeClass, initial: true) { _, sizeClass in
+            model.usesCollapsedNavigation = sizeClass == .compact
+        }
+        #endif
         .sheet(item: $editor) { target in
             ServerEditor(target: target)
         }
@@ -116,6 +124,9 @@ struct RootView: View {
             }
         }
         .navigationTitle("Servers")
+        .onAppear {
+            if model.usesCollapsedNavigation { model.selectedServerID = nil }
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Add server", systemImage: "plus") { editor = .add }
@@ -207,6 +218,9 @@ struct SectionList: View {
             }
         }
         .navigationTitle(Text(verbatim: profile.isDemo ? String(localized: "Demo server") : profile.name))
+        .onAppear {
+            if model.usesCollapsedNavigation { model.selectedSection = nil }
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Edit server", systemImage: "pencil", action: onEdit)

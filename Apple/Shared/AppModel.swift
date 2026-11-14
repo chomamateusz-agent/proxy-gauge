@@ -69,6 +69,8 @@ final class AppModel {
     private(set) var settings: StoredSettings
     var selectedServerID: UUID?
     var selectedSection: ServerSection?
+    // A collapsed split view keeps a list's selection after going back, so the lists clear it when shown again or tapping the same row would not navigate.
+    var usesCollapsedNavigation = false
 
     init(store: ProfileStore = ProfileStore(), secrets: any SecretStore = KeychainSecretStore()) {
         self.store = store
@@ -102,7 +104,7 @@ final class AppModel {
 
     func select(_ profile: ServerProfile) {
         selectedServerID = profile.id
-        selectedSection = ServerSection.sections(for: profile.authMode).first
+        selectedSection = usesCollapsedNavigation ? nil : ServerSection.sections(for: profile.authMode).first
     }
 
     func save(_ profile: ServerProfile, secret: String?, pausedBy pauseReason: AuthPauseReason? = nil) throws {

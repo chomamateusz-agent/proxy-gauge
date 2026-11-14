@@ -7,6 +7,15 @@ public struct UsageBucket: Sendable, Equatable, Identifiable {
     public var failed: Int64
 
     public var id: Int { index }
+
+    public var startClockTime: DateComponents? {
+        let parts = (label.split(separator: "-").first ?? "").split(separator: ":")
+        guard parts.count == 2,
+              let hour = Int(parts[0]), (0..<24).contains(hour),
+              let minute = Int(parts[1]), (0..<60).contains(minute)
+        else { return nil }
+        return DateComponents(hour: hour, minute: minute)
+    }
 }
 
 public struct ProviderRequestTotals: Sendable, Equatable, Identifiable {

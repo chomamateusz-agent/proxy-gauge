@@ -11,14 +11,18 @@ struct UsageView: View {
         List {
             SessionStatusSection(session: session, scope: .usage)
             Section {
-                HStack(spacing: 12) {
-                    StatTile(title: "Requests", value: summary.total)
-                    StatTile(title: "Failed", value: summary.failed, tint: summary.failed > 0 ? .red : .secondary)
-                }
-                if let rate = summary.failureRate {
-                    LabeledContent("Failure rate") {
-                        Text(rate, format: .percent.precision(.fractionLength(1)))
+                if session.accountsLoaded {
+                    HStack(spacing: 12) {
+                        StatTile(title: "Requests", value: summary.total)
+                        StatTile(title: "Failed", value: summary.failed, tint: summary.failed > 0 ? .red : .secondary)
                     }
+                    if let rate = summary.failureRate {
+                        LabeledContent("Failure rate") {
+                            Text(rate, format: .percent.precision(.fractionLength(1)))
+                        }
+                    }
+                } else {
+                    NotLoadedRow(phase: session.loadPhase(for: .usage, loaded: false))
                 }
             } header: {
                 Text("Requests")
@@ -37,17 +41,19 @@ struct UsageView: View {
                         .padding(.vertical, 4)
                 }
             }
-            Section("Requests per provider") {
-                ForEach(summary.providers) { provider in
-                    HStack {
-                        ProviderBadge(provider: provider.provider, size: 22)
-                        Text(ProviderCatalog.displayName(provider.provider))
-                        Spacer()
-                        Text(provider.total, format: .number).monospacedDigit()
-                        if provider.failed > 0 {
-                            Text("(\(provider.failed) failed)")
-                                .font(.caption)
-                                .foregroundStyle(.red)
+            if !summary.providers.isEmpty {
+                Section("Requests per provider") {
+                    ForEach(summary.providers) { provider in
+                        HStack {
+                            ProviderBadge(provider: provider.provider, size: 22)
+                            Text(ProviderCatalog.displayName(provider.provider))
+                            Spacer()
+                            Text(provider.total, format: .number).monospacedDigit()
+                            if provider.failed > 0 {
+                                Text("(\(provider.failed) failed)")
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
                         }
                     }
                 }

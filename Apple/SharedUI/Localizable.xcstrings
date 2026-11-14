@@ -1825,6 +1825,22 @@
         }
       }
     },
+    "Not loaded. Refresh to try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not loaded. Refresh to try again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie wczytano. Odśwież, aby spróbować ponownie."
+          }
+        }
+      }
+    },
     "Not loaded. See the message above.": {
       "localizations": {
         "en": {
@@ -2621,6 +2637,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Udane"
+          }
+        }
+      }
+    },
+    "The change was not sent because the server blocked this network address while it was waiting. Refresh once the block ends, then try the change again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The change was not sent because the server blocked this network address while it was waiting. Refresh once the block ends, then try the change again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zmiana nie została wysłana, bo w czasie oczekiwania serwer zablokował ten adres sieciowy. Odśwież, gdy blokada minie, a potem spróbuj zmiany ponownie."
+          }
+        }
+      }
+    },
+    "The change was not sent because the server rejected the key while it was waiting. Refresh to check the key, then try the change again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The change was not sent because the server rejected the key while it was waiting. Refresh to check the key, then try the change again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zmiana nie została wysłana, bo w czasie oczekiwania serwer odrzucił klucz. Odśwież, aby sprawdzić klucz, a potem spróbuj zmiany ponownie."
           }
         }
       }

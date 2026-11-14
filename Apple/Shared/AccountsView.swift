@@ -9,14 +9,20 @@ struct AccountsView: View {
     var body: some View {
         List {
             SessionStatusSection(session: session, scope: .accounts)
-            Section {
-                Picker("State", selection: $filter) {
-                    Text("All").tag(CredentialState?.none)
-                    ForEach(CredentialState.allCases, id: \.self) { state in
-                        Text(state.label).tag(CredentialState?.some(state))
+            if session.accountsLoaded {
+                Section {
+                    Picker("State", selection: $filter) {
+                        Text("All").tag(CredentialState?.none)
+                        ForEach(CredentialState.allCases, id: \.self) { state in
+                            Text(state.label).tag(CredentialState?.some(state))
+                        }
                     }
+                    .pickerStyle(.menu)
                 }
-                .pickerStyle(.menu)
+            } else {
+                Section {
+                    NotLoadedRow(phase: session.loadPhase(for: .accounts, loaded: false))
+                }
             }
             ForEach(groups, id: \.provider) { group in
                 Section {

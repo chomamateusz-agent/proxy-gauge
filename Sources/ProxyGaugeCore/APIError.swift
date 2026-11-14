@@ -13,6 +13,7 @@ public enum APIError: Error, Equatable, Sendable {
     case server(status: Int, message: String?)
     case decoding(String)
     case transport(String)
+    case pausedBeforeSending(AuthPauseReason)
 
     public var serverMessage: String? {
         switch self {
@@ -22,7 +23,7 @@ public enum APIError: Error, Equatable, Sendable {
             message
         case .decoding(let detail), .transport(let detail), .credentialUnavailable(let detail):
             detail
-        case .invalidBaseURL, .missingCredential, .preconditionFailed, .ipBanned:
+        case .invalidBaseURL, .missingCredential, .preconditionFailed, .ipBanned, .pausedBeforeSending:
             nil
         }
     }

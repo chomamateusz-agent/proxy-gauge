@@ -181,6 +181,18 @@ struct UsageSummaryTests {
         #expect(summary.failureRate == 3.0 / 25.0)
     }
 
+    @Test(arguments: [
+        ("22:00-22:10", DateComponents(hour: 22, minute: 0)),
+        ("09:50-10:00", DateComponents(hour: 9, minute: 50)),
+        ("7:05-7:15", DateComponents(hour: 7, minute: 5)),
+        ("", nil),
+        ("24:00-00:10", nil),
+        ("noon-later", nil)
+    ])
+    func bucketStartTimeIsReadFromTheServerLabel(label: String, expected: DateComponents?) {
+        #expect(UsageBucket(index: 0, label: label, success: 0, failed: 0).startClockTime == expected)
+    }
+
     @Test func emptyServerHasNoFailureRate() {
         let summary = UsageSummary.from(credentials: [], keyCounters: [])
         #expect(summary.failureRate == nil)

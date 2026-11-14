@@ -39,7 +39,10 @@ icon:
 testflight-confirm:
 	@test -n "$(CONFIRM)" || { echo "Refusing to upload: run make testflight CONFIRM=<bundle id> after checking the build." >&2; exit 2; }; test -f "$(ASC_ENV)" || { echo "Missing $(ASC_ENV)" >&2; exit 2; }
 
-testflight: testflight-confirm test build-ios build-mac
+testflight: testflight-confirm
+	$(MAKE) test
+	$(MAKE) build-ios
+	$(MAKE) build-mac
 	@set -eu; set -a; . "$(ASC_ENV)"; set +a; bash scripts/appstore-upload.sh --confirm "$(CONFIRM)" --platform "$(PLATFORM)"
 
 bump:
