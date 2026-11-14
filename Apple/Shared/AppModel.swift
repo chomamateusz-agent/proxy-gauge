@@ -59,6 +59,24 @@ enum ServerSection: String, Hashable, CaseIterable, Identifiable {
     }
 }
 
+enum NavigationStyle {
+    case split
+    case stack
+}
+
+enum StackRoute: Hashable {
+    case server(UUID)
+    case section(ServerSection)
+
+    var serverID: UUID? {
+        if case .server(let id) = self { id } else { nil }
+    }
+
+    var section: ServerSection? {
+        if case .section(let section) = self { section } else { nil }
+    }
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -69,8 +87,7 @@ final class AppModel {
     private(set) var settings: StoredSettings
     var selectedServerID: UUID?
     var selectedSection: ServerSection?
-    // A collapsed split view keeps a list's selection after going back, so the lists clear it when shown again or tapping the same row would not navigate.
-    var usesCollapsedNavigation = false
+    private(set) var navigationStyle: NavigationStyle?
 
     init(store: ProfileStore = ProfileStore(), secrets: any SecretStore = KeychainSecretStore()) {
         self.store = store
@@ -104,7 +121,27 @@ final class AppModel {
 
     func select(_ profile: ServerProfile) {
         selectedServerID = profile.id
-        selectedSection = usesCollapsedNavigation ? nil : ServerSection.sections(for: profile.authMode).first
+        selectedSection = navigationStyle == .stack ? nil : ServerSection.sections(for: profile.authMode).first
+    }
+
+    func adopt(_ style: NavigationStyle) {
+        let launchesOnStack = navigationStyle == nil && style == .stack
+        navigationStyle = style
+        if launchesOnStack {
+            selectedServerID = nil
+            selectedSection = nil
+        }
+    }
+
+    var stackPath: [StackRoute] {
+        get {
+            guard navigationStyle == .stack, let profile = selectedProfile else { return [] }
+            return [.server(profile.id)] + (selectedSection.map { [.section($0)] } ?? [])
+        }
+        set {
+            selectedServerID = newValue.lazy.compactMap(\.serverID).first
+            selectedSection = newValue.lazy.compactMap(\.section).first
+        }
     }
 
     func save(_ profile: ServerProfile, secret: String?, pausedBy pauseReason: AuthPauseReason? = nil) throws {

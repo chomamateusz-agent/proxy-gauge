@@ -193,6 +193,22 @@ struct UsageSummaryTests {
         #expect(UsageBucket(index: 0, label: label, success: 0, failed: 0).startClockTime == expected)
     }
 
+    @Test(arguments: ["02:00-02:10", "02:10-02:20", "02:20-02:30", "02:30-02:40"])
+    func bucketLabelsKeepTheirHourWhenTheDeviceSkipsItForDaylightSaving(label: String) {
+        let bucket = UsageBucket(index: 0, label: label, success: 0, failed: 0)
+        #expect(bucket.startClockLabel(locale: Locale(identifier: "pl_PL")) == String(label.prefix(5)))
+    }
+
+    @Test func bucketLabelsFollowTheTwelveHourSetting() {
+        let shown = UsageBucket(index: 0, label: "22:10-22:20", success: 0, failed: 0).startClockLabel(locale: Locale(identifier: "en_US"))
+        #expect(shown.hasPrefix("10:10"))
+        #expect(shown.hasSuffix("PM"))
+    }
+
+    @Test func unreadableBucketLabelsAreShownAsSent() {
+        #expect(UsageBucket(index: 0, label: "noon-later", success: 0, failed: 0).startClockLabel(locale: Locale(identifier: "en_US")) == "noon-later")
+    }
+
     @Test func emptyServerHasNoFailureRate() {
         let summary = UsageSummary.from(credentials: [], keyCounters: [])
         #expect(summary.failureRate == nil)

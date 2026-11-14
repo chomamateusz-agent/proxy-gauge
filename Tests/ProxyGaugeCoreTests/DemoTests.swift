@@ -34,6 +34,12 @@ struct DemoTests {
         #expect(TokenUsageSummary.from(usage).models.count == 4)
     }
 
+    @Test func serverTimeFollowsTheDeviceClock() async throws {
+        let deviceNow = Date(timeIntervalSince1970: 1_794_000_000)
+        let credentials = try await management(DemoTransport(clock: { deviceNow })).credentials()
+        #expect(credentials.value.observedAt == deviceNow)
+    }
+
     @Test func mutationsPersistWithinTheSession() async throws {
         let transport = DemoTransport()
         let client = management(transport)
@@ -57,6 +63,8 @@ struct DemoTests {
         let limits = try #require(try await client.fleetLimits())
         #expect(limits.object == "fleet.limits")
         #expect(limits.credentials.contains { $0.credits != nil })
+        #expect(limits.exclusions.map(\.pattern) == ["claude-haiku-5-5"])
+        #expect(limits.models.contains { $0.id == "claude-opus-5-5" })
         let headroom = HeadroomCalculator.fromFleet(limits)
         #expect(headroom.first { $0.provider == "claude" }?.headroomPercent == 66)
     }

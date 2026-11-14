@@ -27,7 +27,9 @@ struct UsageView: View {
             } header: {
                 Text("Requests")
             } footer: {
-                if session.keyCountersError != nil {
+                if !session.accountsLoaded {
+                    EmptyView()
+                } else if session.keyCountersError != nil {
                     Text("Counted by the proxy since it started. The upstream API-key counters could not be refreshed, so their share may be out of date.")
                         .foregroundStyle(.orange)
                 } else {

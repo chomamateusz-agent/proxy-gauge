@@ -221,6 +221,7 @@ struct AccountDetailView: View {
 }
 
 struct RecentRequestsChart: View {
+    @Environment(\.locale) private var locale
     let buckets: [UsageBucket]
 
     var body: some View {
@@ -238,19 +239,12 @@ struct RecentRequestsChart: View {
                 AxisGridLine()
                 AxisValueLabel {
                     if let index = value.as(Int.self), buckets.indices.contains(index) {
-                        axisLabel(for: buckets[index])
+                        Text(verbatim: buckets[index].startClockLabel(locale: locale))
                     }
                 }
             }
         }
         .accessibilityLabel(Text("Requests in the last 200 minutes"))
-    }
-
-    private func axisLabel(for bucket: UsageBucket) -> Text {
-        guard let start = bucket.startClockTime, let hour = start.hour, let minute = start.minute,
-              let date = Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: .now)
-        else { return Text(verbatim: bucket.label) }
-        return Text(date, format: .dateTime.hour().minute())
     }
 
     private var axisValues: [Int] {

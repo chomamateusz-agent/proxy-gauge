@@ -31,8 +31,8 @@ struct OverviewView: View {
                     }
                 }
             }
+            let headroom = session.headroom
             Section {
-                let headroom = session.headroom
                 if headroom.isEmpty {
                     if session.accountsLoaded {
                         Text("No accounts on this server yet.")
@@ -48,7 +48,9 @@ struct OverviewView: View {
             } header: {
                 Text("Headroom per provider")
             } footer: {
-                Text("Best remaining quota across usable accounts, from rate-limit headers the proxy already observed. Proxy Gauge never asks providers for quota.")
+                if session.accountsLoaded && !headroom.isEmpty {
+                    Text("Best remaining quota across usable accounts, from rate-limit headers the proxy already observed. Proxy Gauge never asks providers for quota.")
+                }
             }
             let accountCounts = session.accountCounts
             if !accountCounts.isEmpty {

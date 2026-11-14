@@ -50,7 +50,7 @@ actor DemoServer {
         accounts = DemoServer.initialAccounts
     }
 
-    static let claudeModels = ["claude-opus-5-5", "claude-sonnet-5-5"]
+    static let claudeModels = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
     static let codexModels = ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna"]
     static let geminiModels = ["gemini-3-pro", "gemini-3-flash"]
 
@@ -397,7 +397,7 @@ actor DemoServer {
                 ["id": id, "providers": Array(Set(visible.filter { $0.models.contains(id) }.map(\.provider))).sorted()]
             },
             "exclusions": [
-                ["pattern": "claude-opus-5-5", "provider": "claude", "source": "key-policy", "until": NSNull(), "until_source": NSNull()]
+                ["pattern": "claude-haiku-5-5", "provider": "claude", "source": "key-policy", "until": NSNull(), "until_source": NSNull()]
             ],
             "credentials": credentials,
             "summary": summary

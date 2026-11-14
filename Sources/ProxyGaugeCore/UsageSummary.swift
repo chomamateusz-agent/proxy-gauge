@@ -16,6 +16,17 @@ public struct UsageBucket: Sendable, Equatable, Identifiable {
         else { return nil }
         return DateComponents(hour: hour, minute: minute)
     }
+
+    public func startClockLabel(locale: Locale) -> String {
+        guard let start = startClockDate else { return label }
+        return start.formatted(Date.FormatStyle(locale: locale, timeZone: .gmt).hour().minute())
+    }
+
+    private var startClockDate: Date? {
+        guard let start = startClockTime, let hour = start.hour, let minute = start.minute else { return nil }
+        let secondsIntoReferenceDayInGMT = TimeInterval(hour * 3_600 + minute * 60)
+        return Date(timeIntervalSinceReferenceDate: secondsIntoReferenceDayInGMT)
+    }
 }
 
 public struct ProviderRequestTotals: Sendable, Equatable, Identifiable {
