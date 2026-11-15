@@ -64,6 +64,15 @@ struct MenuBarContent: View {
             ForEach(headroom) { provider in
                 ProviderHeadroomRow(headroom: provider)
             }
+            let pools = session.pools.filter { !$0.windows.isEmpty }
+            if !pools.isEmpty {
+                Divider()
+                Text("Pooled capacity")
+                    .font(.subheadline.weight(.semibold))
+                ForEach(pools) { pool in
+                    PooledProviderRow(pool: pool, compact: true)
+                }
+            }
             Divider()
             HStack {
                 Button("Open Proxy Gauge") {

@@ -86,7 +86,7 @@ public struct FleetBar: Decodable, Sendable, Equatable {
     }
 
     public var quotaBar: QuotaBar {
-        QuotaBar(id: id, usedPercent: resetPassed ? 0 : percent, status: status, resetsAt: resetPassed ? nil : resetsAt, sampledAt: sampledAt)
+        QuotaBar(id: id, usedPercent: resetPassed ? 0 : percent, status: resetPassed ? nil : status, resetsAt: resetPassed ? nil : resetsAt, sampledAt: sampledAt)
     }
 }
 

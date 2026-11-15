@@ -115,6 +115,21 @@ struct ServerSessionTests {
         #expect(!session.isAutomaticRefreshPaused)
     }
 
+    @Test func publishedSnapshotCarriesThePooledCapacityTheAppShows() async throws {
+        let harness = SessionHarness()
+        let session = harness.makeSession()
+        var published: [HeadroomSnapshot] = []
+        session.onHeadroomUpdate = { published.append($0) }
+
+        await session.refresh(.accounts, trigger: .automatic)
+
+        let snapshot = try #require(published.last)
+        #expect(snapshot.serverID == harness.profile.id)
+        #expect(snapshot.poolAccounts.count == 1)
+        #expect(snapshot.pools(at: .now) == session.pools)
+        #expect(session.pools.first?.accounts == 1)
+    }
+
     @Test func failedSectionStaysUnavailableWhenAnotherSectionSucceeds() async {
         let harness = SessionHarness()
         harness.server.overrides[Self.routing] = HTTPResponse(statusCode: 500, body: Data())

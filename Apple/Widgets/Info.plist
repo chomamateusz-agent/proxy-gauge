@@ -18,4 +18,5 @@
     </dict>
     <key>ProxyGaugeAppGroup</key><string>$(APP_GROUP_IDENTIFIER)</string>
     <key>ProxyGaugeKeychainGroup</key><string>$(KEYCHAIN_ACCESS_GROUP)</string>
+    <key>ProxyGaugeURLScheme</key><string>$(APP_URL_SCHEME)</string>
 </dict></plist>

@@ -22,6 +22,7 @@ struct RootView: View {
                 model.adopt(sizeClass == .compact ? .stack : .split)
             }
         #endif
+            .onOpenURL { model.open($0) }
             .sheet(item: $editor) { target in
                 ServerEditor(target: target)
             }

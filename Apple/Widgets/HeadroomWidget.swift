@@ -8,6 +8,7 @@ import WidgetKit
 struct ProxyGaugeWidgets: WidgetBundle {
     var body: some Widget {
         HeadroomWidget()
+        PooledCapacityWidget()
     }
 }
 
@@ -21,11 +22,10 @@ struct HeadroomEntry: TimelineEntry {
     var snapshot: HeadroomSnapshot?
     var isStale: Bool
     var pauseReason: AuthPauseReason?
+    var link: URL?
 }
 
 struct HeadroomTimelineProvider: AppIntentTimelineProvider {
-    static let refreshInterval: TimeInterval = 15 * 60
-
     func placeholder(in context: Context) -> HeadroomEntry {
         HeadroomEntry(date: .now, snapshot: Self.sample, isStale: false)
     }
@@ -34,37 +34,20 @@ struct HeadroomTimelineProvider: AppIntentTimelineProvider {
         if context.isPreview {
             return placeholder(in: context)
         }
-        return await loadEntry()
+        return await entries().first ?? placeholder(in: context)
     }
 
     func timeline(for configuration: HeadroomWidgetIntent, in context: Context) async -> Timeline<HeadroomEntry> {
-        let entry = await loadEntry()
-        return Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(Self.refreshInterval)))
+        Timeline(entries: await entries(), policy: .after(.now.addingTimeInterval(WidgetRefreshPolicy.interval)))
     }
 
-    private func loadEntry() async -> HeadroomEntry {
-        let store = ProfileStore()
-        let profile = store.load().defaultProfile
-        let latchGeneration = store.authGeneration(for: profile.id)
-        var latch = profile.isDemo ? AuthFailureLatch() : store.authFailureLatch(for: profile.id, generation: latchGeneration)
-        guard latch.admit(.automatic) else { return cachedEntry(store, profile, pauseReason: latch.pauseReason) }
-        do {
-            let connection = try ServerConnection(profile: profile, secretStore: KeychainSecretStore(), liveTransport: URLSessionTransport(timeout: 12))
-            let snapshot = try await HeadroomLoader.load(profile: profile, secret: connection.secret, transport: connection.transport)
-            store.saveSnapshot(snapshot)
-            return HeadroomEntry(date: .now, snapshot: snapshot, isStale: false)
-        } catch {
-            latch.record(APIError.wrapping(error))
-            if latch.isBlocked && !profile.isDemo {
-                store.saveAuthFailureLatch(latch, for: profile.id, generation: latchGeneration)
-            }
-            return cachedEntry(store, profile, pauseReason: latch.pauseReason)
+    private func entries() async -> [HeadroomEntry] {
+        let profile = WidgetData.profile(nil)
+        let link = WidgetData.overviewLink(profile)
+        let entries = await WidgetData.timeline(for: profile) { date, result in
+            HeadroomEntry(date: date, snapshot: result.snapshot, isStale: result.isStale, pauseReason: result.pauseReason, link: link)
         }
-    }
-
-    private func cachedEntry(_ store: ProfileStore, _ profile: ServerProfile, pauseReason: AuthPauseReason?) -> HeadroomEntry {
-        let cached = store.loadSnapshot().flatMap { $0.serverID == profile.id ? $0 : nil }
-        return HeadroomEntry(date: .now, snapshot: cached, isStale: true, pauseReason: pauseReason)
+        return Array(entries.prefix(1))
     }
 
     static let sample = HeadroomSnapshot(
@@ -86,6 +69,7 @@ struct HeadroomWidget: Widget {
         AppIntentConfiguration(kind: "HeadroomWidget", intent: HeadroomWidgetIntent.self, provider: HeadroomTimelineProvider()) { entry in
             HeadroomWidgetView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
+                .widgetURL(entry.link)
         }
         .configurationDisplayName(Text("Headroom"))
         .description(Text("Lowest remaining quota per provider on your default server."))

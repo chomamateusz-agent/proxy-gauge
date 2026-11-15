@@ -109,18 +109,78 @@ struct ProfileStoreTests {
         #expect(StoredSettings(refreshInterval: 1).clampedRefreshInterval == 15)
     }
 
-    @Test func snapshotRoundTrips() {
-        let store = ProfileStore(defaults: isolatedDefaults())
-        let snapshot = HeadroomSnapshot(
-            serverID: UUID(),
+    func snapshot(_ serverID: UUID = UUID(), provider: String = "claude") -> HeadroomSnapshot {
+        HeadroomSnapshot(
+            serverID: serverID,
             serverName: "Home",
             isDemo: false,
             generatedAt: Date(timeIntervalSince1970: 1_794_611_400),
             source: .passiveObservations,
-            providers: [ProviderHeadroom(provider: "claude", headroomPercent: 40, limitingBarID: "weekly_all", resetsAt: nil, usableCredentials: 2, totalCredentials: 3, bars: [QuotaBar(id: "weekly_all", usedPercent: 60)])]
+            providers: [ProviderHeadroom(provider: provider, headroomPercent: 40, limitingBarID: "weekly_all", resetsAt: nil, usableCredentials: 2, totalCredentials: 3, bars: [QuotaBar(id: "weekly_all", usedPercent: 60)])],
+            poolAccounts: [
+                PoolAccount(provider: provider, availability: .available, bars: [QuotaBar(id: "weekly_all", usedPercent: 60)]),
+                PoolAccount(provider: provider, availability: .blocked(until: Date(timeIntervalSince1970: 1_794_612_000)), bars: []),
+                PoolAccount(provider: provider, availability: .blocked(until: nil), bars: []),
+                PoolAccount(provider: provider, availability: .disabled, bars: [])
+            ]
         )
-        store.saveSnapshot(snapshot)
-        #expect(store.loadSnapshot() == snapshot)
+    }
+
+    @Test func snapshotsAreKeptPerServer() {
+        let defaults = isolatedDefaults()
+        let store = ProfileStore(defaults: defaults)
+        let home = snapshot(provider: "claude")
+        let office = snapshot(provider: "gemini-cli")
+        defaults.set(Data("old".utf8), forKey: ProfileStore.legacySnapshotKey)
+        store.saveSnapshot(home)
+        store.saveSnapshot(office)
+        let reader = ProfileStore(defaults: defaults)
+        #expect(reader.snapshot(for: home.serverID) == home)
+        #expect(reader.snapshot(for: office.serverID) == office)
+        #expect(reader.snapshot(for: UUID()) == nil)
+        #expect(Set(reader.cachedProviders()) == ["claude", "gemini-cli"])
+        #expect(defaults.object(forKey: ProfileStore.legacySnapshotKey) == nil)
+    }
+
+    @Test func forgettingASnapshotAlsoForgetsTheWidgetAttempt() {
+        let store = ProfileStore(defaults: isolatedDefaults())
+        let saved = snapshot()
+        let attempt = Date(timeIntervalSince1970: 1_794_611_500)
+        store.saveSnapshot(saved)
+        store.recordWidgetFetchAttempt(attempt, for: saved.serverID)
+        #expect(store.lastWidgetFetchAttempt(for: saved.serverID) == attempt)
+        store.forgetSnapshot(for: saved.serverID)
+        #expect(store.snapshot(for: saved.serverID) == nil)
+        #expect(store.lastWidgetFetchAttempt(for: saved.serverID) == nil)
+    }
+
+    @Test func snapshotFetchedBeforeAServerEditIsNeverSavedOrRead() {
+        let defaults = isolatedDefaults()
+        let app = ProfileStore(defaults: defaults)
+        let widget = ProfileStore(defaults: defaults)
+        let old = snapshot(provider: "claude")
+        let widgetGeneration = widget.authGeneration(for: old.serverID)
+        widget.saveSnapshot(old, authGeneration: widgetGeneration)
+
+        app.resetAuthFailureLatch(for: old.serverID)
+        #expect(app.snapshot(for: old.serverID) == nil)
+
+        var edited = snapshot(provider: "gemini-cli")
+        edited.serverID = old.serverID
+        app.saveSnapshot(edited)
+        widget.saveSnapshot(old, authGeneration: widgetGeneration)
+        #expect(widget.snapshot(for: old.serverID) == edited)
+    }
+
+    @Test func olderSnapshotDoesNotReplaceANewerOne() {
+        let store = ProfileStore(defaults: isolatedDefaults())
+        let newer = snapshot()
+        var older = newer
+        older.generatedAt = newer.generatedAt.addingTimeInterval(-60)
+        older.serverName = "Older"
+        store.saveSnapshot(newer)
+        store.saveSnapshot(older)
+        #expect(store.snapshot(for: newer.serverID) == newer)
     }
 }
 

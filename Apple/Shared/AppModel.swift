@@ -88,6 +88,7 @@ final class AppModel {
     var selectedServerID: UUID?
     var selectedSection: ServerSection?
     private(set) var navigationStyle: NavigationStyle?
+    @ObservationIgnored private var selectionCameFromLink = false
 
     init(store: ProfileStore = ProfileStore(), secrets: any SecretStore = KeychainSecretStore()) {
         self.store = store
@@ -125,7 +126,7 @@ final class AppModel {
     }
 
     func adopt(_ style: NavigationStyle) {
-        let launchesOnStack = navigationStyle == nil && style == .stack
+        let launchesOnStack = navigationStyle == nil && style == .stack && !selectionCameFromLink
         navigationStyle = style
         if launchesOnStack {
             selectedServerID = nil
@@ -142,6 +143,16 @@ final class AppModel {
             selectedServerID = newValue.lazy.compactMap(\.serverID).first
             selectedSection = newValue.lazy.compactMap(\.section).first
         }
+    }
+
+    func open(_ url: URL) {
+        guard let scheme = SharedConfiguration.urlScheme,
+              case .serverOverview(let id)? = DeepLink(url: url, scheme: scheme),
+              let profile = profiles.first(where: { $0.id == id })
+        else { return }
+        selectionCameFromLink = true
+        selectedServerID = profile.id
+        selectedSection = ServerSection.sections(for: profile.authMode).first
     }
 
     func save(_ profile: ServerProfile, secret: String?, pausedBy pauseReason: AuthPauseReason? = nil) throws {
@@ -199,6 +210,7 @@ final class AppModel {
 
     private func retireSession(for serverID: UUID, pausedBy pauseReason: AuthPauseReason? = nil) {
         store.resetAuthFailureLatch(for: serverID, pausedBy: pauseReason)
+        store.forgetSnapshot(for: serverID)
         sessions.removeValue(forKey: serverID)?.retire()
     }
 
@@ -208,7 +220,6 @@ final class AppModel {
     }
 
     private func publish(_ snapshot: HeadroomSnapshot) {
-        guard snapshot.serverID == defaultProfile.id else { return }
         store.saveSnapshot(snapshot)
         reloadWidgets()
     }

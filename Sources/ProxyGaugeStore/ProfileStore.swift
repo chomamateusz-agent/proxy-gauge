@@ -4,9 +4,11 @@ import ProxyGaugeCore
 public enum SharedConfiguration {
     public static let appGroupInfoKey = "ProxyGaugeAppGroup"
     public static let keychainGroupInfoKey = "ProxyGaugeKeychainGroup"
+    public static let urlSchemeInfoKey = "ProxyGaugeURLScheme"
 
     public static var appGroup: String? { infoValue(appGroupInfoKey) }
     public static var keychainAccessGroup: String? { infoValue(keychainGroupInfoKey) }
+    public static var urlScheme: String? { infoValue(urlSchemeInfoKey) }
 
     public static func sharedDefaults() -> UserDefaults {
         appGroup.flatMap { UserDefaults(suiteName: $0) } ?? .standard
@@ -55,9 +57,12 @@ public struct StoredSettings: Codable, Equatable, Sendable {
     }
 }
 
-public final class ProfileStore: @unchecked Sendable {
+public final class ProfileStore: SnapshotCache, @unchecked Sendable {
     static let settingsKey = "proxygauge.settings.v1"
-    static let snapshotKey = "proxygauge.snapshot.v1"
+    static let legacySnapshotKey = "proxygauge.snapshot.v1"
+    static let previousSnapshotKeyPrefix = "proxygauge.snapshot.v2."
+    static let snapshotKeyPrefix = "proxygauge.snapshot.v3."
+    static let widgetFetchAttemptKeyPrefix = "proxygauge.widget-fetch-attempt.v1."
     static let authPauseKeyPrefix = "proxygauge.auth-pause.v3."
     static let authGenerationKeyPrefix = "proxygauge.auth-generation.v1."
 
@@ -81,14 +86,54 @@ public final class ProfileStore: @unchecked Sendable {
         defaults.set(data, forKey: Self.settingsKey)
     }
 
-    public func loadSnapshot() -> HeadroomSnapshot? {
-        guard let data = defaults.data(forKey: Self.snapshotKey) else { return nil }
-        return try? JSONDecoder.wire().decode(HeadroomSnapshot.self, from: data)
+    public func snapshot(for serverID: UUID) -> HeadroomSnapshot? {
+        guard let stored = storedSnapshot(for: serverID), stored.authGeneration == authGeneration(for: serverID) else { return nil }
+        return stored.snapshot
     }
 
     public func saveSnapshot(_ snapshot: HeadroomSnapshot) {
-        guard let data = try? JSONEncoder.wire().encode(snapshot) else { return }
-        defaults.set(data, forKey: Self.snapshotKey)
+        saveSnapshot(snapshot, authGeneration: authGeneration(for: snapshot.serverID))
+    }
+
+    public func saveSnapshot(_ snapshot: HeadroomSnapshot, authGeneration generation: Int) {
+        let serverID = snapshot.serverID
+        guard generation == authGeneration(for: serverID) else { return }
+        if let current = storedSnapshot(for: serverID), current.authGeneration == generation, current.snapshot.generatedAt > snapshot.generatedAt {
+            return
+        }
+        guard let data = try? JSONEncoder.wire().encode(StoredSnapshot(authGeneration: generation, snapshot: snapshot)) else { return }
+        defaults.set(data, forKey: Self.snapshotKeyPrefix + serverID.uuidString)
+        defaults.removeObject(forKey: Self.previousSnapshotKeyPrefix + serverID.uuidString)
+        defaults.removeObject(forKey: Self.legacySnapshotKey)
+    }
+
+    private func storedSnapshot(for serverID: UUID) -> StoredSnapshot? {
+        guard let data = defaults.data(forKey: Self.snapshotKeyPrefix + serverID.uuidString),
+              let stored = try? JSONDecoder.wire().decode(StoredSnapshot.self, from: data),
+              stored.snapshot.serverID == serverID
+        else { return nil }
+        return stored
+    }
+
+    public func forgetSnapshot(for serverID: UUID) {
+        defaults.removeObject(forKey: Self.snapshotKeyPrefix + serverID.uuidString)
+        defaults.removeObject(forKey: Self.previousSnapshotKeyPrefix + serverID.uuidString)
+        defaults.removeObject(forKey: Self.widgetFetchAttemptKeyPrefix + serverID.uuidString)
+    }
+
+    public func lastWidgetFetchAttempt(for serverID: UUID) -> Date? {
+        defaults.object(forKey: Self.widgetFetchAttemptKeyPrefix + serverID.uuidString) as? Date
+    }
+
+    public func recordWidgetFetchAttempt(_ date: Date, for serverID: UUID) {
+        defaults.set(date, forKey: Self.widgetFetchAttemptKeyPrefix + serverID.uuidString)
+    }
+
+    public func cachedProviders() -> [String] {
+        let snapshots = defaults.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix(Self.snapshotKeyPrefix) }
+            .compactMap { UUID(uuidString: String($0.dropFirst(Self.snapshotKeyPrefix.count))).flatMap(snapshot(for:)) }
+        return Array(Set(snapshots.flatMap { $0.poolAccounts.map(\.provider) + $0.providers.map(\.provider) }))
     }
 
     public func authGeneration(for serverID: UUID) -> Int {
@@ -123,6 +168,11 @@ public final class ProfileStore: @unchecked Sendable {
     static func authPauseKey(_ serverID: UUID, generation: Int) -> String {
         "\(authPauseKeyPrefix)\(serverID.uuidString).\(generation)"
     }
+}
+
+struct StoredSnapshot: Codable {
+    var authGeneration: Int
+    var snapshot: HeadroomSnapshot
 }
 
 public struct ServerConnection: Sendable {

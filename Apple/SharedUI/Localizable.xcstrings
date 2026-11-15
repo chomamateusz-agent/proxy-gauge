@@ -17,6 +17,22 @@
         }
       }
     },
+    "%@ of %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ of %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ z %2$@"
+          }
+        }
+      }
+    },
     "%@ used": {
       "localizations": {
         "en": {
@@ -253,6 +269,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Konta według stanu"
+          }
+        }
+      }
+    },
+    "Accounts without data: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts without data: %lld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konta bez danych: %lld"
+          }
+        }
+      }
+    },
+    "Accounts: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts: %lld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konta: %lld"
           }
         }
       }
@@ -673,6 +721,22 @@
         }
       }
     },
+    "Could not reach the server yet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not reach the server yet."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się jeszcze połączyć z serwerem."
+          }
+        }
+      }
+    },
     "Could not reach the server: %@": {
       "localizations": {
         "en": {
@@ -1053,6 +1117,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Błąd"
+          }
+        }
+      }
+    },
+    "Every account of this provider is disabled.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every account of this provider is disabled."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wszystkie konta tego dostawcy są wyłączone."
           }
         }
       }
@@ -1441,6 +1521,22 @@
         }
       }
     },
+    "Leave empty to follow the default server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave empty to follow the default server."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zostaw puste, aby używać serwera domyślnego."
+          }
+        }
+      }
+    },
     "Leave empty to keep the stored key": {
       "localizations": {
         "en": {
@@ -1453,6 +1549,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zostaw puste, aby zachować zapisany klucz"
+          }
+        }
+      }
+    },
+    "Leave empty to show the provider with the least capacity left.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave empty to show the provider with the least capacity left."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zostaw puste, aby pokazać dostawcę z najmniejszym zapasem."
           }
         }
       }
@@ -1645,6 +1757,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Modele: %lld"
+          }
+        }
+      }
+    },
+    "More in %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More in %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Więcej za %@"
           }
         }
       }
@@ -2001,6 +2129,38 @@
         }
       }
     },
+    "Pooled capacity": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pooled capacity"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Łączny zapas"
+          }
+        }
+      }
+    },
+    "Primary provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primary provider"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Główny dostawca"
+          }
+        }
+      }
+    },
     "Priority": {
       "localizations": {
         "en": {
@@ -2045,6 +2205,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Projekt"
+          }
+        }
+      }
+    },
+    "Provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostawca"
           }
         }
       }
@@ -2173,6 +2349,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Odświeżaj co"
+          }
+        }
+      }
+    },
+    "Remaining quota of all your accounts added up, per provider.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remaining quota of all your accounts added up, per provider."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozostały limit wszystkich Twoich kont zsumowany dla każdego dostawcy."
+          }
+        }
+      }
+    },
+    "Remaining quota of every enabled account added up: three accounts make %@. A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remaining quota of every enabled account added up: three accounts make %@. A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozostały limit wszystkich włączonych kont zsumowany: trzy konta to %@. Konto wstrzymane liczy się jako 0 do końca wstrzymania, okno po resecie liczy się jako pełne, a konto bez próbki jest pokazane osobno."
           }
         }
       }
@@ -2412,7 +2620,7 @@
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Próbka sprzed %@"
+            "value": "Próbka: %@ temu"
           }
         }
       }
@@ -3453,6 +3661,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zapisać bez sprawdzenia wersji?"
+          }
+        }
+      }
+    },
+    "of %@ · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "of %1$@ · %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "z %1$@ · %2$@"
           }
         }
       }

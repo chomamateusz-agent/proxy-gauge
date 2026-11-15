@@ -26,6 +26,7 @@ struct ClientLimitsView: View {
 
     @ViewBuilder
     private func content(_ limits: FleetLimits) -> some View {
+        PooledCapacitySection(pools: session.pools, phase: .loaded)
         Section {
             ForEach(HeadroomCalculator.fromFleet(limits)) { provider in
                 ProviderHeadroomRow(headroom: provider)

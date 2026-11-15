@@ -91,6 +91,11 @@ public final class ServerSession {
         }
     }
 
+    public var pools: [ProviderPool] {
+        let now = Date.now
+        return currentSnapshot(at: now).pools(at: now)
+    }
+
     public var accountCounts: [AccountCounts] { AccountCounts.tally(credentials, now: .now) }
 
     public var usageSummary: UsageSummary { UsageSummary.from(credentials: credentials, keyCounters: keyCounters) }
@@ -328,18 +333,14 @@ public final class ServerSession {
 
     private func publishHeadroom() {
         guard !isRetired else { return }
-        let source: HeadroomSnapshot.Source = switch profile.authMode {
-        case .management: .passiveObservations
-        case .clientKey: fleetLimits == nil ? .unavailable : .fleetLimits
+        onHeadroomUpdate?(currentSnapshot(at: .now))
+    }
+
+    private func currentSnapshot(at now: Date) -> HeadroomSnapshot {
+        switch profile.authMode {
+        case .management: .management(profile, credentials: credentials, now: now)
+        case .clientKey: .clientKey(profile, limits: fleetLimits, now: now)
         }
-        onHeadroomUpdate?(HeadroomSnapshot(
-            serverID: profile.id,
-            serverName: profile.name,
-            isDemo: profile.isDemo,
-            generatedAt: .now,
-            source: source,
-            providers: headroom
-        ))
     }
 }
 

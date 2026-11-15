@@ -31,6 +31,7 @@ struct OverviewView: View {
                     }
                 }
             }
+            PooledCapacitySection(pools: session.pools, phase: session.loadPhase(for: .accounts, loaded: session.accountsLoaded))
             let headroom = session.headroom
             Section {
                 if headroom.isEmpty {
@@ -59,6 +60,34 @@ struct OverviewView: View {
                         AccountCountsRow(counts: counts)
                     }
                 }
+            }
+        }
+    }
+}
+
+struct PooledCapacitySection: View {
+    let pools: [ProviderPool]
+    let phase: LoadPhase
+
+    var body: some View {
+        Section {
+            if pools.isEmpty {
+                if phase == .loaded {
+                    Text("No accounts on this server yet.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    NotLoadedRow(phase: phase)
+                }
+            }
+            ForEach(pools) { pool in
+                PooledProviderRow(pool: pool)
+                    .padding(.vertical, 2)
+            }
+        } header: {
+            Text("Pooled capacity")
+        } footer: {
+            if !pools.isEmpty {
+                Text("Remaining quota of every enabled account added up: three accounts make \(HeadroomStyle.percentText(300)). A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately.")
             }
         }
     }
