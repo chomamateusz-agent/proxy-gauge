@@ -1,19 +1,32 @@
 import Foundation
 
+public enum QuotaSource: String, Codable, Sendable, Hashable {
+    case proxy
+    case provider
+}
+
 public struct QuotaBar: Codable, Sendable, Equatable, Identifiable, Hashable {
+    public static let rejectedStatus = "rejected"
+
     public var id: String
     public var usedPercent: Double?
     public var status: String?
     public var resetsAt: Date?
     public var sampledAt: Date?
+    public var label: String?
+    public var source: QuotaSource?
 
-    public init(id: String, usedPercent: Double?, status: String? = nil, resetsAt: Date? = nil, sampledAt: Date? = nil) {
+    public init(id: String, usedPercent: Double?, status: String? = nil, resetsAt: Date? = nil, sampledAt: Date? = nil, label: String? = nil, source: QuotaSource? = nil) {
         self.id = id
         self.usedPercent = usedPercent
         self.status = status
         self.resetsAt = resetsAt
         self.sampledAt = sampledAt
+        self.label = label
+        self.source = source
     }
+
+    public var isFromProvider: Bool { source == .provider }
 
     public var headroomPercent: Double? {
         usedPercent.map { max(0, min(100, 100 - $0)) }
@@ -27,7 +40,46 @@ public struct QuotaBar: Codable, Sendable, Equatable, Identifiable, Hashable {
     }
 
     public func effectiveUsedPercent(at now: Date) -> Double? {
-        hasReset(at: now) ? 0 : usedPercent
+        remainingPercent(at: now).map { 100 - $0 }
+    }
+
+    public func remainingPercent(at now: Date) -> Double? {
+        if hasReset(at: now) { return 100 }
+        if isAtLimit(at: now) { return 0 }
+        return headroomPercent
+    }
+
+    public func isAtLimit(at now: Date) -> Bool {
+        guard !hasReset(at: now) else { return false }
+        return status == Self.rejectedStatus || (usedPercent ?? 0) >= 100
+    }
+
+    public func startsOnUse(provider: String, at now: Date) -> Bool {
+        id == FiveHourWindowState.barID
+            && ProviderCatalog.reportsFiveHourWindow(provider)
+            && usedPercent == 0
+            && resetsAt == nil
+            && !isAtLimit(at: now)
+    }
+}
+
+public enum FiveHourWindowState: Equatable, Sendable {
+    case notTracked
+    case neverSampled
+    case notReported
+    case startsOnUse
+    case running
+
+    public static let barID = "session_5h"
+
+    public init(provider: String, bars: [QuotaBar], now: Date) {
+        if let session = bars.first(where: { $0.id == Self.barID }) {
+            self = session.startsOnUse(provider: provider, at: now) ? .startsOnUse : .running
+        } else if !ProviderCatalog.reportsFiveHourWindow(provider) {
+            self = .notTracked
+        } else {
+            self = bars.isEmpty ? .neverSampled : .notReported
+        }
     }
 }
 
@@ -36,6 +88,7 @@ public enum QuotaWindow: Equatable, Sendable, Hashable {
     case weekly
     case weeklyModel
     case daily
+    case monthly
     case minutes(Int)
     case other(String)
 
@@ -45,6 +98,7 @@ public enum QuotaWindow: Equatable, Sendable, Hashable {
         case "weekly_all": self = .weekly
         case "weekly_fable": self = .weeklyModel
         case "daily": self = .daily
+        case "monthly": self = .monthly
         default:
             if let match = barID.wholeMatch(of: /window_(\d+)m/), let minutes = Int(match.1) {
                 self = .minutes(minutes)
@@ -60,8 +114,9 @@ public enum QuotaWindow: Equatable, Sendable, Hashable {
         case .daily: 1
         case .weekly: 2
         case .weeklyModel: 3
-        case .minutes: 4
-        case .other: 5
+        case .monthly: 4
+        case .minutes: 5
+        case .other: 6
         }
     }
 }
@@ -154,7 +209,8 @@ public enum SignalQuotaParser {
                 usedPercent: number(observation.signal(utilisation)).map { rounded($0 * 100) },
                 status: barStatus(observation.signal(status)),
                 resetsAt: resetDate(observation.signal(reset)),
-                sampledAt: observation.observedAt
+                sampledAt: observation.observedAt,
+                source: .proxy
             )
         }
     }
@@ -177,7 +233,8 @@ public enum SignalQuotaParser {
                 id: id,
                 usedPercent: number(observation.signal(prefix + "Used-Percent")).map(rounded),
                 resetsAt: resetsAt,
-                sampledAt: observation.observedAt
+                sampledAt: observation.observedAt,
+                source: .proxy
             ))
         }
         return bars
@@ -189,11 +246,11 @@ public enum SignalQuotaParser {
                   let raw = observation.signal(key)?.replacingOccurrences(of: "%", with: ""),
                   let remaining = number(raw)
             else { return nil }
-            return QuotaBar(id: id, usedPercent: rounded(100 - remaining), sampledAt: observation.observedAt)
+            return QuotaBar(id: id, usedPercent: rounded(100 - remaining), sampledAt: observation.observedAt, source: .proxy)
         }
     }
 
-    static func codexBarID(minutes: Int) -> String {
+    public static func codexBarID(minutes: Int) -> String {
         switch minutes {
         case 7 * 24 * 60: "weekly_all"
         case 5 * 60: "session_5h"
@@ -215,7 +272,7 @@ public enum SignalQuotaParser {
         (value * 10).rounded() / 10
     }
 
-    static func resetDate(_ raw: String?) -> Date? {
+    public static func resetDate(_ raw: String?) -> Date? {
         guard let text = raw?.trimmingCharacters(in: .whitespaces), !text.isEmpty else { return nil }
         if let seconds = Double(text), seconds > 0, seconds.isFinite {
             return Date(timeIntervalSince1970: seconds)

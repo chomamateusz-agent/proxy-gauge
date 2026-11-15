@@ -28,13 +28,13 @@ public struct AuthFailureLatch: Sendable, Equatable {
 
     public var isBlocked: Bool { pauseReason != nil }
 
-    public mutating func admit(_ trigger: RefreshTrigger) -> Bool {
+    public mutating func admit(_ trigger: RefreshTrigger, automaticRefreshEnabled: Bool = true) -> Bool {
         switch trigger {
         case .manual:
             pauseReason = nil
             return true
         case .automatic:
-            return !isBlocked
+            return automaticRefreshEnabled && !isBlocked
         }
     }
 
@@ -56,6 +56,7 @@ public enum RefreshScope: Hashable, Sendable {
     case settings
     case limits
     case accountModels(String)
+    case accountDetail(String)
 }
 
 @MainActor
@@ -236,5 +237,25 @@ public final class RefreshRunner {
         let next = queue.removeFirst()
         current = next
         next.start?.resume()
+    }
+}
+
+public enum AutoRefreshLoop {
+    @MainActor
+    public static func run(
+        refreshesAutomatically: Bool,
+        interval: TimeInterval,
+        sleep: @MainActor (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) },
+        refresh: @MainActor () async -> Void
+    ) async {
+        guard refreshesAutomatically else { return }
+        while !Task.isCancelled {
+            await refresh()
+            do {
+                try await sleep(interval)
+            } catch {
+                return
+            }
+        }
     }
 }

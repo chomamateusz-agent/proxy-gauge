@@ -43,6 +43,20 @@ public enum APIError: Error, Equatable, Sendable {
         }
     }
 
+    public var refusesTheWholeProxy: Bool {
+        switch self {
+        case .forbidden: isRemoteManagementDisabled
+        case .notFound: true
+        case .server(let status, _): status == 429
+        default: false
+        }
+    }
+
+    public var accountRefusal: ProxyAccountRefusal? {
+        guard case .server(400, let message) = self else { return nil }
+        return ProxyAccountRefusal(message: message)
+    }
+
     public static func wrapping(_ error: any Error) -> APIError {
         error as? APIError ?? .transport(error.localizedDescription)
     }

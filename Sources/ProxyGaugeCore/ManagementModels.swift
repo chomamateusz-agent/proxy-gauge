@@ -144,8 +144,13 @@ public struct Credential: Decodable, Sendable, Equatable, Identifiable {
     public var priority: Int?
     public var note: String?
     public var requiresSignIn: Bool
+    public var chatgptAccountID: String?
 
     public var id: String { authIndex ?? credentialID ?? name }
+
+    public var stableID: String {
+        [credentialID, name, authIndex].lazy.compactMap { $0 }.first { !$0.isEmpty } ?? id
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, name, type, provider, label, status, disabled, unavailable, email, success, failed, quota, cooldowns, priority, note
@@ -159,6 +164,20 @@ public struct Credential: Decodable, Sendable, Equatable, Identifiable {
         case lastRefresh = "last_refresh"
         case updatedAt = "updated_at"
         case requiresSignIn = "requires_sign_in"
+        case idToken = "id_token"
+    }
+
+    struct IDTokenClaims: Decodable {
+        var chatgptAccountID: String?
+
+        enum CodingKeys: String, CodingKey {
+            case chatgptAccountID = "chatgpt_account_id"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            chatgptAccountID = container.lenientString(.chatgptAccountID)
+        }
     }
 
     public init(
@@ -220,6 +239,7 @@ public struct Credential: Decodable, Sendable, Equatable, Identifiable {
         priority = container.lenientInt(.priority).map(Int.init)
         note = container.lenientString(.note)
         requiresSignIn = container.lenientBool(.requiresSignIn) ?? false
+        chatgptAccountID = ((try? container.decodeIfPresent(IDTokenClaims.self, forKey: .idToken)) ?? nil)?.chatgptAccountID
     }
 
     public var displayName: String {

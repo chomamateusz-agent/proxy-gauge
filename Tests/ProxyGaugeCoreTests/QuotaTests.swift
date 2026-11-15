@@ -13,7 +13,7 @@ struct SignalQuotaParserTests {
             "Anthropic-Ratelimit-Unified-5h-Reset": "2026-11-14T12:00:00Z"
         ], observedAt: sampled)
         let bars = SignalQuotaParser.bars(provider: "Claude", observations: [observation])
-        #expect(bars == [QuotaBar(id: "session_5h", usedPercent: 42.3, status: "allowed_warning", resetsAt: date("2026-11-14T12:00:00Z"), sampledAt: sampled)])
+        #expect(bars == [QuotaBar(id: "session_5h", usedPercent: 42.3, status: "allowed_warning", resetsAt: date("2026-11-14T12:00:00Z"), sampledAt: sampled, source: .proxy)])
     }
 
     @Test func codexWindowMinutesDecideTheBar() {
@@ -85,14 +85,36 @@ struct HeadroomTests {
         )
     }
 
-    @Test func providerHeadroomIsTheBindingWindowOfTheBestAccounts() {
+    @Test func providerHeadroomIsTheTightestWindowOfTheBestSingleAccount() {
         let credentials = [claude("a", session: 80, weekly: 30), claude("b", session: 20, weekly: 60)]
         let headroom = HeadroomCalculator.fromCredentials(credentials, now: now)
         #expect(headroom.count == 1)
         #expect(headroom[0].bars.map(\.usedPercent) == [20, 30])
-        #expect(headroom[0].headroomPercent == 70)
+        #expect(headroom[0].headroomPercent == 40)
         #expect(headroom[0].limitingBarID == "weekly_all")
         #expect(headroom[0].usableCredentials == 2)
+    }
+
+    @Test func headroomNeverExceedsWhatOneAccountHasLeft() {
+        let credentials = [claude("a", session: 10, weekly: 90), claude("b", session: 90, weekly: 10)]
+        let headroom = HeadroomCalculator.fromCredentials(credentials, now: now)[0]
+        #expect(headroom.headroomPercent == 10)
+        let pools = PooledCapacity.pools(credentials.map { PoolAccount(credential: $0, now: now) }, now: now)
+        #expect(pools[0].window(.session5h)?.remainingPercent == 100)
+        #expect(headroom.headroomPercent != pools[0].window(.session5h)?.remainingPercent)
+    }
+
+    @Test func rejectedWindowCountsAsUsedUp() {
+        let observation = QuotaObservation(signals: [
+            "Anthropic-Ratelimit-Unified-5h-Utilization": "0.7",
+            "Anthropic-Ratelimit-Unified-5h-Status": "rejected",
+            "Anthropic-Ratelimit-Unified-5h-Reset": "2026-11-14T12:00:00Z",
+            "Anthropic-Ratelimit-Unified-7d-Utilization": "0.2"
+        ], observedAt: now)
+        let credential = Credential(name: "r", authIndex: "r", provider: "claude", quota: observation)
+        let headroom = HeadroomCalculator.fromCredentials([credential], now: now)[0]
+        #expect(headroom.headroomPercent == 0)
+        #expect(headroom.limitingBarID == "session_5h")
     }
 
     @Test func disabledAndCoolingAccountsDoNotContribute() {

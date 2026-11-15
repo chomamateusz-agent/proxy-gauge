@@ -27,13 +27,16 @@ struct RequestBuilder: Sendable {
 
 struct Exchange: Sendable {
     let transport: any HTTPTransport
+    var ticket: SendGate.Ticket?
 
-    func send(_ request: HTTPRequest) async throws -> HTTPResponse {
+    func send(_ request: HTTPRequest, hooks: SendHooks = .none) async throws -> HTTPResponse {
         let response: HTTPResponse
         do {
-            response = try await transport.send(request)
+            response = try await deliver(request, hooks: hooks)
         } catch let error as APIError {
             throw error
+        } catch let refusal as SendRefusal {
+            throw refusal
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()
         } catch let error as CancellationError {
@@ -43,6 +46,15 @@ struct Exchange: Sendable {
         }
         guard response.isSuccess else { throw APIError.from(response) }
         return response
+    }
+
+    private func deliver(_ request: HTTPRequest, hooks: SendHooks) async throws -> HTTPResponse {
+        guard let ticket else {
+            try await hooks.admitBeforeStarting()
+            try hooks.start {}
+            return try await transport.send(request)
+        }
+        return try await ticket.send(request, hooks: hooks, through: transport)
     }
 
     func decode<T: Decodable>(_ type: T.Type, from response: HTTPResponse) throws -> T {
@@ -62,12 +74,18 @@ public struct Versioned<Value: Sendable>: Sendable {
 public struct ManagementClient: Sendable {
     public static let routingStrategies = ["round-robin", "weighted-round-robin", "fill-first"]
 
-    private let builder: RequestBuilder
-    private let exchange: Exchange
+    let builder: RequestBuilder
+    var exchange: Exchange
 
     public init(baseURL: URL, managementKey: String, transport: any HTTPTransport) {
         builder = RequestBuilder(baseURL: baseURL, credential: managementKey)
         exchange = Exchange(transport: transport)
+    }
+
+    public func sending(under ticket: SendGate.Ticket) -> ManagementClient {
+        var gated = self
+        gated.exchange.ticket = ticket
+        return gated
     }
 
     public func health() async throws -> Bool {
@@ -179,11 +197,17 @@ public struct ManagementClient: Sendable {
 
 public struct ClientKeyClient: Sendable {
     private let builder: RequestBuilder
-    private let exchange: Exchange
+    private var exchange: Exchange
 
     public init(baseURL: URL, clientKey: String, transport: any HTTPTransport) {
         builder = RequestBuilder(baseURL: baseURL, credential: clientKey)
         exchange = Exchange(transport: transport)
+    }
+
+    public func sending(under ticket: SendGate.Ticket) -> ClientKeyClient {
+        var gated = self
+        gated.exchange.ticket = ticket
+        return gated
     }
 
     public func models() async throws -> [ModelInfo] {

@@ -89,7 +89,7 @@ struct PopulatedDecodingTests {
         #expect(limits.object == "fleet.limits")
         #expect(limits.proxyVersion == "8.0.42")
         #expect(limits.clientName == nil)
-        #expect(HeadroomCalculator.fromFleet(limits).isEmpty)
+        #expect(HeadroomCalculator.fromFleet(limits, now: date("2026-11-14T10:00:00Z")).isEmpty)
     }
 
     @Test func populatedFleetLimitsDecode() throws {
@@ -116,7 +116,7 @@ struct PopulatedDecodingTests {
         #expect(limits.credentials[1].credits == nil)
         #expect(limits.exclusions.first?.until == nil)
 
-        let headroom = HeadroomCalculator.fromFleet(limits)
+        let headroom = HeadroomCalculator.fromFleet(limits, now: date("2026-11-14T10:00:00Z"))
         #expect(headroom.map(\.provider) == ["claude", "codex"])
         #expect(headroom[0].headroomPercent == 0)
         #expect(headroom[1].headroomPercent == 59.5)

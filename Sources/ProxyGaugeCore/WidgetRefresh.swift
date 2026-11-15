@@ -15,6 +15,7 @@ public enum WidgetRefreshDecision: Sendable, Equatable {
     case fetch
     case paused(AuthPauseReason)
     case waitForNextInterval
+    case automaticRefreshOff
 }
 
 public enum WidgetRefreshPolicy {
@@ -22,8 +23,16 @@ public enum WidgetRefreshPolicy {
     static let toleratedClockSkew: TimeInterval = 60
     static let maximumEntriesPerTimeline = 8
 
-    public static func decide(cached: HeadroomSnapshot?, lastAttempt: Date?, latch: AuthFailureLatch, now: Date, interval: TimeInterval = interval) -> WidgetRefreshDecision {
+    public static func decide(
+        cached: HeadroomSnapshot?,
+        lastAttempt: Date?,
+        latch: AuthFailureLatch,
+        now: Date,
+        interval: TimeInterval = interval,
+        refreshesAutomatically: Bool = true
+    ) -> WidgetRefreshDecision {
         if let reason = latch.pauseReason { return .paused(reason) }
+        if !refreshesAutomatically { return .automaticRefreshOff }
         if let cached, isRecent(cached.generatedAt, now: now, interval: interval) { return .reuse }
         if let lastAttempt, isRecent(lastAttempt, now: now, interval: interval) { return .waitForNextInterval }
         return .fetch
@@ -72,6 +81,7 @@ public struct WidgetSnapshot: Sendable, Equatable {
         case paused
         case failed
         case waiting
+        case saved
     }
 
     public var snapshot: HeadroomSnapshot?
@@ -86,7 +96,7 @@ public struct WidgetSnapshot: Sendable, Equatable {
 
     public var isStale: Bool {
         switch origin {
-        case .fetched, .reused: false
+        case .fetched, .reused, .saved: false
         case .paused, .failed, .waiting: true
         }
     }
@@ -108,27 +118,29 @@ public actor WidgetSnapshotRefresher {
         self.load = load
     }
 
-    public func snapshot(for profile: ServerProfile) async -> WidgetSnapshot {
+    public func snapshot(for profile: ServerProfile, refreshesAutomatically: Bool = true) async -> WidgetSnapshot {
         if let running = inFlight[profile.id] { return await running.value }
-        let task = Task { await resolve(profile) }
+        let task = Task { await resolve(profile, refreshesAutomatically: refreshesAutomatically) }
         inFlight[profile.id] = task
         let result = await task.value
         inFlight[profile.id] = nil
         return result
     }
 
-    private func resolve(_ profile: ServerProfile) async -> WidgetSnapshot {
+    private func resolve(_ profile: ServerProfile, refreshesAutomatically: Bool) async -> WidgetSnapshot {
         let generation = cache.authGeneration(for: profile.id)
         var latch = profile.isDemo ? AuthFailureLatch() : cache.authFailureLatch(for: profile.id, generation: generation)
         let cached = cache.snapshot(for: profile.id)
         let now = clock()
-        switch WidgetRefreshPolicy.decide(cached: cached, lastAttempt: cache.lastWidgetFetchAttempt(for: profile.id), latch: latch, now: now, interval: interval) {
+        switch WidgetRefreshPolicy.decide(cached: cached, lastAttempt: cache.lastWidgetFetchAttempt(for: profile.id), latch: latch, now: now, interval: interval, refreshesAutomatically: refreshesAutomatically) {
         case .paused(let reason):
             return WidgetSnapshot(snapshot: cached, origin: .paused, pauseReason: reason)
         case .reuse:
             return WidgetSnapshot(snapshot: cached, origin: .reused)
         case .waitForNextInterval:
             return WidgetSnapshot(snapshot: cached, origin: .waiting)
+        case .automaticRefreshOff:
+            return WidgetSnapshot(snapshot: cached, origin: .saved)
         case .fetch:
             cache.recordWidgetFetchAttempt(now, for: profile.id)
             do {

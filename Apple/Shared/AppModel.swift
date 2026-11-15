@@ -82,6 +82,7 @@ enum StackRoute: Hashable {
 final class AppModel {
     private let store: ProfileStore
     let secrets: any SecretStore
+    @ObservationIgnored private let providerRefresh: ActiveRefreshCoordinator
     @ObservationIgnored private var sessions: [UUID: ServerSession] = [:]
 
     private(set) var settings: StoredSettings
@@ -93,15 +94,19 @@ final class AppModel {
     init(store: ProfileStore = ProfileStore(), secrets: any SecretStore = KeychainSecretStore()) {
         self.store = store
         self.secrets = secrets
+        providerRefresh = ActiveRefreshCoordinator(store: store)
+        store.discardPreviousActiveQuotas()
         let loaded = store.load()
         settings = loaded
-        selectedServerID = loaded.defaultProfile.id
-        selectedSection = ServerSection.sections(for: loaded.defaultProfile.authMode).first
+        selectedServerID = loaded.defaultProfile?.id
+        selectedSection = loaded.defaultProfile.flatMap { ServerSection.sections(for: $0.authMode).first }
     }
 
     var profiles: [ServerProfile] { settings.allProfiles }
 
-    var defaultProfile: ServerProfile { settings.defaultProfile }
+    var defaultProfile: ServerProfile? { settings.defaultProfile }
+
+    var showsDemo: Bool { settings.showsDemo }
 
     var selectedProfile: ServerProfile? {
         profiles.first { $0.id == selectedServerID }
@@ -109,12 +114,50 @@ final class AppModel {
 
     var refreshInterval: TimeInterval { settings.clampedRefreshInterval }
 
+    func refreshesAutomatically(_ profile: ServerProfile) -> Bool {
+        settings.refreshesAutomatically(profile.id)
+    }
+
+    func setRefreshesAutomatically(_ enabled: Bool, for profile: ServerProfile) {
+        settings.setRefreshesAutomatically(enabled, for: profile.id)
+        sessions[profile.id]?.refreshesAutomatically = enabled
+        persist()
+    }
+
+    func refreshesLimitsFromProviders(_ profile: ServerProfile) -> Bool {
+        settings.refreshesLimitsFromProviders(profile.id)
+    }
+
+    func setRefreshesLimitsFromProviders(_ enabled: Bool, for profile: ServerProfile) {
+        settings.setRefreshesLimitsFromProviders(enabled, for: profile.id)
+        sessions[profile.id]?.refreshesLimitsAutomatically = enabled
+        persist()
+    }
+
+    func providerRefreshInterval(_ profile: ServerProfile) -> TimeInterval {
+        settings.providerRefreshInterval(profile.id)
+    }
+
+    func setProviderRefreshInterval(_ interval: TimeInterval, for profile: ServerProfile) {
+        settings.setProviderRefreshInterval(interval, for: profile.id)
+        sessions[profile.id]?.providerRefreshInterval = interval
+        persist()
+    }
+
     func session(for profile: ServerProfile) -> ServerSession {
         if let existing = sessions[profile.id] {
             if existing.profile == profile { return existing }
             existing.retire()
         }
-        let session = ServerSession(profile: profile, secrets: secrets, latchStore: store)
+        let session = ServerSession(
+            profile: profile,
+            secrets: secrets,
+            latchStore: store,
+            refreshesAutomatically: refreshesAutomatically(profile),
+            coordinator: providerRefresh,
+            refreshesLimitsAutomatically: refreshesLimitsFromProviders(profile),
+            providerRefreshInterval: providerRefreshInterval(profile)
+        )
         session.onHeadroomUpdate = { [weak self] snapshot in self?.publish(snapshot) }
         sessions[profile.id] = session
         return session
@@ -156,6 +199,8 @@ final class AppModel {
     }
 
     func save(_ profile: ServerProfile, secret: String?, pausedBy pauseReason: AuthPauseReason? = nil) throws {
+        let previous = settings.profiles.first { $0.id == profile.id }
+        let keepsData = previous.map { $0.reachesSameData(as: profile) } == true && !changesKey(of: profile.id, to: secret)
         if profile.isDemo {
             settings.demoAuthMode = profile.authMode
         } else {
@@ -171,30 +216,68 @@ final class AppModel {
                 }
             }
         }
-        retireSession(for: profile.id, pausedBy: profile.isDemo ? nil : pauseReason)
+        retireSession(for: profile.id, pausedBy: profile.isDemo ? nil : pauseReason, keepingSnapshotNamed: keepsData ? profile.name : nil)
+        if let previous, !keepsData {
+            forgetProviderReadingsIfUnused(previous)
+        }
         persist()
         if selectedServerID == profile.id {
             select(profile)
         }
     }
 
+    private func changesKey(of serverID: UUID, to secret: String?) -> Bool {
+        guard let secret, !secret.isEmpty else { return false }
+        return (try? secrets.secret(for: serverID)) != secret
+    }
+
+    private func forgetProviderReadingsIfUnused(_ profile: ServerProfile) {
+        let proxy = ActiveRefreshServer.proxyKey(profile.baseURL)
+        let stillUsed = settings.allProfiles.contains { $0.id != profile.id && ActiveRefreshServer.proxyKey($0.baseURL) == proxy }
+        if !stillUsed { store.forgetActiveQuotas(proxy: proxy) }
+    }
+
     func delete(_ profile: ServerProfile) throws {
-        guard !profile.isDemo else { return }
-        try secrets.deleteSecret(for: profile.id)
-        retireSession(for: profile.id)
-        settings.profiles.removeAll { $0.id == profile.id }
-        if settings.defaultServerID == profile.id {
-            settings.defaultServerID = settings.profiles.first?.id
+        if profile.isDemo {
+            Task { await DemoTransport.shared.reset() }
+        } else {
+            try secrets.deleteSecret(for: profile.id)
         }
-        if selectedServerID == profile.id {
-            select(defaultProfile)
-        }
+        store.forgetServer(profile.id)
+        sessions.removeValue(forKey: profile.id)?.retire()
+        settings.removeServer(profile.id)
+        forgetProviderReadingsIfUnused(profile)
+        applySelection(SelectionAfterRemoval(
+            removing: profile.id,
+            selected: selectedServerID,
+            usesStackNavigation: navigationStyle == .stack,
+            defaultServer: defaultProfile?.id
+        ))
         persist()
+    }
+
+    func restoreDemo() {
+        settings.restoreDemo()
+        persist()
+        if selectedServerID == nil, navigationStyle != .stack {
+            select(settings.demoProfile)
+        }
+    }
+
+    private func applySelection(_ selection: SelectionAfterRemoval) {
+        guard selection != .keep else { return }
+        if case .select(let id) = selection, let profile = profiles.first(where: { $0.id == id }) {
+            select(profile)
+        } else {
+            selectedServerID = nil
+            selectedSection = nil
+        }
     }
 
     func makeDefault(_ profile: ServerProfile) {
         settings.defaultServerID = profile.id
         persist()
+        guard refreshesAutomatically(profile) else { return }
         Task { await refreshDefaultHeadroom(trigger: .automatic) }
     }
 
@@ -204,13 +287,16 @@ final class AppModel {
     }
 
     func refreshDefaultHeadroom(trigger: RefreshTrigger) async {
+        guard let defaultProfile else { return }
         let defaultSession = session(for: defaultProfile)
         await defaultSession.refresh(defaultSession.headroomScope, trigger: trigger, dropIfCancelled: true)
     }
 
-    private func retireSession(for serverID: UUID, pausedBy pauseReason: AuthPauseReason? = nil) {
-        store.resetAuthFailureLatch(for: serverID, pausedBy: pauseReason)
-        store.forgetSnapshot(for: serverID)
+    private func retireSession(for serverID: UUID, pausedBy pauseReason: AuthPauseReason?, keepingSnapshotNamed name: String?) {
+        store.resetAuthFailureLatch(for: serverID, pausedBy: pauseReason, keepingSnapshotNamed: name)
+        if name == nil {
+            store.forgetSnapshot(for: serverID)
+        }
         sessions.removeValue(forKey: serverID)?.retire()
     }
 

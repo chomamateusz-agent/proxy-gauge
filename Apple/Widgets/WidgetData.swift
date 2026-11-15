@@ -8,20 +8,21 @@ enum WidgetData {
 
     static let refresher = WidgetSnapshotRefresher(cache: store) { profile in
         let connection = try ServerConnection(profile: profile, secretStore: KeychainSecretStore(), liveTransport: URLSessionTransport(timeout: 12))
-        return try await HeadroomLoader.load(profile: profile, secret: connection.secret, transport: connection.transport)
+        let snapshot = try await HeadroomLoader.load(profile: profile, secret: connection.secret, transport: connection.transport)
+        return snapshot.applying(active: store.activeQuotas(proxy: ActiveRefreshServer.proxyKey(profile.baseURL)))
     }
 
-    static func profile(_ serverID: UUID?) -> ServerProfile {
+    static func profile(_ serverID: UUID?) -> (profile: ServerProfile, refreshesAutomatically: Bool)? {
         let settings = store.load()
-        return settings.allProfiles.first { $0.id == serverID } ?? settings.defaultProfile
+        return settings.profile(for: serverID).map { ($0, settings.refreshesAutomatically($0.id)) }
     }
 
     static func overviewLink(_ profile: ServerProfile) -> URL? {
         SharedConfiguration.urlScheme.flatMap { DeepLink.serverOverview(profile.id).url(scheme: $0) }
     }
 
-    static func timeline<Entry>(for profile: ServerProfile, makeEntry: (Date, WidgetSnapshot) -> Entry) async -> [Entry] {
-        let result = await refresher.snapshot(for: profile)
+    static func timeline<Entry>(for profile: ServerProfile, refreshesAutomatically: Bool, makeEntry: (Date, WidgetSnapshot) -> Entry) async -> [Entry] {
+        let result = await refresher.snapshot(for: profile, refreshesAutomatically: refreshesAutomatically)
         return WidgetRefreshPolicy.entryDates(for: result.snapshot, from: .now).map { makeEntry($0, result) }
     }
 }

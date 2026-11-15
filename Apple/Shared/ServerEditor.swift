@@ -28,6 +28,7 @@ struct ServerEditor: View {
     @State private var saveError: Error?
     @State private var saved = false
     @State private var saveTask: Task<Void, Never>?
+    @State private var confirmingDeletion = false
 
     private var existing: ServerProfile? {
         if case .edit(let profile) = target { return profile }
@@ -57,6 +58,21 @@ struct ServerEditor: View {
                 if let saveError {
                     Section { Text(saveError.userMessage).foregroundStyle(.red) }
                 }
+                if existing == nil && !model.showsDemo {
+                    Section {
+                        Button("Add demo server", systemImage: "play.rectangle") {
+                            model.restoreDemo()
+                            dismiss()
+                        }
+                    } footer: {
+                        Text("The demo uses built-in sample data shaped like a real server. It makes no network requests.")
+                    }
+                }
+                if existing != nil {
+                    Section {
+                        Button("Delete server", systemImage: "trash", role: .destructive) { confirmingDeletion = true }
+                    }
+                }
             }
             .formStyle(.grouped)
             .navigationTitle(existing == nil ? Text("Add server") : Text("Edit server"))
@@ -65,6 +81,16 @@ struct ServerEditor: View {
             .interactiveDismissDisabled(probing)
             .onAppear(perform: load)
             .onDisappear { saveTask?.cancel() }
+            .confirmationDialog(
+                "Delete this server?",
+                isPresented: $confirmingDeletion,
+                titleVisibility: .visible,
+                presenting: existing
+            ) { profile in
+                Button("Delete", role: .destructive) { delete(profile) }
+            } message: { profile in
+                ServerDeletionMessage(profile: profile)
+            }
         }
         #if os(macOS)
         .frame(minWidth: 460, minHeight: 520)
@@ -202,6 +228,15 @@ struct ServerEditor: View {
         }
         guard !Task.isCancelled else { return }
         persist(profile, secret: secret.isEmpty ? nil : secret, pausedBy: force ? report?.failure?.authPauseReason : nil)
+    }
+
+    private func delete(_ profile: ServerProfile) {
+        do {
+            try model.delete(profile)
+            dismiss()
+        } catch {
+            saveError = error
+        }
     }
 
     private func existingSecret(for profile: ServerProfile) throws -> String? {

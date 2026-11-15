@@ -79,6 +79,35 @@ struct WidgetRefreshTests {
         #expect(WidgetRefreshPolicy.decide(cached: nil, lastAttempt: nil, latch: latch, now: start) == .paused(reason))
     }
 
+    @Test func decisionNeverFetchesWhenAutomaticRefreshIsOff() {
+        let old = snapshot(management, at: start.addingTimeInterval(-3 * 3600))
+        #expect(WidgetRefreshPolicy.decide(cached: old, lastAttempt: nil, latch: AuthFailureLatch(), now: start, refreshesAutomatically: false) == .automaticRefreshOff)
+        #expect(WidgetRefreshPolicy.decide(cached: nil, lastAttempt: nil, latch: AuthFailureLatch(), now: start, refreshesAutomatically: false) == .automaticRefreshOff)
+        #expect(WidgetRefreshPolicy.decide(cached: nil, lastAttempt: nil, latch: AuthFailureLatch(pauseReason: .keyRejected), now: start, refreshesAutomatically: false) == .paused(.keyRejected))
+    }
+
+    @Test func widgetWithAutomaticRefreshOffShowsSavedDataWithoutAnyRequest() async {
+        let stub = StubTransport { _ in .json(#"{"files":[]}"#) }
+        let cache = InMemorySnapshotCache()
+        let saved = snapshot(management, at: start.addingTimeInterval(-6 * 3600))
+        cache.saveSnapshot(saved)
+        let clock = TestClock(start)
+        let widget = refresher(cache, clock: clock, transport: stub)
+        for _ in 0..<5 {
+            let result = await widget.snapshot(for: management, refreshesAutomatically: false)
+            #expect(result.origin == .saved)
+            #expect(result.snapshot == saved)
+            #expect(!result.isStale)
+            clock.advance(by: 20 * 60)
+        }
+        #expect(stub.requests.isEmpty)
+        #expect(cache.lastWidgetFetchAttempt(for: management.id) == nil)
+
+        let resumed = await widget.snapshot(for: management, refreshesAutomatically: true)
+        #expect(resumed.origin == .fetched)
+        #expect(stub.managementRequestCount == 1)
+    }
+
     @Test func manyTimelineRequestsWithinTheIntervalSendOneManagementRequest() async {
         let stub = StubTransport { _ in .json(#"{"files":[]}"#) }
         let clock = TestClock(start)

@@ -55,6 +55,7 @@ struct AccountDetailView: View {
                 }
             }
             quotaSection(credential)
+            providerSection(credential)
             cooldownSection(credential, now: now)
             Section("Requests") {
                 LabeledContent("Succeeded") { Text(credential.success, format: .number) }
@@ -89,6 +90,8 @@ struct AccountDetailView: View {
                     }
                 } else if session.accountModelsFailed.contains(credential.name) || session.isAutomaticRefreshPaused {
                     Text("The models of this account could not be read.").foregroundStyle(.secondary)
+                } else if !session.refreshesAutomatically {
+                    ManualRefreshHint()
                 } else {
                     ProgressView()
                 }
@@ -113,8 +116,21 @@ struct AccountDetailView: View {
             await session.refresh(.accountModels(credential.name), trigger: .automatic)
         }
         .refreshable {
-            await session.refresh(.accounts, trigger: .manual)
-            await session.refresh(.accountModels(credential.name), trigger: .automatic)
+            await session.refreshAccountDetail(credential.name)
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Refresh", systemImage: "arrow.clockwise") {
+                    Task { await session.refreshAccountDetail(credential.name) }
+                }
+                .disabled(session.isRefreshing)
+                .keyboardShortcut("r", modifiers: .command)
+            }
+            if session.supportsLimitsRefresh {
+                ToolbarItem(placement: .primaryAction) {
+                    RefreshLimitsButton(session: session, credentialIDs: [credential.id])
+                }
+            }
         }
         .confirmationDialog(
             Text(confirmationTitle),
@@ -133,21 +149,52 @@ struct AccountDetailView: View {
     }
 
     @ViewBuilder
+    private func providerSection(_ credential: Credential) -> some View {
+        if let account = session.accountSummaries.first(where: { $0.id == credential.id }), session.supportsLimitsRefresh {
+            Section {
+                if account.providerCheck == nil && account.providerCheckState == nil {
+                    Text("Not checked with the provider yet. Refresh limits asks the provider for this account's current limits, plan and resets.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let plan = account.providerCheck?.plan {
+                    LabeledContent("Plan") { PlanChip(plan: plan) }
+                }
+                if let until = account.providerCheck?.planActiveUntil {
+                    LabeledContent("Plan active until") { Text(until, format: .dateTime.month().day().year()) }
+                }
+                ProviderCheckNotes(account: account, showsCheckTime: false)
+                    .font(.callout)
+                if session.refreshingLimits.contains(credential.id) {
+                    ProgressView()
+                }
+                Text("Bars marked with \(Image(systemName: "antenna.radiowaves.left.and.right")) come from the provider; the others come from what the proxy saw in traffic. For each window the newer reading wins.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                Text("Provider")
+            }
+        }
+    }
+
+    @ViewBuilder
     private func quotaSection(_ credential: Credential) -> some View {
-        let bars = credential.quotaBars.sortedForDisplay()
+        let bars = session.quotaBars(for: credential)
         Section {
             if bars.isEmpty {
                 Text("This provider has not reported quota headers yet.").foregroundStyle(.secondary)
             }
             ForEach(bars) { bar in
-                QuotaBarRow(bar: bar)
+                QuotaBarRow(bar: bar, provider: credential.provider)
             }
         } header: {
             Text("Quota")
         } footer: {
-            if let sampled = bars.compactMap(\.sampledAt).max() {
-                Text("Sampled \(Text(sampled, style: .relative)) ago")
-            }
+            QuotaSourcesLine(
+                trafficSampledAt: bars.filter { !$0.isFromProvider }.compactMap(\.sampledAt).max(),
+                providerCheckedAt: session.activeQuotas[credential.stableID]?.observedAt
+            )
         }
     }
 
@@ -251,5 +298,29 @@ struct RecentRequestsChart: View {
         guard buckets.count > 1 else { return buckets.map(\.index) }
         let step = max(1, buckets.count / 4)
         return Array(stride(from: 0, to: buckets.count, by: step))
+    }
+}
+
+private struct QuotaSourcesLine: View {
+    let trafficSampledAt: Date?
+    let providerCheckedAt: Date?
+
+    var body: some View {
+        if trafficSampledAt != nil || providerCheckedAt != nil {
+            TimelineView(.periodic(from: .now, by: 10)) { context in
+                line(at: context.date)
+            }
+        }
+    }
+
+    private func line(at now: Date) -> Text {
+        let traffic = trafficSampledAt.map { ElapsedTime.text(from: $0, to: now) }
+        let provider = providerCheckedAt.map { ElapsedTime.text(from: $0, to: now) }
+        return switch (traffic, provider) {
+        case let (traffic?, provider?): Text("From proxy traffic \(traffic) ago · checked with the provider \(provider) ago")
+        case let (traffic?, nil): Text("From proxy traffic \(traffic) ago")
+        case let (nil, provider?): Text("Checked with the provider \(provider) ago")
+        case (nil, nil): Text(verbatim: "")
+        }
     }
 }

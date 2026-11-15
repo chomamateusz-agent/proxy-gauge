@@ -9,9 +9,9 @@ struct MacApp: App {
         Window(Text("Proxy Gauge"), id: MainWindow.id) {
             RootView()
                 .environment(model)
-                .frame(minWidth: 820, minHeight: 520)
+                .frame(minWidth: 960, minHeight: 560)
         }
-        .defaultSize(width: 1080, height: 700)
+        .defaultSize(width: 1440, height: 900)
 
         Settings {
             AppSettingsView()
@@ -28,8 +28,4 @@ struct MacApp: App {
         }
         .menuBarExtraStyle(.window)
     }
-}
-
-enum MainWindow {
-    static let id = "main"
 }

@@ -79,7 +79,7 @@ struct ProfileStoreTests {
         let settings = ProfileStore(defaults: isolatedDefaults()).load()
         #expect(settings.profiles.isEmpty)
         #expect(settings.allProfiles == [.demo()])
-        #expect(settings.defaultProfile.isDemo)
+        #expect(settings.defaultProfile?.isDemo == true)
         #expect(settings.refreshInterval == 60)
     }
 

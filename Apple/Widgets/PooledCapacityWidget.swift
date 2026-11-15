@@ -20,6 +20,7 @@ struct PooledCapacityEntry: TimelineEntry {
     var serverName: String?
     var snapshot: HeadroomSnapshot?
     var isStale: Bool
+    var showsSavedAge = false
     var pauseReason: AuthPauseReason?
     var primaryProvider: String?
     var link: URL?
@@ -45,15 +46,18 @@ struct PooledCapacityTimelineProvider: AppIntentTimelineProvider {
     }
 
     private func entries(_ configuration: PooledCapacityIntent) async -> [PooledCapacityEntry] {
-        let profile = WidgetData.profile(configuration.server?.id)
+        guard let (profile, refreshesAutomatically) = WidgetData.profile(configuration.server?.id) else {
+            return [PooledCapacityEntry(date: .now, serverName: nil, snapshot: nil, isStale: false)]
+        }
         let link = WidgetData.overviewLink(profile)
         let primary = configuration.provider?.id
-        return await WidgetData.timeline(for: profile) { date, result in
+        return await WidgetData.timeline(for: profile, refreshesAutomatically: refreshesAutomatically) { date, result in
             PooledCapacityEntry(
                 date: date,
                 serverName: profile.isDemo ? nil : profile.name,
                 snapshot: result.snapshot,
                 isStale: result.isStale,
+                showsSavedAge: result.origin == .saved,
                 pauseReason: result.pauseReason,
                 primaryProvider: primary,
                 link: link
@@ -151,6 +155,7 @@ struct PooledCapacityWidgetView: View {
     private var emptyMessage: Text? {
         guard let snapshot = entry.snapshot else {
             if entry.pauseReason != nil { return nil }
+            if entry.showsSavedAge { return Text("Automatic refresh is off. Refresh in Proxy Gauge to save values.") }
             return entry.isStale ? Text("Could not reach the server yet.") : Text("Open Proxy Gauge and choose a default server.")
         }
         if snapshot.source == .unavailable { return Text("This server shares no quota with client keys.") }
@@ -209,7 +214,7 @@ private struct PooledSmallBody: View {
                     .foregroundStyle(window.color)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
-                Text("of \(HeadroomStyle.percentText(window.capacityPercent)) · \(Text(window.window.label))")
+                Text("of \(HeadroomStyle.percentText(window.capacityPercent)) · \(window.title)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -237,7 +242,7 @@ private struct PooledProviderList: View {
                     Text(ProviderCatalog.displayName(pool.provider))
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
-                    Text("Accounts: \(pool.accounts)")
+                    AccountCountText(pool: pool)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 4)
@@ -283,7 +288,12 @@ private struct PooledFreshnessFooter: View {
     var body: some View {
         if let snapshot = entry.snapshot {
             let sampledAt = window?.dataSampledAt(snapshotTakenAt: snapshot.generatedAt) ?? snapshot.generatedAt
-            if WidgetRefreshPolicy.isStale(sampledAt, at: entry.date) {
+            if entry.showsSavedAge {
+                Text("Saved \(Text(snapshot.generatedAt, style: .relative)) ago")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            } else if WidgetRefreshPolicy.isStale(sampledAt, at: entry.date) {
                 Text("Sampled \(Text(sampledAt, style: .relative)) ago")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -314,7 +324,7 @@ private struct PooledRectangularView: View {
                     .font(.body.monospacedDigit())
                     .lineLimit(1)
                 Gauge(value: window.remainingShareOfCapacity ?? 0) {
-                    Text(window.window.label)
+                    window.title
                 }
                 .gaugeStyle(.accessoryLinearCapacity)
             } else {

@@ -27,6 +27,10 @@ public struct ServerProfile: Codable, Identifiable, Hashable, Sendable {
         ServerProfile(id: demoID, name: "Demo server", baseURL: demoBaseURL, authMode: authMode, isDemo: true)
     }
 
+    public func reachesSameData(as other: ServerProfile) -> Bool {
+        authMode == other.authMode && ActiveRefreshServer.proxyKey(baseURL) == ActiveRefreshServer.proxyKey(other.baseURL)
+    }
+
     public var usesPlainHTTPOutsideLocalNetwork: Bool {
         guard baseURL.scheme?.lowercased() == "http", let host = baseURL.host()?.lowercased() else { return false }
         return !BaseURLValidator.isLocalHost(host)

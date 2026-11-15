@@ -22,7 +22,7 @@ public enum ScopeLoader {
 
     public static func load(_ scope: RefreshScope, authMode: AuthMode, management: ManagementClient, client: ClientKeyClient, now: Date = Date(), publish: Publish) async throws {
         switch (authMode, scope) {
-        case (.management, .accounts), (.management, .limits):
+        case (.management, .accounts), (.management, .limits), (.management, .accountDetail):
             await publish(.accounts(try await accounts(management)))
         case (.management, .usage):
             await publish(.accounts(try await accounts(management)))
@@ -49,7 +49,7 @@ public enum ScopeLoader {
         let credentials = try await management.credentials()
         do {
             return AccountList(credentials: credentials, keyCounters: .success(try await management.upstreamKeyCounters()))
-        } catch let error as APIError where !error.isAuthenticationFailure {
+        } catch let error as APIError where !error.stopsFurtherRequests {
             return AccountList(credentials: credentials, keyCounters: .failure(error))
         }
     }
@@ -57,7 +57,7 @@ public enum ScopeLoader {
     private static func optional<Value>(_ read: () async throws -> Value) async throws -> Value? {
         do {
             return try await read()
-        } catch let error as APIError where !error.isAuthenticationFailure {
+        } catch let error as APIError where !error.stopsFurtherRequests {
             return nil
         }
     }

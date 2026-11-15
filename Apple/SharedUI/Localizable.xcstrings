@@ -1,18 +1,50 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "%@ cooling down for %@": {
+    "%@ cooling down": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ cooling down for %@"
+            "value": "%@ cooling down"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: wstrzymane jeszcze przez %2$@"
+            "value": "%@ wstrzymany"
+          }
+        }
+      }
+    },
+    "%@ cooling down until %@ · in %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ cooling down until %2$@ · in %3$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ wstrzymany do %2$@ · jeszcze %3$@"
+          }
+        }
+      }
+    },
+    "%@ left": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ left"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pozostało %@"
           }
         }
       }
@@ -33,18 +65,66 @@
         }
       }
     },
-    "%@ used": {
+    "%@ until %@": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ used"
+            "value": "%1$@ until %2$@"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "zużyto %@"
+            "value": "%1$@ do %2$@"
+          }
+        }
+      }
+    },
+    "%@ · at most %lld per account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · at most %2$lld per account"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · najwyżej %2$lld na konto"
+          }
+        }
+      }
+    },
+    "%@ · in %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ · in %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · za %2$@"
+          }
+        }
+      }
+    },
+    "%@, resets %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@, resets %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, odnowienie %2$@"
           }
         }
       }
@@ -125,6 +205,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "5-godzinny"
+          }
+        }
+      }
+    },
+    "A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. It is listed as \"No 5-hour window\" and left out of the 5-hour capacity, because the proxy does not say whether that window is idle or does not exist.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. It is listed as \"No 5-hour window\" and left out of the 5-hour capacity, because the proxy does not say whether that window is idle or does not exist."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konto Claude lub Codex, które zgłasza inne okna, ale nie zgłasza okna 5-godzinnego, nie ma uruchomionego okna 5-godzinnego. Jest pokazane jako „Brak okna 5-godzinnego” i pominięte w 5-godzinnym zapasie, bo proxy nie mówi, czy to okno czeka na użycie, czy w ogóle nie istnieje."
           }
         }
       }
@@ -225,6 +321,22 @@
         }
       }
     },
+    "Account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konto"
+          }
+        }
+      }
+    },
     "Account not found": {
       "localizations": {
         "en": {
@@ -253,22 +365,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Konta"
-          }
-        }
-      }
-    },
-    "Accounts by state": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accounts by state"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Konta według stanu"
           }
         }
       }
@@ -305,6 +401,22 @@
         }
       }
     },
+    "Accounts: %lld · usable: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts: %1$lld · usable: %2$lld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konta: %1$lld · dostępne: %2$lld"
+          }
+        }
+      }
+    },
     "Active": {
       "localizations": {
         "en": {
@@ -317,6 +429,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aktywne"
+          }
+        }
+      }
+    },
+    "Active data: numbers with %@ come from Refresh limits, where the server asks the provider with the account's own sign-in. That happens only when you press Refresh limits, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active data: numbers with %@ come from Refresh limits, where the server asks the provider with the account's own sign-in. That happens only when you press Refresh limits, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dane aktywne: liczby oznaczone %@ pochodzą z „Odśwież limity”, gdy serwer pyta dostawcę, używając logowania danego konta. Dzieje się to tylko po naciśnięciu „Odśwież limity” albo według harmonogramu, gdy aplikacja jest widoczna, a automatyczne odświeżanie limitów od dostawców jest włączone dla tego serwera w Ustawieniach."
+          }
+        }
+      }
+    },
+    "Add a server in Proxy Gauge to see its quota here.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a server in Proxy Gauge to see its quota here."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj serwer w Proxy Gauge, aby zobaczyć tu jego limity."
+          }
+        }
+      }
+    },
+    "Add demo server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add demo server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj serwer demo"
           }
         }
       }
@@ -353,6 +513,22 @@
         }
       }
     },
+    "Add your CLIProxyAPI server, or bring back the demo server to look around.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your CLIProxyAPI server, or bring back the demo server to look around."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj swój serwer CLIProxyAPI albo przywróć serwer demo, żeby się rozejrzeć."
+          }
+        }
+      }
+    },
     "Address": {
       "localizations": {
         "en": {
@@ -385,6 +561,70 @@
         }
       }
     },
+    "Antigravity uses unofficial Google endpoints, and Google's terms restrict access by third-party tools. Refresh these accounts only if you accept that risk.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antigravity uses unofficial Google endpoints, and Google's terms restrict access by third-party tools. Refresh these accounts only if you accept that risk."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antigravity korzysta z nieoficjalnych endpointów Google, a warunki Google ograniczają dostęp narzędziom firm trzecich. Odświeżaj te konta tylko wtedy, gdy akceptujesz to ryzyko."
+          }
+        }
+      }
+    },
+    "Ask the providers for fresh limits through the server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask the providers for fresh limits through the server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poproś dostawców o aktualne limity przez serwer"
+          }
+        }
+      }
+    },
+    "At limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At limit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limit wyczerpany"
+          }
+        }
+      }
+    },
+    "At most %lld requests, sent one at a time.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At most %lld requests, sent one at a time."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapytania: najwyżej %lld, wysyłane po jednym."
+          }
+        }
+      }
+    },
     "Auto refresh": {
       "localizations": {
         "en": {
@@ -397,6 +637,70 @@
           "stringUnit": {
             "state": "translated",
             "value": "Automatyczne odświeżanie"
+          }
+        }
+      }
+    },
+    "Automatic limit refresh is paused for this account after repeated rate limits.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic limit refresh is paused for this account after repeated rate limits."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatyczne odświeżanie limitów tego konta jest wstrzymane po kolejnych limitach zapytań od dostawcy."
+          }
+        }
+      }
+    },
+    "Automatic refresh is off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic refresh is off"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatyczne odświeżanie wyłączone"
+          }
+        }
+      }
+    },
+    "Automatic refresh is off — pull to refresh or press Refresh.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic refresh is off — pull to refresh or press Refresh."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatyczne odświeżanie jest wyłączone — pociągnij, aby odświeżyć, albo naciśnij Odśwież."
+          }
+        }
+      }
+    },
+    "Automatic refresh is off. Refresh in Proxy Gauge to save values.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic refresh is off. Refresh in Proxy Gauge to save values."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatyczne odświeżanie jest wyłączone. Odśwież w Proxy Gauge, aby zapisać wartości."
           }
         }
       }
@@ -449,18 +753,50 @@
         }
       }
     },
-    "Best remaining quota across usable accounts, from rate-limit headers the proxy already observed. Proxy Gauge never asks providers for quota.": {
+    "Bars marked with %@ come from the provider; the others come from what the proxy saw in traffic. For each window the newer reading wins.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Best remaining quota across usable accounts, from rate-limit headers the proxy already observed. Proxy Gauge never asks providers for quota."
+            "value": "Bars marked with %@ come from the provider; the others come from what the proxy saw in traffic. For each window the newer reading wins."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Największy pozostały limit spośród dostępnych kont, według nagłówków limitów, które proxy już zarejestrowało. Proxy Gauge nigdy nie odpytuje dostawców o limity."
+            "value": "Paski oznaczone %@ pochodzą od dostawcy, pozostałe z tego, co proxy zobaczyło w ruchu. Dla każdego okna wygrywa nowszy odczyt."
+          }
+        }
+      }
+    },
+    "Best account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best account"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najlepsze konto"
+          }
+        }
+      }
+    },
+    "Best account: the most quota a single account that can take requests has left in its tightest window. Shown when at least two accounts can take requests.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best account: the most quota a single account that can take requests has left in its tightest window. Shown when at least two accounts can take requests."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najlepsze konto: największy limit, jaki zostało jednemu kontu zdolnemu przyjmować żądania, w jego najciaśniejszym oknie. Pokazywane, gdy żądania mogą przyjmować co najmniej dwa konta."
           }
         }
       }
@@ -513,6 +849,22 @@
         }
       }
     },
+    "Cards": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cards"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Karty"
+          }
+        }
+      }
+    },
     "Change the routing strategy?": {
       "localizations": {
         "en": {
@@ -541,6 +893,102 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sprawdź i zapisz"
+          }
+        }
+      }
+    },
+    "Check every": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check every"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzaj co"
+          }
+        }
+      }
+    },
+    "Checked only when you refresh limits by hand.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked only when you refresh limits by hand."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzane tylko przy ręcznym odświeżeniu limitów."
+          }
+        }
+      }
+    },
+    "Checked recently, next refresh allowed at %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked recently, next refresh allowed at %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzone niedawno, następne odświeżenie możliwe o %@"
+          }
+        }
+      }
+    },
+    "Checked with the provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked with the provider"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzone u dostawcy"
+          }
+        }
+      }
+    },
+    "Checked with the provider %@ ago": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked with the provider %@ ago"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzone u dostawcy %@ temu"
+          }
+        }
+      }
+    },
+    "Checking limits with the providers…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking limits with the providers…"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprawdzanie limitów u dostawców…"
           }
         }
       }
@@ -705,18 +1153,18 @@
         }
       }
     },
-    "Cooling down for %@": {
+    "Cooling down until %@ · in %@": {
       "localizations": {
         "en": {
           "stringUnit": {
-            "state": "translated",
-            "value": "Cooling down for %@"
+            "state": "new",
+            "value": "Cooling down until %1$@ · in %2$@"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wstrzymane jeszcze przez %@"
+            "value": "Wstrzymane do %1$@ · jeszcze %2$@"
           }
         }
       }
@@ -833,6 +1281,22 @@
         }
       }
     },
+    "Credits: unlimited": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credits: unlimited"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kredyty: bez limitu"
+          }
+        }
+      }
+    },
     "Daily": {
       "localizations": {
         "en": {
@@ -877,6 +1341,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Usuń"
+          }
+        }
+      }
+    },
+    "Delete server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usuń serwer"
           }
         }
       }
@@ -1005,6 +1485,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Wyłączone"
+          }
+        }
+      }
+    },
+    "Disabled on the server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disabled on the server."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyłączone na serwerze."
           }
         }
       }
@@ -1169,6 +1665,22 @@
         }
       }
     },
+    "Extra usage: %@ of %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extra usage: %1$@ of %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodatkowe użycie: %1$@ z %2$@"
+          }
+        }
+      }
+    },
     "Failed": {
       "localizations": {
         "en": {
@@ -1249,6 +1761,38 @@
         }
       }
     },
+    "From proxy traffic %@ ago": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From proxy traffic %@ ago"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z ruchu przez proxy %@ temu"
+          }
+        }
+      }
+    },
+    "From proxy traffic %@ ago · checked with the provider %@ ago": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From proxy traffic %1$@ ago · checked with the provider %2$@ ago"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z ruchu przez proxy %1$@ temu · sprawdzone u dostawcy %2$@ temu"
+          }
+        }
+      }
+    },
     "From the server's client-key usage report.": {
       "localizations": {
         "en": {
@@ -1297,22 +1841,6 @@
         }
       }
     },
-    "Headroom per provider": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Headroom per provider"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zapas według dostawcy"
-          }
-        }
-      }
-    },
     "Health check (/healthz, informational)": {
       "localizations": {
         "en": {
@@ -1357,6 +1885,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sposób, w jaki proxy wybiera konto do obsługi zapytania. Zmiany trafiają do pliku konfiguracyjnego serwera."
+          }
+        }
+      }
+    },
+    "How these numbers work": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How these numbers work"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jak liczone są te wartości"
           }
         }
       }
@@ -1521,6 +2065,22 @@
         }
       }
     },
+    "Layout": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Layout"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Układ"
+          }
+        }
+      }
+    },
     "Leave empty to follow the default server.": {
       "localizations": {
         "en": {
@@ -1617,18 +2177,82 @@
         }
       }
     },
-    "Lowest remaining quota per provider on your default server.": {
+    "Limits from providers": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lowest remaining quota per provider on your default server."
+            "value": "Limits from providers"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Najmniejszy pozostały limit każdego dostawcy na serwerze domyślnym."
+            "value": "Limity od dostawców"
+          }
+        }
+      }
+    },
+    "List": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "List"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lista"
+          }
+        }
+      }
+    },
+    "Load accounts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load accounts"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wczytaj konta"
+          }
+        }
+      }
+    },
+    "Load the accounts first. Nothing is sent to the server until you do.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load the accounts first. Nothing is sent to the server until you do."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najpierw wczytaj konta. Dopóki tego nie zrobisz, nic nie zostanie wysłane do serwera."
+          }
+        }
+      }
+    },
+    "Loading the accounts from the server…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading the accounts from the server…"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wczytywanie kont z serwera…"
           }
         }
       }
@@ -1677,6 +2301,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Klucz zarządzania"
+          }
+        }
+      }
+    },
+    "Manual resets left: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual resets left: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozostałe ręczne resety: %@"
+          }
+        }
+      }
+    },
+    "Manual resets left: %@ · expires %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual resets left: %1$@ · expires %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozostałe ręczne resety: %1$@ · wygasają %2$@"
           }
         }
       }
@@ -1761,6 +2417,22 @@
         }
       }
     },
+    "Monthly": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Miesięczny"
+          }
+        }
+      }
+    },
     "More in %@": {
       "localizations": {
         "en": {
@@ -1777,6 +2449,22 @@
         }
       }
     },
+    "More models cooling down: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More models cooling down: %lld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Więcej wstrzymanych modeli: %lld"
+          }
+        }
+      }
+    },
     "Name": {
       "localizations": {
         "en": {
@@ -1789,6 +2477,102 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nazwa"
+          }
+        }
+      }
+    },
+    "Needs a new sign-in": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs a new sign-in"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wymaga ponownego logowania"
+          }
+        }
+      }
+    },
+    "No 5-hour window": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No 5-hour window"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak okna 5-godzinnego"
+          }
+        }
+      }
+    },
+    "No 5-hour window running": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No 5-hour window running"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak uruchomionego okna 5-godzinnego"
+          }
+        }
+      }
+    },
+    "No 5-hour window: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No 5-hour window: %lld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bez okna 5-godzinnego: %lld"
+          }
+        }
+      }
+    },
+    "No account can be checked right now.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No account can be checked right now."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teraz nie można sprawdzić żadnego konta."
+          }
+        }
+      }
+    },
+    "No account can take requests right now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No account can take requests right now"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Żadne konto nie może teraz przyjmować żądań"
           }
         }
       }
@@ -1937,6 +2721,22 @@
         }
       }
     },
+    "No servers yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No servers yet"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak serwerów"
+          }
+        }
+      }
+    },
     "Not available": {
       "localizations": {
         "en": {
@@ -1949,6 +2749,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Niedostępne"
+          }
+        }
+      }
+    },
+    "Not checked with the provider yet. Refresh limits asks the provider for this account's current limits, plan and resets.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not checked with the provider yet. Refresh limits asks the provider for this account's current limits, plan and resets."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jeszcze nie sprawdzone u dostawcy. „Odśwież limity” pyta dostawcę o bieżące limity, plan i resety tego konta."
           }
         }
       }
@@ -2001,6 +2817,22 @@
         }
       }
     },
+    "Not refreshed now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not refreshed now"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teraz bez odświeżania"
+          }
+        }
+      }
+    },
     "Not refreshed yet": {
       "localizations": {
         "en": {
@@ -2017,6 +2849,22 @@
         }
       }
     },
+    "Not supported: the management panel has no quota reader for this provider.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not supported: the management panel has no quota reader for this provider."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieobsługiwane: panel zarządzania nie odczytuje limitów tego dostawcy."
+          }
+        }
+      }
+    },
     "OK": {
       "localizations": {
         "en": {
@@ -2029,6 +2877,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "OK"
+          }
+        }
+      }
+    },
+    "Off by default. While Proxy Gauge is visible on screen and automatic refresh is on, the server checks Claude, Codex, Kimi and Devin accounts with their providers at this interval: Claude at most every 30 minutes, plans at most once a day. xAI and Google accounts, reset grants and reset credits are checked only when you choose Refresh limits. The widget and the menu bar never contact providers, and rate limits from a provider pause the checks for that account.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off by default. While Proxy Gauge is visible on screen and automatic refresh is on, the server checks Claude, Codex, Kimi and Devin accounts with their providers at this interval: Claude at most every 30 minutes, plans at most once a day. xAI and Google accounts, reset grants and reset credits are checked only when you choose Refresh limits. The widget and the menu bar never contact providers, and rate limits from a provider pause the checks for that account."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domyślnie wyłączone. Gdy Proxy Gauge jest widoczne na ekranie, a automatyczne odświeżanie włączone, serwer sprawdza konta Claude, Codex, Kimi i Devin u ich dostawców w tym odstępie: Claude najczęściej co 30 minut, plany najwyżej raz na dobę. Konta xAI i Google, granty resetów i kredyty resetów są sprawdzane tylko po wybraniu „Odśwież limity”. Widżet i pasek menu nigdy nie kontaktują się z dostawcami, a limit zapytań od dostawcy wstrzymuje sprawdzanie danego konta."
+          }
+        }
+      }
+    },
+    "Only servers added with a management key can ask providers for limits.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only servers added with a management key can ask providers for limits."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tylko serwery dodane z kluczem zarządzania mogą pytać dostawców o limity."
           }
         }
       }
@@ -2097,6 +2977,22 @@
         }
       }
     },
+    "Passive data: numbers without a mark come from rate-limit headers the proxy already observed while serving requests. Reading them sends nothing to the providers.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passive data: numbers without a mark come from rate-limit headers the proxy already observed while serving requests. Reading them sends nothing to the providers."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dane pasywne: liczby bez oznaczenia pochodzą z nagłówków limitów, które proxy już zarejestrowało podczas obsługi zapytań. Ich odczyt nie wysyła niczego do dostawców."
+          }
+        }
+      }
+    },
     "Paste the key": {
       "localizations": {
         "en": {
@@ -2129,6 +3025,38 @@
         }
       }
     },
+    "Plan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan"
+          }
+        }
+      }
+    },
+    "Plan active until": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan active until"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan aktywny do"
+          }
+        }
+      }
+    },
     "Pooled capacity": {
       "localizations": {
         "en": {
@@ -2141,6 +3069,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Łączny zapas"
+          }
+        }
+      }
+    },
+    "Pooled capacity: remaining quota of every enabled account added up, so three accounts make %@. A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pooled capacity: remaining quota of every enabled account added up, so three accounts make %@. A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Łączny zapas: pozostały limit wszystkich włączonych kont zsumowany, więc trzy konta to %@. Konto wstrzymane liczy się jako 0 do końca wstrzymania, okno po resecie liczy się jako pełne, a konto bez próbki jest pokazane osobno."
           }
         }
       }
@@ -2241,6 +3185,22 @@
         }
       }
     },
+    "Proxy Gauge asks your server to contact each provider with the account's own sign-in, the same requests the management panel sends for Refresh quota. The server does not keep the answers; this device does.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Gauge asks your server to contact each provider with the account's own sign-in, the same requests the management panel sends for Refresh quota. The server does not keep the answers; this device does."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy Gauge prosi Twój serwer o kontakt z każdym dostawcą przy użyciu logowania danego konta, tymi samymi zapytaniami, które panel zarządzania wysyła przy „Refresh quota”. Serwer nie przechowuje odpowiedzi, przechowuje je to urządzenie."
+          }
+        }
+      }
+    },
     "Proxy Gauge never reads or shows client key values. Servers that publish client-key policies also show how many keys are configured.": {
       "localizations": {
         "en": {
@@ -2257,18 +3217,18 @@
         }
       }
     },
-    "Proxy Gauge refreshes only the screen you are looking at, and only while the app is open. It reads what the proxy already knows and never asks providers for quota.": {
+    "Proxy Gauge refreshes only the screen you are looking at, and only while the app is open. It reads what the proxy already knows; asking the providers directly is the separate setting below. With automatic refresh off for a server, the app, the menu bar and the widget do not refresh it on their own: the widget shows the last saved values with their age, and refreshing by hand always works.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Proxy Gauge refreshes only the screen you are looking at, and only while the app is open. It reads what the proxy already knows and never asks providers for quota."
+            "value": "Proxy Gauge refreshes only the screen you are looking at, and only while the app is open. It reads what the proxy already knows; asking the providers directly is the separate setting below. With automatic refresh off for a server, the app, the menu bar and the widget do not refresh it on their own: the widget shows the last saved values with their age, and refreshing by hand always works."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Proxy Gauge odświeża tylko oglądany ekran i tylko wtedy, gdy aplikacja jest otwarta. Odczytuje to, co proxy już wie, i nigdy nie odpytuje dostawców o limity."
+            "value": "Proxy Gauge odświeża tylko oglądany ekran i tylko wtedy, gdy aplikacja jest otwarta. Odczytuje to, co proxy już wie; pytanie dostawców wprost to osobne ustawienie poniżej. Gdy automatyczne odświeżanie serwera jest wyłączone, aplikacja, pasek menu i widżet nie odświeżają go same: widżet pokazuje ostatnie zapisane wartości z ich wiekiem, a ręczne odświeżanie zawsze działa."
           }
         }
       }
@@ -2321,6 +3281,38 @@
         }
       }
     },
+    "Quota left on the best single account per provider on your default server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quota left on the best single account per provider on your default server."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limit pozostały na najlepszym pojedynczym koncie każdego dostawcy na domyślnym serwerze."
+          }
+        }
+      }
+    },
+    "Rate limited by provider, next try at %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rate limited by provider, next try at %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostawca ograniczył zapytania, następna próba o %@"
+          }
+        }
+      }
+    },
     "Refresh": {
       "localizations": {
         "en": {
@@ -2333,6 +3325,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Odśwież"
+          }
+        }
+      }
+    },
+    "Refresh automatically": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh automatically"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odświeżaj automatycznie"
           }
         }
       }
@@ -2353,6 +3361,86 @@
         }
       }
     },
+    "Refresh limits": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh limits"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odśwież limity"
+          }
+        }
+      }
+    },
+    "Refresh limits failed: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh limits failed: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odświeżenie limitów nie powiodło się: %@"
+          }
+        }
+      }
+    },
+    "Refresh limits from providers automatically": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh limits from providers automatically"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatycznie odświeżaj limity u dostawców"
+          }
+        }
+      }
+    },
+    "Refresh limits needs the management key: a client key cannot ask the server to contact providers.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh limits needs the management key: a client key cannot ask the server to contact providers."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odświeżanie limitów wymaga klucza zarządzania: klucz klienta nie może poprosić serwera o kontakt z dostawcami."
+          }
+        }
+      }
+    },
+    "Refreshing limits never redeems manual resets, never spends reset credits and never retries through another route. Providers that answer with a rate limit are left alone until they allow it again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refreshing limits never redeems manual resets, never spends reset credits and never retries through another route. Providers that answer with a rate limit are left alone until they allow it again."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odświeżanie limitów nigdy nie wykorzystuje ręcznych resetów, nie wydaje kredytów resetów i nie ponawia zapytań inną drogą. Dostawcy, którzy odpowiedzą limitem zapytań, nie są pytani, dopóki znów na to nie pozwolą."
+          }
+        }
+      }
+    },
     "Remaining quota of all your accounts added up, per provider.": {
       "localizations": {
         "en": {
@@ -2365,22 +3453,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pozostały limit wszystkich Twoich kont zsumowany dla każdego dostawcy."
-          }
-        }
-      }
-    },
-    "Remaining quota of every enabled account added up: three accounts make %@. A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remaining quota of every enabled account added up: three accounts make %@. A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pozostały limit wszystkich włączonych kont zsumowany: trzy konta to %@. Konto wstrzymane liczy się jako 0 do końca wstrzymania, okno po resecie liczy się jako pełne, a konto bez próbki jest pokazane osobno."
           }
         }
       }
@@ -2465,6 +3537,22 @@
         }
       }
     },
+    "Reset at %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset at %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odnowienie o %@"
+          }
+        }
+      }
+    },
     "Reset cooldown": {
       "localizations": {
         "en": {
@@ -2513,34 +3601,18 @@
         }
       }
     },
-    "Reset time passed; waiting for a new sample": {
+    "Resets %@ · in %@": {
       "localizations": {
         "en": {
           "stringUnit": {
-            "state": "translated",
-            "value": "Reset time passed; waiting for a new sample"
+            "state": "new",
+            "value": "Resets %1$@ · in %2$@"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Czas odnowienia minął; czekam na nową próbkę"
-          }
-        }
-      }
-    },
-    "Resets in %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resets in %@"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Odnowienie za %@"
+            "value": "Odnowienie %1$@ · za %2$@"
           }
         }
       }
@@ -2657,6 +3729,22 @@
         }
       }
     },
+    "Saved %@ ago": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved %@ ago"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapisano %@ temu"
+          }
+        }
+      }
+    },
     "Saves the server without a successful check, for example when it is offline right now.": {
       "localizations": {
         "en": {
@@ -2769,6 +3857,38 @@
         }
       }
     },
+    "Showing data saved %@ ago while the server is loaded.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing data saved %@ ago while the server is loaded."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokazano dane zapisane %@ temu, dopóki serwer się wczytuje."
+          }
+        }
+      }
+    },
+    "Showing data saved %@ ago. Automatic refresh is off — pull to refresh or press Refresh.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing data saved %@ ago. Automatic refresh is off — pull to refresh or press Refresh."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokazano dane zapisane %@ temu. Automatyczne odświeżanie jest wyłączone — pociągnij, aby odświeżyć, albo naciśnij Odśwież."
+          }
+        }
+      }
+    },
     "Showing the last saved values": {
       "localizations": {
         "en": {
@@ -2781,6 +3901,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pokazuję ostatnio zapisane wartości"
+          }
+        }
+      }
+    },
+    "Skipped": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skipped"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pominięte"
+          }
+        }
+      }
+    },
+    "Starts on use": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starts on use"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rusza przy użyciu"
+          }
+        }
+      }
+    },
+    "Starts on use, %@ left": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starts on use, %@ left"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rusza przy użyciu, pozostało %@"
           }
         }
       }
@@ -2849,6 +4017,38 @@
         }
       }
     },
+    "Table": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabela"
+          }
+        }
+      }
+    },
+    "The accounts could not be loaded: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The accounts could not be loaded: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie udało się wczytać kont: %@"
+          }
+        }
+      }
+    },
     "The change was not sent because the server blocked this network address while it was waiting. Refresh once the block ends, then try the change again.": {
       "localizations": {
         "en": {
@@ -2909,6 +4109,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Serwer domyślny zasila widżet i pasek menu."
+          }
+        }
+      }
+    },
+    "The demo server is removed from this device. You can add it back from Add server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The demo server is removed from this device. You can add it back from Add server."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer demo zostanie usunięty z tego urządzenia. Możesz go przywrócić w oknie Dodaj serwer."
           }
         }
       }
@@ -2977,6 +4193,38 @@
         }
       }
     },
+    "The last provider check failed (HTTP %lld).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The last provider check failed (HTTP %lld)."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostatnie sprawdzenie u dostawcy nie powiodło się (HTTP %lld)."
+          }
+        }
+      }
+    },
+    "The last provider check returned no readable limits.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The last provider check returned no readable limits."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostatnie sprawdzenie u dostawcy nie zwróciło czytelnych limitów."
+          }
+        }
+      }
+    },
     "The management key (management.secret-key) unlocks accounts, usage and settings. For remote access the server needs management.allow-remote: true.": {
       "localizations": {
         "en": {
@@ -3009,6 +4257,54 @@
         }
       }
     },
+    "The paid API key answered a 1-token check.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The paid API key answered a 1-token check."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Płatny klucz API odpowiedział na sprawdzenie za 1 token."
+          }
+        }
+      }
+    },
+    "The provider rejected this account (HTTP %lld). Automatic limit refresh stays off for it until you refresh it by hand.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The provider rejected this account (HTTP %lld). Automatic limit refresh stays off for it until you refresh it by hand."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostawca odrzucił to konto (HTTP %lld). Automatyczne odświeżanie limitów pozostaje dla niego wyłączone do ręcznego odświeżenia."
+          }
+        }
+      }
+    },
+    "The provider reported this account as blocked although no window was full.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The provider reported this account as blocked although no window was full."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostawca zgłosił to konto jako zablokowane, choć żadne okno nie było pełne."
+          }
+        }
+      }
+    },
     "The proxy applies the new strategy to the next requests.": {
       "localizations": {
         "en": {
@@ -3021,6 +4317,102 @@
           "stringUnit": {
             "state": "translated",
             "value": "Proxy zastosuje nową strategię do kolejnych zapytań."
+          }
+        }
+      }
+    },
+    "The proxy could not refresh this account's sign-in.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy could not refresh this account's sign-in."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy nie mogło odświeżyć logowania tego konta."
+          }
+        }
+      }
+    },
+    "The proxy has no sign-in token for this account.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy has no sign-in token for this account."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy nie ma tokenu logowania dla tego konta."
+          }
+        }
+      }
+    },
+    "The proxy no longer has this account. Refresh the account list.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy no longer has this account. Refresh the account list."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy nie ma już tego konta. Odśwież listę kont."
+          }
+        }
+      }
+    },
+    "The proxy refused provider checks, automatic checks are paused until %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy refused provider checks, automatic checks are paused until %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy odrzuciło sprawdzanie u dostawców, automatyczne sprawdzanie wstrzymane do %@"
+          }
+        }
+      }
+    },
+    "The proxy refused provider checks, next automatic try at %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy refused provider checks, next automatic try at %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy odrzuciło sprawdzanie u dostawców, następna automatyczna próba o %@"
+          }
+        }
+      }
+    },
+    "The proxy rejected the check for this account.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proxy rejected the check for this account."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proxy odrzuciło sprawdzenie tego konta."
           }
         }
       }
@@ -3105,6 +4497,22 @@
         }
       }
     },
+    "The server did not report a Google Cloud project for this account.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server did not report a Google Cloud project for this account."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer nie podał projektu Google Cloud dla tego konta."
+          }
+        }
+      }
+    },
     "The server did not report a configuration version, so this write is unconditional: if someone changed the routing strategy on the server since it was read here, their change is overwritten.": {
       "localizations": {
         "en": {
@@ -3117,6 +4525,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Serwer nie podał wersji konfiguracji, więc ten zapis jest bezwarunkowy: jeśli ktoś zmienił strategię routingu na serwerze, odkąd została tu odczytana, jego zmiana zostanie nadpisana."
+          }
+        }
+      }
+    },
+    "The server did not report an auth index for this account.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server did not report an auth index for this account."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serwer nie podał indeksu uwierzytelnienia (auth index) dla tego konta."
           }
         }
       }
@@ -3293,6 +4717,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plik konfiguracyjny serwera nie ustawia strategii routingu, więc proxy używa domyślnej: po kolei. Wybór strategii zapisze ją w pliku konfiguracyjnym."
+          }
+        }
+      }
+    },
+    "The window is too narrow for every column, so the accounts are shown as cards. Widen the window to see the table.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The window is too narrow for every column, so the accounts are shown as cards. Widen the window to see the table."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Okno jest za wąskie na wszystkie kolumny, więc konta są pokazane jako karty. Poszerz okno, aby zobaczyć tabelę."
           }
         }
       }
@@ -3633,6 +5073,38 @@
         }
       }
     },
+    "Will be contacted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Will be contacted"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zostaną zapytani"
+          }
+        }
+      }
+    },
+    "Window reset at %@; waiting for a new sample": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Window reset at %@; waiting for a new sample"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Okno odnowione o %@; czekam na nową próbkę"
+          }
+        }
+      }
+    },
     "Write anyway": {
       "localizations": {
         "en": {
@@ -3665,6 +5137,38 @@
         }
       }
     },
+    "account status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "account status"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "stan konta"
+          }
+        }
+      }
+    },
+    "billing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "billing"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rozliczenia"
+          }
+        }
+      }
+    },
     "of %@ · %@": {
       "localizations": {
         "en": {
@@ -3681,6 +5185,118 @@
         }
       }
     },
+    "paid-key check": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "paid-key check"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sprawdzenie płatnego klucza"
+          }
+        }
+      }
+    },
+    "plan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "plan"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "plan"
+          }
+        }
+      }
+    },
+    "profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "profile"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "profil"
+          }
+        }
+      }
+    },
+    "quota summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quota summary"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "podsumowanie limitów"
+          }
+        }
+      }
+    },
+    "reset credits": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "reset credits"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kredyty resetów"
+          }
+        }
+      }
+    },
+    "reset grants": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "reset grants"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "granty resetów"
+          }
+        }
+      }
+    },
+    "subscription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "subscription"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "subskrypcja"
+          }
+        }
+      }
+    },
     "until %@": {
       "localizations": {
         "en": {
@@ -3693,6 +5309,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "do %@"
+          }
+        }
+      }
+    },
+    "usage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "usage"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "użycie"
+          }
+        }
+      }
+    },
+    "xAI: when both billing endpoints answer but report no usage, the refresh falls back to the panel's paid-key check, which sends one chat completion with max_tokens 1 to api.x.ai. On a paid key this can cost a token. A billing error never leads to this check.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI: when both billing endpoints answer but report no usage, the refresh falls back to the panel's paid-key check, which sends one chat completion with max_tokens 1 to api.x.ai. On a paid key this can cost a token. A billing error never leads to this check."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI: gdy oba endpointy rozliczeń odpowiedzą, ale nie zgłoszą zużycia, odświeżanie przechodzi do sprawdzenia płatnego klucza z panelu, które wysyła jedno zapytanie chat completion z max_tokens 1 do api.x.ai. Na płatnym kluczu może to kosztować token. Błąd rozliczeń nigdy nie prowadzi do tego sprawdzenia."
           }
         }
       }

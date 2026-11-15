@@ -10,14 +10,16 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
     public var provider: String
     public var availability: Availability
     public var bars: [QuotaBar]
+    public var credentialID: String?
 
-    public init(provider: String, availability: Availability, bars: [QuotaBar]) {
+    public init(provider: String, availability: Availability, bars: [QuotaBar], credentialID: String? = nil) {
         self.provider = provider
         self.availability = availability
         self.bars = bars
+        self.credentialID = credentialID
     }
 
-    public init(credential: Credential, now: Date) {
+    public init(credential: Credential, active: ActiveQuota? = nil, now: Date) {
         let state = credential.state(at: now)
         let availability: Availability = if state == .disabled {
             .disabled
@@ -28,7 +30,13 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
         } else {
             .available
         }
-        self.init(provider: credential.provider, availability: availability, bars: credential.quotaBars)
+        self.init(provider: credential.provider, availability: availability, bars: QuotaMerge.bars(passive: credential.quotaBars, active: active), credentialID: credential.stableID)
+    }
+
+    func applying(_ active: ActiveQuota?) -> PoolAccount {
+        var updated = self
+        updated.bars = QuotaMerge.bars(passive: bars, active: active)
+        return updated
     }
 
     public init(fleet credential: FleetCredential) {
@@ -46,6 +54,12 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
         return .blocked(until: credentialCooldowns.compactMap(\.until).max())
     }
 
+    enum Contribution: Equatable {
+        case remaining(Double)
+        case unknown
+        case noWindowRunning
+    }
+
     var countsTowardCapacity: Bool { availability != .disabled }
 
     func isBlocked(at now: Date) -> Bool {
@@ -53,12 +67,20 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
         return until.map { $0 > now } ?? true
     }
 
+    func isUsable(at now: Date) -> Bool {
+        countsTowardCapacity && !isBlocked(at: now)
+    }
+
+    func contribution(in barID: String, at now: Date) -> Contribution {
+        let bar = bars.first { $0.id == barID }
+        if bar == nil, barID == FiveHourWindowState.barID, ProviderCatalog.reportsFiveHourWindow(provider), !bars.isEmpty { return .noWindowRunning }
+        if isBlocked(at: now) { return .remaining(0) }
+        return bar?.remainingPercent(at: now).map(Contribution.remaining) ?? .unknown
+    }
+
     func remainingPercent(in barID: String, at now: Date) -> Double? {
-        if isBlocked(at: now) { return 0 }
-        guard let bar = bars.first(where: { $0.id == barID }) else { return nil }
-        if bar.hasReset(at: now) { return 100 }
-        if bar.status == "rejected" { return 0 }
-        return bar.headroomPercent
+        if case .remaining(let percent) = contribution(in: barID, at: now) { return percent }
+        return nil
     }
 
     func nextIncrease(in barID: String, at now: Date) -> Date? {
@@ -76,15 +98,21 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
     func sampledAt(in barID: String) -> Date? {
         bars.first { $0.id == barID }?.sampledAt
     }
+
+    func label(in barID: String) -> String? {
+        bars.first { $0.id == barID }?.label
+    }
 }
 
 public struct PooledWindow: Codable, Sendable, Equatable, Hashable, Identifiable {
     public var barID: String
     public var accounts: Int
     public var unknownAccounts: Int
+    public var accountsWithoutRunningWindow: Int
     public var remainingPercent: Double
     public var nextIncreaseAt: Date?
     public var latestSampleAt: Date?
+    public var label: String?
 
     public var id: String { barID }
     public var window: QuotaWindow { QuotaWindow(barID: barID) }
@@ -95,26 +123,32 @@ public struct PooledWindow: Codable, Sendable, Equatable, Hashable, Identifiable
         knownAccounts > 0 ? remainingPercent / (Double(knownAccounts) * 100) : nil
     }
 
-    public init(barID: String, accounts: Int, unknownAccounts: Int, remainingPercent: Double, nextIncreaseAt: Date?, latestSampleAt: Date?) {
+    public init(barID: String, accounts: Int, unknownAccounts: Int, accountsWithoutRunningWindow: Int = 0, remainingPercent: Double, nextIncreaseAt: Date?, latestSampleAt: Date?, label: String? = nil) {
         self.barID = barID
         self.accounts = accounts
         self.unknownAccounts = unknownAccounts
+        self.accountsWithoutRunningWindow = accountsWithoutRunningWindow
         self.remainingPercent = remainingPercent
         self.nextIncreaseAt = nextIncreaseAt
         self.latestSampleAt = latestSampleAt
+        self.label = label
     }
 }
 
 public struct ProviderPool: Codable, Sendable, Equatable, Hashable, Identifiable {
     public var provider: String
     public var accounts: Int
+    public var totalAccounts: Int
+    public var usableAccounts: Int
     public var windows: [PooledWindow]
 
     public var id: String { provider }
 
-    public init(provider: String, accounts: Int, windows: [PooledWindow]) {
+    public init(provider: String, accounts: Int, totalAccounts: Int? = nil, usableAccounts: Int? = nil, windows: [PooledWindow]) {
         self.provider = provider
         self.accounts = accounts
+        self.totalAccounts = totalAccounts ?? accounts
+        self.usableAccounts = usableAccounts ?? accounts
         self.windows = windows
     }
 
@@ -143,7 +177,7 @@ public struct ProviderPool: Codable, Sendable, Equatable, Hashable, Identifiable
 public enum PooledCapacity {
     public static func pools(_ accounts: [PoolAccount], now: Date) -> [ProviderPool] {
         Dictionary(grouping: accounts, by: \.provider)
-            .map { provider, members in pool(provider, members: members.filter(\.countsTowardCapacity), now: now) }
+            .map { provider, members in pool(provider, members: members, now: now) }
             .sorted { ProviderCatalog.sortKey($0.provider) < ProviderCatalog.sortKey($1.provider) }
     }
 
@@ -153,10 +187,17 @@ public enum PooledCapacity {
             ?? pools.first { $0.accounts > 0 }
     }
 
-    private static func pool(_ provider: String, members: [PoolAccount], now: Date) -> ProviderPool {
+    private static func pool(_ provider: String, members allMembers: [PoolAccount], now: Date) -> ProviderPool {
+        let members = allMembers.filter(\.countsTowardCapacity)
         let barIDs = Set(members.flatMap { $0.bars.map(\.id) })
         let windows: [PooledWindow] = barIDs.map { window($0, members: members, now: now) }
-        return ProviderPool(provider: provider, accounts: members.count, windows: windows.sorted(by: displaysBefore))
+        return ProviderPool(
+            provider: provider,
+            accounts: members.count,
+            totalAccounts: allMembers.count,
+            usableAccounts: members.filter { $0.isUsable(at: now) }.count,
+            windows: windows.sorted(by: displaysBefore)
+        )
     }
 
     private static func displaysBefore(_ lhs: PooledWindow, _ rhs: PooledWindow) -> Bool {
@@ -165,15 +206,20 @@ public enum PooledCapacity {
     }
 
     private static func window(_ barID: String, members: [PoolAccount], now: Date) -> PooledWindow {
-        let contributions: [Double?] = members.map { $0.remainingPercent(in: barID, at: now) }
-        let known: [Double] = contributions.compactMap(\.self)
+        let contributions = members.map { $0.contribution(in: barID, at: now) }
+        let known = contributions.compactMap { contribution -> Double? in
+            if case .remaining(let percent) = contribution { percent } else { nil }
+        }
+        let withoutRunningWindow = contributions.filter { $0 == .noWindowRunning }.count
         return PooledWindow(
             barID: barID,
-            accounts: members.count,
-            unknownAccounts: contributions.count - known.count,
+            accounts: members.count - withoutRunningWindow,
+            unknownAccounts: contributions.filter { $0 == .unknown }.count,
+            accountsWithoutRunningWindow: withoutRunningWindow,
             remainingPercent: known.reduce(0, +),
             nextIncreaseAt: members.compactMap { $0.nextIncrease(in: barID, at: now) }.min(),
-            latestSampleAt: members.compactMap { $0.sampledAt(in: barID) }.max()
+            latestSampleAt: members.compactMap { $0.sampledAt(in: barID) }.max(),
+            label: members.lazy.compactMap { $0.label(in: barID) }.first
         )
     }
 }

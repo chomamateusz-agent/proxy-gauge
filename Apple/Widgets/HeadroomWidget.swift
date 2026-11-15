@@ -14,13 +14,14 @@ struct ProxyGaugeWidgets: WidgetBundle {
 
 struct HeadroomWidgetIntent: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Headroom"
-    static let description = IntentDescription("Lowest remaining quota per provider on your default server.")
+    static let description = IntentDescription("Quota left on the best single account per provider on your default server.")
 }
 
 struct HeadroomEntry: TimelineEntry {
     var date: Date
     var snapshot: HeadroomSnapshot?
     var isStale: Bool
+    var showsSavedAge = false
     var pauseReason: AuthPauseReason?
     var link: URL?
 }
@@ -42,10 +43,19 @@ struct HeadroomTimelineProvider: AppIntentTimelineProvider {
     }
 
     private func entries() async -> [HeadroomEntry] {
-        let profile = WidgetData.profile(nil)
+        guard let (profile, refreshesAutomatically) = WidgetData.profile(nil) else {
+            return [HeadroomEntry(date: .now, snapshot: nil, isStale: false)]
+        }
         let link = WidgetData.overviewLink(profile)
-        let entries = await WidgetData.timeline(for: profile) { date, result in
-            HeadroomEntry(date: date, snapshot: result.snapshot, isStale: result.isStale, pauseReason: result.pauseReason, link: link)
+        let entries = await WidgetData.timeline(for: profile, refreshesAutomatically: refreshesAutomatically) { date, result in
+            HeadroomEntry(
+                date: date,
+                snapshot: result.snapshot,
+                isStale: result.isStale,
+                showsSavedAge: result.origin == .saved,
+                pauseReason: result.pauseReason,
+                link: link
+            )
         }
         return Array(entries.prefix(1))
     }
@@ -72,7 +82,7 @@ struct HeadroomWidget: Widget {
                 .widgetURL(entry.link)
         }
         .configurationDisplayName(Text("Headroom"))
-        .description(Text("Lowest remaining quota per provider on your default server."))
+        .description(Text("Quota left on the best single account per provider on your default server."))
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -93,9 +103,15 @@ struct HeadroomWidgetView: View {
                 rows(snapshot)
             } else {
                 Spacer(minLength: 0)
-                Text("Open Proxy Gauge and choose a default server.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Group {
+                    if entry.showsSavedAge {
+                        Text("Automatic refresh is off. Refresh in Proxy Gauge to save values.")
+                    } else {
+                        Text("Open Proxy Gauge and choose a default server.")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
             }
         }
@@ -132,7 +148,7 @@ struct HeadroomWidgetView: View {
     @ViewBuilder
     private func rows(_ snapshot: HeadroomSnapshot) -> some View {
         let limit = family == .systemSmall ? 3 : 4
-        let providers = Array(snapshot.providers.sorted { ($0.headroomPercent ?? 101) < ($1.headroomPercent ?? 101) }.prefix(limit))
+        let providers = Array(snapshot.headroom(at: entry.date).sorted { ($0.headroomPercent ?? 101) < ($1.headroomPercent ?? 101) }.prefix(limit))
         if snapshot.source == .unavailable {
             Text("This server shares no quota with client keys.")
                 .font(.caption)
@@ -143,10 +159,15 @@ struct HeadroomWidgetView: View {
                 .foregroundStyle(.secondary)
         }
         ForEach(providers) { provider in
-            ProviderHeadroomRow(headroom: provider, compact: true)
+            ProviderHeadroomRow(headroom: provider)
         }
         Spacer(minLength: 0)
-        if family == .systemMedium {
+        if entry.showsSavedAge {
+            Text("Saved \(Text(snapshot.generatedAt, style: .relative)) ago")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        } else if family == .systemMedium {
             Text("Updated \(Text(snapshot.generatedAt, style: .relative)) ago")
                 .font(.caption2)
                 .foregroundStyle(.secondary)

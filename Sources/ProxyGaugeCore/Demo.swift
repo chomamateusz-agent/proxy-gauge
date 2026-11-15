@@ -14,6 +14,10 @@ public final class DemoTransport: HTTPTransport {
         try await Task.sleep(for: .milliseconds(150))
         return await server.handle(request)
     }
+
+    public func reset() async {
+        await server.reset()
+    }
 }
 
 struct DemoAccount: Sendable {
@@ -23,7 +27,6 @@ struct DemoAccount: Sendable {
     var email: String?
     var projectID: String?
     var label: String
-    var plan: String?
     var disabled: Bool
     var status: String
     var statusMessage: String?
@@ -37,6 +40,7 @@ struct DemoAccount: Sendable {
     var failed: Int64
     var seed: Int
     var models: [String]
+    var requiresSignIn = false
 }
 
 actor DemoServer {
@@ -53,16 +57,23 @@ actor DemoServer {
     static let claudeModels = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
     static let codexModels = ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna"]
     static let geminiModels = ["gemini-3-pro", "gemini-3-flash"]
+    static let xaiModels = ["grok-4.5", "grok-code-2"]
 
     static let initialAccounts: [DemoAccount] = [
-        DemoAccount(name: "claude-studio.json", authIndex: "a1f3c9", provider: "claude", email: "studio@example.com", label: "Studio", plan: "max", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 42, weeklyUsed: 63, weeklyModelUsed: 18, sessionResetMinutes: 134, weeklyResetHours: 61, success: 18_402, failed: 211, seed: 3, models: claudeModels),
-        DemoAccount(name: "claude-team.json", authIndex: "b72e04", provider: "claude", email: "team@example.com", label: "Team", plan: "max", disabled: false, status: "active", cooldownMinutes: 47, sessionUsed: 100, weeklyUsed: 88, weeklyModelUsed: 40, sessionResetMinutes: 47, weeklyResetHours: 30, success: 25_118, failed: 655, seed: 7, models: claudeModels),
-        DemoAccount(name: "claude-lab.json", authIndex: "c0d915", provider: "claude", email: "lab@example.com", label: "Lab", plan: "pro", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 12, weeklyUsed: 34, weeklyModelUsed: nil, sessionResetMinutes: 260, weeklyResetHours: 118, success: 6_930, failed: 48, seed: 11, models: claudeModels),
-        DemoAccount(name: "codex-main.json", authIndex: "d4a7b2", provider: "codex", email: "codex@example.com", label: "Main", plan: "pro", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 38, weeklyUsed: 71, weeklyModelUsed: nil, sessionResetMinutes: 90, weeklyResetHours: 75, success: 12_604, failed: 97, seed: 5, models: codexModels),
-        DemoAccount(name: "codex-backup.json", authIndex: "e19f60", provider: "codex", email: "backup@example.com", label: "Backup", plan: "plus", disabled: true, status: "disabled", cooldownMinutes: nil, sessionUsed: 5, weeklyUsed: 22, weeklyModelUsed: nil, sessionResetMinutes: 200, weeklyResetHours: 140, success: 1_212, failed: 9, seed: 13, models: codexModels),
-        DemoAccount(name: "gemini-cli-research.json", authIndex: "f83c1d", provider: "gemini-cli", email: nil, projectID: "research-demo-4821", label: "Research", plan: nil, disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: nil, weeklyUsed: nil, weeklyModelUsed: nil, sessionResetMinutes: 0, weeklyResetHours: 0, success: 3_377, failed: 140, seed: 17, models: geminiModels),
-        DemoAccount(name: "gemini-cli-sandbox.json", authIndex: "07be55", provider: "gemini-cli", email: nil, projectID: "sandbox-demo-0193", label: "Sandbox", plan: nil, disabled: false, status: "error", statusMessage: "token refresh failed: invalid_grant", cooldownMinutes: nil, sessionUsed: nil, weeklyUsed: nil, weeklyModelUsed: nil, sessionResetMinutes: 0, weeklyResetHours: 0, success: 402, failed: 61, seed: 19, models: geminiModels)
+        DemoAccount(name: "claude-studio.json", authIndex: "a1f3c9", provider: "claude", email: "studio@example.com", label: "Studio", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 42, weeklyUsed: 63, weeklyModelUsed: 18, sessionResetMinutes: 134, weeklyResetHours: 61, success: 18_402, failed: 211, seed: 3, models: claudeModels),
+        DemoAccount(name: "claude-team.json", authIndex: "b72e04", provider: "claude", email: "team@example.com", label: "Team", disabled: false, status: "active", cooldownMinutes: 47, sessionUsed: 100, weeklyUsed: 88, weeklyModelUsed: 40, sessionResetMinutes: 47, weeklyResetHours: 30, success: 25_118, failed: 655, seed: 7, models: claudeModels),
+        DemoAccount(name: "claude-lab.json", authIndex: "c0d915", provider: "claude", email: "lab@example.com", label: "Lab", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 12, weeklyUsed: 34, weeklyModelUsed: nil, sessionResetMinutes: 260, weeklyResetHours: 118, success: 6_930, failed: 48, seed: 11, models: claudeModels),
+        DemoAccount(name: "codex-main.json", authIndex: "d4a7b2", provider: "codex", email: "codex@example.com", label: "Main", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 38, weeklyUsed: 71, weeklyModelUsed: nil, sessionResetMinutes: 90, weeklyResetHours: 75, success: 12_604, failed: 97, seed: 5, models: codexModels),
+        DemoAccount(name: "codex-backup.json", authIndex: "e19f60", provider: "codex", email: "backup@example.com", label: "Backup", disabled: true, status: "disabled", cooldownMinutes: nil, sessionUsed: 5, weeklyUsed: 22, weeklyModelUsed: nil, sessionResetMinutes: 200, weeklyResetHours: 140, success: 1_212, failed: 9, seed: 13, models: codexModels),
+        DemoAccount(name: "gemini-cli-sandbox.json", authIndex: "07be55", provider: "gemini-cli", email: nil, projectID: "sandbox-demo-0193", label: "Sandbox", disabled: false, status: "error", statusMessage: "token refresh failed: invalid_grant", cooldownMinutes: nil, sessionUsed: nil, weeklyUsed: nil, weeklyModelUsed: nil, sessionResetMinutes: 0, weeklyResetHours: 0, success: 402, failed: 61, seed: 19, models: geminiModels, requiresSignIn: true),
+        DemoAccount(name: "xai-grok.json", authIndex: "f2c8a1", provider: "xai", email: "grok@example.com", label: "Grok", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: nil, weeklyUsed: 37, weeklyModelUsed: nil, sessionResetMinutes: 0, weeklyResetHours: 92, success: 2_310, failed: 14, seed: 23, models: xaiModels)
     ]
+
+    func reset() {
+        accounts = DemoServer.initialAccounts
+        strategy = "round-robin"
+        configRevision = 1
+    }
 
     func handle(_ request: HTTPRequest) -> HTTPResponse {
         let path = request.url.path()
@@ -95,6 +106,8 @@ actor DemoServer {
             return json(clientModels())
         case .fleetLimits:
             return json(fleetLimits(now: now))
+        case .apiCall:
+            return apiCall(request.body, now: now)
         case .unknown:
             return HTTPResponse(statusCode: 404, body: Data("404 page not found".utf8))
         }
@@ -193,13 +206,14 @@ actor DemoServer {
             "recent_requests": recentRequests(account, now: now),
             "quota": quotaJSON(account, now: now),
             "cooldowns": cooldownsJSON(account, now: now),
-            "requires_sign_in": false,
+            "requires_sign_in": account.requiresSignIn,
             "quota_blocked": account.cooldownMinutes != nil,
             "updated_at": WireDate.format(now.addingTimeInterval(-3_600)),
             "last_refresh": WireDate.format(now.addingTimeInterval(-1_800))
         ]
         if let email = account.email { entry["email"] = email }
         if let projectID = account.projectID { entry["project_id"] = projectID }
+        if account.provider == "codex" { entry["id_token"] = ["chatgpt_account_id": "demo-" + account.authIndex, "plan_type": "pro"] }
         if let cooldown = account.cooldownMinutes {
             entry["next_retry_after"] = WireDate.format(now.addingTimeInterval(Double(cooldown) * 60))
         }
@@ -256,9 +270,6 @@ actor DemoServer {
                 signals["X-Codex-Secondary-Window-Minutes"] = "10080"
                 signals["X-Codex-Secondary-Reset-At"] = String(Int(weeklyReset.timeIntervalSince1970))
             }
-            if let plan = account.plan {
-                signals["X-Codex-Plan-Type"] = plan
-            }
         default:
             break
         }
@@ -302,6 +313,7 @@ actor DemoServer {
     private func ownerOf(_ model: String) -> String {
         if model.hasPrefix("claude") { return "anthropic" }
         if model.hasPrefix("gpt") { return "openai" }
+        if model.hasPrefix("grok") { return "xai" }
         return "google"
     }
 
@@ -345,7 +357,7 @@ actor DemoServer {
     }
 
     private func fleetLimits(now: Date) -> [String: Any] {
-        let visible = accounts.filter { $0.provider != "gemini-cli" || $0.status != "error" }
+        let visible = accounts
         let credentials: [[String: Any]] = visible.enumerated().map { offset, account in
             let parsed = SignalQuotaParser.bars(
                 provider: account.provider,
@@ -354,7 +366,7 @@ actor DemoServer {
             var entry: [String: Any] = [
                 "label": "\(account.provider)-\(offset + 1)",
                 "provider": account.provider,
-                "plan": account.plan as Any? ?? NSNull(),
+                "plan": NSNull(),
                 "state": fleetState(account),
                 "bars": parsed.map { bar -> [String: Any] in
                     [
@@ -377,7 +389,7 @@ actor DemoServer {
         }
         var summary: [String: Any] = [:]
         for (provider, members) in Dictionary(grouping: visible, by: \.provider) {
-            let usable = members.filter { !$0.disabled && $0.cooldownMinutes == nil }
+            let usable = members.filter { !$0.disabled && $0.cooldownMinutes == nil && !$0.requiresSignIn }
             let barSets = usable.map { account in
                 SignalQuotaParser.bars(provider: account.provider, observations: [QuotaObservation(signals: signalMap(account, now: now), observedAt: now)])
             }
@@ -404,6 +416,16 @@ actor DemoServer {
         ]
     }
 
+    private func apiCall(_ body: Data?, now: Date) -> HTTPResponse {
+        guard let object = body.flatMap({ try? JSONSerialization.jsonObject(with: $0) }) as? [String: Any],
+              let authIndex = object["authIndex"] as? String,
+              let target = (object["url"] as? String).flatMap(URL.init(string:))
+        else { return failure(400, "invalid body") }
+        guard let account = accounts.first(where: { $0.authIndex == authIndex }) else { return failure(404, "auth not found") }
+        let upstream = DemoUpstream.reply(to: target, method: object["method"] as? String ?? "GET", account: account, now: now)
+        return json(["status_code": upstream.status, "header": ["Content-Type": ["application/json"]], "body": upstream.body])
+    }
+
     private func fleetState(_ account: DemoAccount) -> String {
         if account.disabled { return "disabled" }
         if account.cooldownMinutes != nil { return "cooldown" }
@@ -414,7 +436,7 @@ actor DemoServer {
 
 enum DemoRoute {
     case health, credentials, setStatus, resetCooldown, readStrategy, writeStrategy
-    case upstreamKeys, clientKeyPolicies, credentialModels, clientKeyUsage, clientModels, fleetLimits, unknown
+    case upstreamKeys, clientKeyPolicies, credentialModels, clientKeyUsage, clientModels, fleetLimits, apiCall, unknown
 
     init(method: HTTPMethod, path: String) {
         switch (method, path) {
@@ -430,6 +452,7 @@ enum DemoRoute {
         case (.get, "/v8/management/usage/client-keys"): self = .clientKeyUsage
         case (.get, "/v1/models"): self = .clientModels
         case (.get, "/v1/fleet/limits"): self = .fleetLimits
+        case (.post, "/v8/management/requests/api-call"): self = .apiCall
         default: self = .unknown
         }
     }

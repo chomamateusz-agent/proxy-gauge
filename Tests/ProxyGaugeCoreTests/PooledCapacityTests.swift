@@ -100,13 +100,76 @@ struct PooledCapacityTests {
     @Test func accountWithoutASampleIsUnknownNotZeroOrFull() throws {
         let pool = try #require(pools([
             claude("a", session: 30, weekly: 10),
-            claude("b", session: nil, weekly: 20)
+            claude("b", session: nil, weekly: nil)
         ]).first)
         let window = try #require(pool.window(.session5h))
         #expect(window.capacityPercent == 200)
         #expect(window.remainingPercent == 70)
         #expect(window.unknownAccounts == 1)
         #expect(window.knownAccounts == 1)
+        #expect(window.accountsWithoutRunningWindow == 0)
+    }
+
+    @Test func sampledAccountWithoutAFiveHourBarIsLeftOutOfThatWindowOnly() throws {
+        let pool = try #require(pools([
+            claude("a", session: 30, weekly: 10),
+            claude("b", session: nil, weekly: 20),
+            claude("c", session: nil, weekly: 50, cooldownUntil: "2026-11-14T11:00:00Z")
+        ]).first)
+        let session = try #require(pool.window(.session5h))
+        #expect(session.accountsWithoutRunningWindow == 2)
+        #expect(session.unknownAccounts == 0)
+        #expect(session.capacityPercent == 100)
+        #expect(session.remainingPercent == 70)
+        #expect(session.remainingShareOfKnown == 0.7)
+        let weekly = try #require(pool.window(.weekly))
+        #expect(weekly.capacityPercent == 300)
+        #expect(weekly.remainingPercent == 170)
+        #expect(weekly.accountsWithoutRunningWindow == 0)
+    }
+
+    @Test func explicitIdleFiveHourWindowCountsAsFull() throws {
+        let idle = Credential(name: "idle", authIndex: "idle", provider: "claude", quota: QuotaObservation(signals: [
+            "Anthropic-Ratelimit-Unified-5h-Utilization": "0",
+            "Anthropic-Ratelimit-Unified-7d-Utilization": "0.2",
+            "Anthropic-Ratelimit-Unified-7d-Reset": "2026-11-18T00:00:00Z"
+        ], observedAt: now))
+        let window = try #require(pools([claude("a", session: 30, weekly: 10), idle]).first?.window(.session5h))
+        #expect(window.remainingPercent == 170)
+        #expect(window.capacityPercent == 200)
+        #expect(window.accountsWithoutRunningWindow == 0)
+        #expect(AccountSummary(credential: idle, now: now).fiveHourWindow(at: now) == .startsOnUse)
+    }
+
+    @Test func rejectedWindowWithoutUtilisationContributesNothing() throws {
+        let rejected = Credential(name: "r", authIndex: "r", provider: "claude", quota: QuotaObservation(signals: [
+            "Anthropic-Ratelimit-Unified-5h-Status": "rejected",
+            "Anthropic-Ratelimit-Unified-5h-Reset": "2026-11-14T12:00:00Z",
+            "Anthropic-Ratelimit-Unified-7d-Utilization": "0.2"
+        ], observedAt: now))
+        let window = try #require(pools([claude("a", session: 30, weekly: 10), rejected]).first?.window(.session5h))
+        #expect(window.remainingPercent == 70)
+        #expect(window.unknownAccounts == 0)
+        #expect(window.nextIncreaseAt == date("2026-11-14T12:00:00Z"))
+    }
+
+    @Test func providerCountsSeparateAllAccountsFromUsableOnes() throws {
+        var needsSignIn = claude("d", session: 10, weekly: 10)
+        needsSignIn.requiresSignIn = true
+        let pool = try #require(pools([
+            claude("a", session: 30, weekly: 10),
+            claude("b", session: 0, weekly: 0, disabled: true),
+            claude("c", session: 0, weekly: 0, cooldownUntil: "2026-11-14T11:00:00Z"),
+            needsSignIn
+        ]).first)
+        #expect(pool.totalAccounts == 4)
+        #expect(pool.accounts == 3)
+        #expect(pool.usableAccounts == 1)
+        let afterCooldown = PooledCapacity.pools(
+            [claude("c", session: 0, weekly: 0, cooldownUntil: "2026-11-14T11:00:00Z")].map { PoolAccount(credential: $0, now: now) },
+            now: date("2026-11-14T11:30:00Z")
+        )
+        #expect(afterCooldown.first?.usableAccounts == 1)
     }
 
     @Test func accountWaitingForSignInContributesNothingWithoutAGrowthTime() throws {

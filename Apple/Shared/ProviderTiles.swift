@@ -1,0 +1,217 @@
+import ProxyGaugeCore
+import ProxyGaugeSession
+import SwiftUI
+
+struct DashboardSection<Content: View, Accessory: View>: View {
+    let title: LocalizedStringResource
+    @ViewBuilder var accessory: Accessory
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(.title3.weight(.semibold))
+                Spacer(minLength: 8)
+                accessory
+            }
+            content
+        }
+    }
+}
+
+extension DashboardSection where Accessory == EmptyView {
+    init(title: LocalizedStringResource, @ViewBuilder content: () -> Content) {
+        self.title = title
+        accessory = EmptyView()
+        self.content = content()
+    }
+}
+
+struct ProviderTilesGrid: View {
+    let pools: [ProviderPool]
+    let headroom: [ProviderHeadroom]
+    let accounts: [AccountSummary]
+    let phase: LoadPhase
+
+    var body: some View {
+        if pools.isEmpty {
+            Group {
+                if phase == .loaded {
+                    Text("No accounts on this server yet.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    NotLoadedRow(phase: phase)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .boardCard()
+        } else {
+            EqualHeightGrid(minItemWidth: pools.count >= BoardStyle.providersForCompactTiles ? BoardStyle.compactTileMinWidth : BoardStyle.tileMinWidth) {
+                ForEach(pools) { pool in
+                    ProviderTile(
+                        pool: pool,
+                        headroom: headroom.first { $0.provider == pool.provider },
+                        states: states(of: pool.provider)
+                    )
+                }
+            }
+        }
+    }
+
+    private func states(of provider: String) -> [CredentialState: Int] {
+        Dictionary(grouping: accounts.filter { $0.provider == provider }, by: \.state).mapValues(\.count)
+    }
+}
+
+struct ProviderTile: View {
+    let pool: ProviderPool
+    let headroom: ProviderHeadroom?
+    let states: [CredentialState: Int]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                ProviderBadge(provider: pool.provider, size: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(ProviderCatalog.displayName(pool.provider))
+                            .font(.headline)
+                        Spacer(minLength: 4)
+                        StateCounts(states: states)
+                    }
+                    AccountCountText(pool: pool)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if pool.windows.isEmpty {
+                Group {
+                    if pool.accounts == 0 {
+                        Text("Every account of this provider is disabled.")
+                    } else {
+                        Text("No quota data reported yet")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            ForEach(pool.windows) { window in
+                PooledWindowRow(window: window)
+            }
+            if let headroom, headroom.isWorthShowingBesideThePool {
+                Divider()
+                BestAccountLine(headroom: headroom)
+            }
+        }
+        .boardCard()
+    }
+}
+
+struct StateCounts: View {
+    let states: [CredentialState: Int]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(CredentialState.allCases, id: \.self) { state in
+                if let count = states[state], count > 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: state.symbol)
+                        Text(count, format: .number)
+                    }
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(state.color)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text("\(Text(state.label)): \(count)"))
+                }
+            }
+        }
+        .fixedSize()
+    }
+}
+
+struct ServerFacts: View {
+    let session: ServerSession
+
+    var body: some View {
+        EqualHeightGrid(minItemWidth: 150, spacing: 8) {
+            fact("Version") {
+                Text(verbatim: session.version?.version ?? "–")
+                    .textSelection(.enabled)
+            }
+            if let commit = session.version?.commit {
+                fact("Commit") {
+                    Text(verbatim: String(commit.prefix(12)))
+                        .monospaced()
+                        .textSelection(.enabled)
+                        .help(Text(verbatim: commit))
+                }
+            }
+            fact("Accounts") {
+                if session.hasLoaded(session.headroomScope) {
+                    Text(session.accountSummaries.count, format: .number)
+                } else {
+                    Text(verbatim: "–")
+                }
+            }
+            if let observedAt = session.observedAt ?? session.fleetLimits?.generatedAt {
+                fact("Server time") {
+                    Text(observedAt, format: .dateTime.hour().minute().second())
+                }
+            }
+            fact("Last refresh") {
+                RefreshFooter(lastRefresh: session.lastRefresh, isRefreshing: session.isRefreshing)
+            }
+        }
+    }
+
+    private func fact(_ title: LocalizedStringResource, @ViewBuilder value: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            value()
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(BoardStyle.cardBackground, in: .rect(cornerRadius: 8))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct DashboardFootnotes: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Pooled capacity: remaining quota of every enabled account added up, so three accounts make \(HeadroomStyle.percentText(300)). A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately.")
+            Text("A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. It is listed as \"No 5-hour window\" and left out of the 5-hour capacity, because the proxy does not say whether that window is idle or does not exist.")
+            Text("Best account: the most quota a single account that can take requests has left in its tightest window. Shown when at least two accounts can take requests.")
+            Text("Passive data: numbers without a mark come from rate-limit headers the proxy already observed while serving requests. Reading them sends nothing to the providers.")
+            Text("Active data: numbers with \(Image(systemName: "antenna.radiowaves.left.and.right")) come from Refresh limits, where the server asks the provider with the account's own sign-in. That happens only when you press Refresh limits, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings.")
+        }
+        .font(.callout)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct DashboardInfoButton: View {
+    @State private var showsInfo = false
+
+    var body: some View {
+        Button("How these numbers work", systemImage: "info.circle") { showsInfo = true }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .help(Text("How these numbers work"))
+            .popover(isPresented: $showsInfo, arrowEdge: .bottom) {
+                ScrollView {
+                    DashboardFootnotes()
+                        .padding()
+                }
+                .frame(idealWidth: 420, maxWidth: 480, idealHeight: 400)
+                .presentationCompactAdaptation(.popover)
+            }
+    }
+}

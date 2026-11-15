@@ -11,7 +11,7 @@ extension PooledWindow {
     }
 
     var color: Color {
-        HeadroomStyle.color(forHeadroom: remainingShareOfCapacity.map { $0 * 100 })
+        HeadroomStyle.color(forRemaining: remainingShareOfCapacity.map { $0 * 100 })
     }
 
     func dataSampledAt(snapshotTakenAt generatedAt: Date) -> Date {
@@ -24,7 +24,7 @@ struct PooledCapacityBar: View {
     var height: CGFloat = 8
 
     var body: some View {
-        UsageBar(usedPercent: window.remainingShareOfCapacity.map { 100 - $0 * 100 }, height: height)
+        RemainingBar(remainingPercent: window.remainingShareOfCapacity.map { $0 * 100 }, height: height)
     }
 }
 
@@ -35,7 +35,7 @@ struct PooledWindowRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 2 : 4) {
             HStack(alignment: .firstTextBaseline) {
-                Text(window.window.label)
+                window.title
                     .font(compact ? .caption2 : .subheadline)
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 4)
@@ -56,17 +56,26 @@ struct PooledWindowNotes: View {
     let window: PooledWindow
 
     var body: some View {
-        if window.unknownAccounts > 0 || window.nextIncreaseAt.map({ $0 > .now }) == true {
-            HStack(spacing: 6) {
-                if window.unknownAccounts > 0 {
-                    Text("Accounts without data: \(window.unknownAccounts)")
-                }
-                if let next = window.nextIncreaseAt, next > .now {
-                    Text("More in \(Text(next, style: .relative))")
-                }
+        if window.unknownAccounts > 0 || window.accountsWithoutRunningWindow > 0 || window.nextIncreaseAt.map({ $0 > .now }) == true {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) { notes }
+                VStack(alignment: .leading, spacing: 2) { notes }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var notes: some View {
+        if window.unknownAccounts > 0 {
+            Text("Accounts without data: \(window.unknownAccounts)")
+        }
+        if window.accountsWithoutRunningWindow > 0 {
+            Text("No 5-hour window: \(window.accountsWithoutRunningWindow)")
+        }
+        if let next = window.nextIncreaseAt, next > .now {
+            Text("More in \(Text(next, style: .relative))")
         }
     }
 }
@@ -83,7 +92,7 @@ struct PooledProviderRow: View {
                     .font(compact ? .caption.weight(.semibold) : .headline)
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                Text("Accounts: \(pool.accounts)")
+                AccountCountText(pool: pool)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -102,6 +111,14 @@ struct PooledProviderRow: View {
                 PooledWindowRow(window: window, compact: compact)
             }
         }
+    }
+}
+
+struct AccountCountText: View {
+    let pool: ProviderPool
+
+    var body: some View {
+        Text("Accounts: \(pool.totalAccounts) · usable: \(pool.usableAccounts)")
     }
 }
 

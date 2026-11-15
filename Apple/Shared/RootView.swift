@@ -8,13 +8,26 @@ struct RootView: View {
     @State private var showingAppSettings = false
     @State private var pendingDeletion: ServerProfile?
     @State private var deletionError: Error?
+    @State private var isAppVisible = true
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
 
     var body: some View {
         navigation
-            .autoRefresh(every: autoRefreshInterval, target: autoRefreshTarget) {
+            .tracksAppVisibility($isAppVisible)
+            .task(id: providerRefreshLoopID) {
+                guard let loop = providerRefreshLoopID, loop.isVisible, let profile = model.selectedProfile else { return }
+                let session = model.session(for: profile)
+                session.reloadProviderChecks()
+                guard loop.enabled else { return }
+                await session.runAutomaticLimitsRefresh(every: ProviderRefreshLoopID.tick)
+            }
+            .autoRefresh(
+                every: autoRefreshInterval,
+                target: autoRefreshTarget,
+                repeats: model.selectedProfile.map(model.refreshesAutomatically) ?? false
+            ) {
                 await refreshSelection(trigger: .automatic)
             }
         #if os(iOS)
@@ -43,8 +56,8 @@ struct RootView: View {
                 presenting: pendingDeletion
             ) { profile in
                 Button("Delete", role: .destructive) { delete(profile) }
-            } message: { _ in
-                Text("The server and its key are removed from this device. Nothing changes on the server.")
+            } message: { profile in
+                ServerDeletionMessage(profile: profile)
             }
             .alert(
                 "The server was not deleted",
@@ -77,20 +90,27 @@ struct RootView: View {
     private var splitNavigation: some View {
         NavigationSplitView {
             serverList
+                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 380)
         } content: {
-            if let profile = model.selectedProfile {
-                SectionList(profile: profile, pushesSections: false, onEdit: { editor = .edit(profile) })
-            } else {
-                ContentUnavailableView("Choose a server", systemImage: "server.rack")
-            }
-        } detail: {
-            if let profile = model.selectedProfile, let section = model.selectedSection {
-                NavigationStack {
-                    sectionDetail(section, of: profile)
+            Group {
+                if let profile = model.selectedProfile {
+                    SectionList(profile: profile, pushesSections: false, onEdit: { editor = .edit(profile) })
+                } else {
+                    ContentUnavailableView("Choose a server", systemImage: "server.rack")
                 }
-            } else {
-                ContentUnavailableView("Choose a section", systemImage: "sidebar.left")
             }
+            .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 320)
+        } detail: {
+            Group {
+                if let profile = model.selectedProfile, let section = model.selectedSection {
+                    NavigationStack {
+                        sectionDetail(section, of: profile)
+                    }
+                } else {
+                    ContentUnavailableView("Choose a section", systemImage: "sidebar.left")
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 520, ideal: 1100)
         }
     }
 
@@ -126,6 +146,16 @@ struct RootView: View {
     private var autoRefreshTarget: AutoRefreshTarget? {
         guard let profile = model.selectedProfile, let section = model.selectedSection else { return nil }
         return AutoRefreshTarget(session: model.session(for: profile).instanceID, section: section)
+    }
+
+    private var providerRefreshLoopID: ProviderRefreshLoopID? {
+        guard let profile = model.selectedProfile, profile.authMode == .management else { return nil }
+        return ProviderRefreshLoopID(
+            session: model.session(for: profile).instanceID,
+            enabled: model.refreshesLimitsFromProviders(profile) && model.refreshesAutomatically(profile),
+            interval: model.providerRefreshInterval(profile),
+            isVisible: isAppVisible
+        )
     }
 
     private var autoRefreshInterval: TimeInterval {
@@ -175,13 +205,14 @@ struct RootView: View {
 
     private var serverSection: some View {
         Section {
+            if model.profiles.isEmpty {
+                NoServersRow(onAdd: { editor = .add })
+            }
             ForEach(model.profiles) { profile in
                 serverRow(profile)
                     .contextMenu { actions(for: profile) }
                     .swipeActions(edge: .trailing) {
-                        if !profile.isDemo {
-                            Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = profile }
-                        }
+                        Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = profile }
                         Button("Edit", systemImage: "pencil") { editor = .edit(profile) }
                     }
                     .swipeActions(edge: .leading) {
@@ -196,7 +227,7 @@ struct RootView: View {
 
     @ViewBuilder
     private func serverRow(_ profile: ServerProfile) -> some View {
-        let row = ServerRow(profile: profile, isDefault: profile.id == model.defaultProfile.id)
+        let row = ServerRow(profile: profile, isDefault: profile.id == model.defaultProfile?.id)
         if usesStackNavigation {
             NavigationLink(value: StackRoute.server(profile.id)) { row }
         } else {
@@ -208,10 +239,8 @@ struct RootView: View {
     private func actions(for profile: ServerProfile) -> some View {
         Button("Edit", systemImage: "pencil") { editor = .edit(profile) }
         Button("Make default", systemImage: "star") { model.makeDefault(profile) }
-        if !profile.isDemo {
-            Divider()
-            Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = profile }
-        }
+        Divider()
+        Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = profile }
     }
 }
 
@@ -248,7 +277,9 @@ struct ServerRow: View {
                     Text(verbatim: profile.baseURL.absoluteString)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                        .lineLimit(1)
+                        .lineLimit(3)
+                        .truncationMode(.middle)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -274,26 +305,49 @@ struct SectionList: View {
     @ViewBuilder
     private var sectionsList: some View {
         if pushesSections {
-            List { sections }
+            List {
+                Section {
+                    sectionRows
+                } footer: {
+                    status
+                }
+            }
         } else {
             List(selection: Binding(get: { model.selectedSection }, set: { model.selectedSection = $0 })) {
-                sections
+                sectionRows
+            }
+            .safeAreaInset(edge: .bottom) {
+                status
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
 
-    private var sections: some View {
+    private var sectionRows: some View {
+        ForEach(ServerSection.sections(for: profile.authMode)) { section in
+            sectionRow(section)
+        }
+    }
+
+    private var status: some View {
         let session = model.session(for: profile)
-        return Section {
-            ForEach(ServerSection.sections(for: profile.authMode)) { section in
-                sectionRow(section)
+        return VStack(alignment: .leading, spacing: 4) {
+            if let version = session.version {
+                Text("CLIProxyAPI \(version.version)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
             }
-        } footer: {
-            VStack(alignment: .leading, spacing: 4) {
-                if let version = session.version {
-                    Text("CLIProxyAPI \(version.version)")
-                }
-                RefreshFooter(lastRefresh: session.lastRefresh, isRefreshing: session.isRefreshing)
+            RefreshFooter(lastRefresh: session.lastRefresh, isRefreshing: session.isRefreshing)
+                .fixedSize(horizontal: false, vertical: true)
+            if !model.refreshesAutomatically(profile) {
+                Label("Automatic refresh is off", systemImage: "pause.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -338,5 +392,36 @@ struct SectionDetail: View {
         case .settings: ServerSettingsView(session: session)
         case .limits: ClientLimitsView(session: session)
         }
+    }
+}
+
+struct ServerDeletionMessage: View {
+    let profile: ServerProfile
+
+    var body: some View {
+        if profile.isDemo {
+            Text("The demo server is removed from this device. You can add it back from Add server.")
+        } else {
+            Text("The server and its key are removed from this device. Nothing changes on the server.")
+        }
+    }
+}
+
+private struct NoServersRow: View {
+    @Environment(AppModel.self) private var model
+    let onAdd: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("No servers yet")
+                .font(.headline)
+            Text("Add your CLIProxyAPI server, or bring back the demo server to look around.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Add server", systemImage: "plus", action: onAdd)
+            Button("Add demo server", systemImage: "play.rectangle") { model.restoreDemo() }
+        }
+        .padding(.vertical, 6)
     }
 }

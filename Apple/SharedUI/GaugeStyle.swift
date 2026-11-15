@@ -28,22 +28,23 @@ enum ProviderStyle {
 }
 
 enum HeadroomStyle {
-    static func color(forHeadroom headroom: Double?) -> Color {
-        guard let headroom else { return .secondary }
-        switch headroom {
+    static func color(forRemaining remaining: Double?) -> Color {
+        guard let remaining else { return .secondary }
+        switch remaining {
         case ..<15: return .red
         case ..<40: return .orange
         default: return .green
         }
     }
 
-    static func color(forUsed used: Double?) -> Color {
-        color(forHeadroom: used.map { 100 - $0 })
-    }
-
     static func percentText(_ value: Double?) -> String {
         guard let value else { return "–" }
         return (value / 100).formatted(.percent.precision(.fractionLength(0)))
+    }
+
+    static func remainingText(_ remaining: Double?) -> Text {
+        guard remaining != nil else { return Text("Unknown") }
+        return Text("\(percentText(remaining)) left")
     }
 }
 
@@ -54,9 +55,22 @@ extension QuotaWindow {
         case .weekly: "Weekly"
         case .weeklyModel: "Weekly (model)"
         case .daily: "Daily"
+        case .monthly: "Monthly"
         case .minutes(let minutes): "\(minutes)-minute window"
         case .other(let id): LocalizedStringResource(stringLiteral: id)
         }
+    }
+}
+
+extension QuotaBar {
+    var title: Text {
+        label.map { Text(verbatim: $0) } ?? Text(window.label)
+    }
+}
+
+extension PooledWindow {
+    var title: Text {
+        label.map { Text(verbatim: $0) } ?? Text(window.label)
     }
 }
 
@@ -103,18 +117,18 @@ struct ProviderBadge: View {
     }
 }
 
-struct UsageBar: View {
-    let usedPercent: Double?
+struct RemainingBar: View {
+    let remainingPercent: Double?
     var height: CGFloat = 8
 
     var body: some View {
         GeometryReader { proxy in
-            let fraction = min(1, max(0, (usedPercent ?? 0) / 100))
+            let fraction = min(1, max(0, (remainingPercent ?? 0) / 100))
             ZStack(alignment: .leading) {
                 Capsule().fill(.quaternary)
-                if usedPercent != nil {
+                if let remainingPercent, remainingPercent > 0 {
                     Capsule()
-                        .fill(HeadroomStyle.color(forUsed: usedPercent).gradient)
+                        .fill(HeadroomStyle.color(forRemaining: remainingPercent).gradient)
                         .frame(width: max(height, proxy.size.width * fraction))
                 }
             }
@@ -126,47 +140,65 @@ struct UsageBar: View {
 
 struct ProviderHeadroomRow: View {
     let headroom: ProviderHeadroom
-    var compact = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            ProviderBadge(provider: headroom.provider, size: compact ? 20 : 28)
-            VStack(alignment: .leading, spacing: compact ? 2 : 4) {
+        HStack(spacing: 8) {
+            ProviderBadge(provider: headroom.provider, size: 20)
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(ProviderCatalog.displayName(headroom.provider))
-                        .font(compact ? .caption.weight(.semibold) : .headline)
+                        .font(.caption.weight(.semibold))
                         .lineLimit(1)
                     Spacer(minLength: 4)
                     Text(HeadroomStyle.percentText(headroom.headroomPercent))
-                        .font(compact ? .caption.monospacedDigit().weight(.semibold) : .headline.monospacedDigit())
-                        .foregroundStyle(HeadroomStyle.color(forHeadroom: headroom.headroomPercent))
+                        .font(.caption.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(HeadroomStyle.color(forRemaining: headroom.headroomPercent))
+                        .accessibilityHidden(true)
                 }
-                UsageBar(usedPercent: headroom.headroomPercent.map { 100 - $0 }, height: compact ? 5 : 8)
-                if !compact {
-                    detail
-                }
+                RemainingBar(remainingPercent: headroom.headroomPercent, height: 5)
             }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(HeadroomStyle.remainingText(headroom.headroomPercent))
+    }
+}
+
+struct BestAccountLine: View {
+    let headroom: ProviderHeadroom
+    var compact = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Best account")
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 4)
+                HeadroomStyle.remainingText(headroom.headroomPercent)
+                    .monospacedDigit()
+                    .fontWeight(.semibold)
+                    .foregroundStyle(HeadroomStyle.color(forRemaining: headroom.headroomPercent))
+            }
+            .font(compact ? .caption2 : .subheadline)
+            detail
+                .font(compact ? .caption2 : .caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
     private var detail: some View {
-        if headroom.headroomPercent == nil {
+        if headroom.usableCredentials == 0 && headroom.totalCredentials > 0 {
+            Text("No account can take requests right now")
+        } else if headroom.headroomPercent == nil {
             Text("No quota data reported yet")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         } else if let barID = headroom.limitingBarID {
-            Group {
-                if let resetsAt = headroom.resetsAt, resetsAt > .now {
-                    Text("Limited by \(Text(QuotaWindow(barID: barID).label)) · resets in \(Text(resetsAt, style: .relative))")
-                } else {
-                    Text("Limited by \(Text(QuotaWindow(barID: barID).label))")
-                }
+            if let resetsAt = headroom.resetsAt, resetsAt > .now {
+                Text("Limited by \(Text(QuotaWindow(barID: barID).label)) · resets in \(Text(resetsAt, style: .relative))")
+            } else {
+                Text("Limited by \(Text(QuotaWindow(barID: barID).label))")
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

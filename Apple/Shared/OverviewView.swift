@@ -2,116 +2,75 @@ import ProxyGaugeCore
 import ProxyGaugeSession
 import SwiftUI
 
+enum BoardWidth {
+    static let minimumForAccountsBoard: CGFloat = 640
+
+    #if os(iOS)
+    static func isCompact(_ sizeClass: UserInterfaceSizeClass?) -> Bool { sizeClass == .compact }
+    #endif
+}
+
 struct OverviewView: View {
     let session: ServerSession
+    @AppStorage(AccountsLayout.storageKey) private var storedLayout = AccountsLayout.cards.rawValue
+    @State private var width: CGFloat = 0
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
-    var body: some View {
-        List {
-            SessionStatusSection(session: session, scope: .accounts)
-            Section("Server") {
-                LabeledContent("Version") {
-                    Text(verbatim: session.version?.version ?? "–")
-                }
-                if let commit = session.version?.commit {
-                    LabeledContent("Commit") { Text(verbatim: commit).monospaced() }
-                }
-                LabeledContent("Accounts") {
-                    if session.accountsLoaded {
-                        Text(session.credentials.count, format: .number)
-                    } else {
-                        Text(verbatim: "–")
-                    }
-                }
-                LabeledContent("Last refresh") {
-                    RefreshFooter(lastRefresh: session.lastRefresh, isRefreshing: session.isRefreshing)
-                }
-                if let observedAt = session.observedAt {
-                    LabeledContent("Server time") {
-                        Text(observedAt, format: .dateTime.hour().minute().second())
-                    }
-                }
-            }
-            PooledCapacitySection(pools: session.pools, phase: session.loadPhase(for: .accounts, loaded: session.accountsLoaded))
-            let headroom = session.headroom
-            Section {
-                if headroom.isEmpty {
-                    if session.accountsLoaded {
-                        Text("No accounts on this server yet.")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        NotLoadedRow(phase: session.loadPhase(for: .accounts, loaded: false))
-                    }
-                }
-                ForEach(headroom) { provider in
-                    ProviderHeadroomRow(headroom: provider)
-                        .padding(.vertical, 2)
-                }
-            } header: {
-                Text("Headroom per provider")
-            } footer: {
-                if session.accountsLoaded && !headroom.isEmpty {
-                    Text("Best remaining quota across usable accounts, from rate-limit headers the proxy already observed. Proxy Gauge never asks providers for quota.")
-                }
-            }
-            let accountCounts = session.accountCounts
-            if !accountCounts.isEmpty {
-                Section("Accounts by state") {
-                    ForEach(accountCounts) { counts in
-                        AccountCountsRow(counts: counts)
-                    }
-                }
-            }
-        }
+    private var compactWidth: Bool {
+        #if os(iOS)
+        BoardWidth.isCompact(horizontalSizeClass)
+        #else
+        false
+        #endif
     }
-}
 
-struct PooledCapacitySection: View {
-    let pools: [ProviderPool]
-    let phase: LoadPhase
+    private var showsAccountsBoard: Bool {
+        !compactWidth && width >= BoardWidth.minimumForAccountsBoard
+    }
 
     var body: some View {
-        Section {
-            if pools.isEmpty {
-                if phase == .loaded {
-                    Text("No accounts on this server yet.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    NotLoadedRow(phase: phase)
+        let accounts = session.accountSummaries
+        let phase = session.loadPhase(for: .accounts, loaded: session.accountsLoaded)
+        let quota = session.quotaOverview(at: .now)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                SessionStatusBanner(session: session, scope: .accounts)
+                ProviderRefreshStatus(session: session)
+                ServerFacts(session: session)
+                if let savedAt = quota.savedAt {
+                    SavedDataNote(savedAt: savedAt, refreshesAutomatically: session.refreshesAutomatically)
+                }
+                DashboardSection(title: "Pooled capacity") {
+                    DashboardInfoButton()
+                } content: {
+                    ProviderTilesGrid(pools: quota.pools, headroom: quota.headroom, accounts: accounts, phase: phase)
+                }
+                if showsAccountsBoard && !accounts.isEmpty {
+                    DashboardSection(title: "Accounts") {
+                        AccountsBoard(
+                            accounts: accounts,
+                            layout: AccountsLayout.resolve(storedLayout, compactWidth: compactWidth),
+                            session: session,
+                            cardMinWidth: BoardStyle.compactCardMinWidth
+                        )
+                    }
                 }
             }
-            ForEach(pools) { pool in
-                PooledProviderRow(pool: pool)
-                    .padding(.vertical, 2)
-            }
-        } header: {
-            Text("Pooled capacity")
-        } footer: {
-            if !pools.isEmpty {
-                Text("Remaining quota of every enabled account added up: three accounts make \(HeadroomStyle.percentText(300)). A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately.")
-            }
+            .padding()
         }
-    }
-}
-
-private struct AccountCountsRow: View {
-    let counts: AccountCounts
-
-    var body: some View {
-        HStack(spacing: 10) {
-            ProviderBadge(provider: counts.provider, size: 24)
-            Text(ProviderCatalog.displayName(counts.provider))
-                .lineLimit(1)
-            Spacer()
-            ForEach(CredentialState.allCases, id: \.self) { state in
-                if counts.count(state) > 0 {
-                    HStack(spacing: 2) {
-                        Image(systemName: state.symbol)
-                        Text(counts.count(state), format: .number)
-                    }
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(state.color)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text("\(Text(state.label)): \(counts.count(state))"))
+        .background(BoardStyle.pageBackground)
+        .onGeometryChange(for: CGFloat.self, of: { $0.size.width }, action: { width = $0 })
+        .toolbar {
+            if showsAccountsBoard {
+                ToolbarItem {
+                    AccountsLayoutPicker(storedLayout: $storedLayout, compactWidth: compactWidth)
+                }
+            }
+            if session.supportsLimitsRefresh {
+                ToolbarItem {
+                    RefreshLimitsButton(session: session)
                 }
             }
         }

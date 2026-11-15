@@ -20,10 +20,11 @@ struct DemoTests {
         let states = Set(credentials.value.files.map { $0.state(at: now) })
         #expect(states == Set(CredentialState.allCases))
         let headroom = HeadroomCalculator.fromCredentials(credentials.value.files, now: now)
-        #expect(headroom.map(\.provider) == ["claude", "codex", "gemini-cli"])
+        #expect(headroom.map(\.provider) == ["claude", "codex", "gemini-cli", "xai"])
         #expect(headroom[0].headroomPercent == 66)
         #expect(headroom[1].headroomPercent == 29)
-        #expect(headroom[2].headroomPercent == nil)
+        #expect(headroom[2].headroomPercent == 0)
+        #expect(headroom[2].usableCredentials == 0)
         #expect(credentials.value.files.allSatisfy { $0.recentRequests.count == 20 })
 
         #expect(try await client.routingStrategy()?.strategy == "round-robin")
@@ -65,7 +66,7 @@ struct DemoTests {
         #expect(limits.credentials.contains { $0.credits != nil })
         #expect(limits.exclusions.map(\.pattern) == ["claude-haiku-5-5"])
         #expect(limits.models.contains { $0.id == "claude-opus-5-5" })
-        let headroom = HeadroomCalculator.fromFleet(limits)
+        let headroom = HeadroomCalculator.fromFleet(limits, now: Date())
         #expect(headroom.first { $0.provider == "claude" }?.headroomPercent == 66)
     }
 
@@ -74,7 +75,8 @@ struct DemoTests {
         let management = try await HeadroomLoader.load(profile: .demo(authMode: .management), secret: DemoTransport.secret, transport: transport)
         #expect(management.source == .passiveObservations)
         #expect(management.isDemo)
-        #expect(management.lowestHeadroom?.provider == "codex")
+        #expect(management.lowestHeadroom(at: management.generatedAt)?.provider == "gemini-cli")
+        #expect(management.pools(at: management.generatedAt).first { $0.provider == "gemini-cli" }?.usableAccounts == 0)
         let fleet = try await HeadroomLoader.load(profile: .demo(authMode: .clientKey), secret: DemoTransport.secret, transport: transport)
         #expect(fleet.source == .fleetLimits)
     }

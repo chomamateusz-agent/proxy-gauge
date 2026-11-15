@@ -61,7 +61,7 @@ extension KeyedDecodingContainer {
 
     func lenientInt(_ key: Key) -> Int64? {
         if let value = try? decodeIfPresent(Int64.self, forKey: key) { return value }
-        if let value = try? decodeIfPresent(Double.self, forKey: key) { return Int64(value) }
+        if let value = try? decodeIfPresent(Double.self, forKey: key) { return Int64(exactly: value.rounded(.towardZero)) }
         if let text = try? decodeIfPresent(String.self, forKey: key) { return Int64(text) }
         return nil
     }

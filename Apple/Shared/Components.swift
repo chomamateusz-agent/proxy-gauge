@@ -74,6 +74,8 @@ struct NotLoadedRow: View {
         case .lastAttemptFailed:
             Text("Not loaded. Refresh to try again.")
                 .foregroundStyle(.secondary)
+        case .waitingForManualRefresh:
+            ManualRefreshHint()
         case .loaded:
             EmptyView()
         }
@@ -96,23 +98,48 @@ struct SessionStatusSection: View {
     let scope: RefreshScope
 
     var body: some View {
-        let failure = session.failure(for: scope)
-        if failure != nil || session.pauseReason != nil {
+        if session.failure(for: scope) != nil || session.pauseReason != nil {
             Section {
-                if let failure {
-                    ErrorBanner(error: failure)
-                }
-                if let reason = session.pauseReason {
-                    Label {
-                        Text(reason.pausedNote)
-                            .font(.callout)
-                    } icon: {
-                        Image(systemName: reason.symbol)
-                            .foregroundStyle(.red)
-                    }
-                    .padding(.vertical, 4)
-                }
+                SessionStatusMessages(session: session, scope: scope)
             }
+        }
+    }
+}
+
+struct SessionStatusBanner: View {
+    let session: ServerSession
+    let scope: RefreshScope
+
+    var body: some View {
+        if session.failure(for: scope) != nil || session.pauseReason != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                SessionStatusMessages(session: session, scope: scope)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.orange.opacity(0.12), in: .rect(cornerRadius: BoardStyle.cornerRadius))
+        }
+    }
+}
+
+private struct SessionStatusMessages: View {
+    let session: ServerSession
+    let scope: RefreshScope
+
+    var body: some View {
+        if let failure = session.failure(for: scope) {
+            ErrorBanner(error: failure)
+        }
+        if let reason = session.pauseReason {
+            Label {
+                Text(reason.pausedNote)
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: reason.symbol)
+                    .foregroundStyle(.red)
+            }
+            .padding(.vertical, 4)
         }
     }
 }
@@ -132,6 +159,52 @@ struct ErrorBanner: View {
     }
 }
 
+struct ManualRefreshHint: View {
+    var body: some View {
+        Label {
+            Text("Automatic refresh is off — pull to refresh or press Refresh.")
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "pause.circle")
+        }
+        .font(.callout)
+        .foregroundStyle(.secondary)
+    }
+}
+
+struct ElapsedText: View {
+    let since: Date
+    let text: (String) -> Text
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 10)) { context in
+            text(ElapsedTime.text(from: since, to: context.date))
+        }
+    }
+}
+
+struct SavedDataNote: View {
+    let savedAt: Date
+    let refreshesAutomatically: Bool
+
+    var body: some View {
+        Label {
+            ElapsedText(since: savedAt) { elapsed in
+                if refreshesAutomatically {
+                    Text("Showing data saved \(elapsed) ago while the server is loaded.")
+                } else {
+                    Text("Showing data saved \(elapsed) ago. Automatic refresh is off — pull to refresh or press Refresh.")
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "clock.arrow.circlepath")
+        }
+        .font(.callout)
+        .foregroundStyle(.secondary)
+    }
+}
+
 struct RefreshFooter: View {
     let lastRefresh: Date?
     let isRefreshing: Bool
@@ -142,7 +215,7 @@ struct RefreshFooter: View {
                 ProgressView().controlSize(.small)
             }
             if let lastRefresh {
-                Text("Updated \(Text(lastRefresh, style: .relative)) ago")
+                ElapsedText(since: lastRefresh) { Text("Updated \($0) ago") }
             } else if !isRefreshing {
                 Text("Not refreshed yet")
             }
@@ -179,39 +252,162 @@ struct StateBadge: View {
     }
 }
 
-struct QuotaBarRow: View {
-    let bar: QuotaBar
+struct StateChip: View {
+    let state: CredentialState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(bar.window.label)
+        Label {
+            Text(state.label)
+        } icon: {
+            Image(systemName: state.symbol)
+        }
+        .labelStyle(.titleAndIcon)
+        .font(.caption2.weight(.semibold))
+        .lineLimit(1)
+        .fixedSize()
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(state.color.opacity(0.16), in: .capsule)
+        .foregroundStyle(state.color)
+    }
+}
+
+enum ResetClock {
+    static func format(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> Date.FormatStyle {
+        if calendar.isDate(date, inSameDayAs: now) {
+            return .dateTime.hour().minute()
+        }
+        if abs(date.timeIntervalSince(now)) < 6 * 86_400 {
+            return .dateTime.weekday(.abbreviated).hour().minute()
+        }
+        return .dateTime.month(.abbreviated).day().hour().minute()
+    }
+
+    static func text(_ date: Date) -> Text {
+        Text(date, format: format(date))
+    }
+}
+
+struct ResetNote: View {
+    let resetsAt: Date
+
+    var body: some View {
+        if resetsAt > .now {
+            Text("Resets \(ResetClock.text(resetsAt)) · in \(Text(resetsAt, style: .relative))")
+        } else {
+            Text("Window reset at \(ResetClock.text(resetsAt)); waiting for a new sample")
+        }
+    }
+}
+
+struct CooldownNote: View {
+    let until: Date
+
+    var body: some View {
+        Label {
+            Text("Cooling down until \(ResetClock.text(until)) · in \(Text(until, style: .relative))")
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "hourglass")
+        }
+        .foregroundStyle(.orange)
+    }
+}
+
+struct QuotaBarRow: View {
+    let bar: QuotaBar
+    let provider: String
+    var compact = false
+
+    var body: some View {
+        let now = Date.now
+        let remaining = bar.remainingPercent(at: now)
+        VStack(alignment: .leading, spacing: compact ? 2 : 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                bar.title
                     .font(.caption.weight(.medium))
-                Spacer()
-                if let used = bar.usedPercent {
-                    Text("\(HeadroomStyle.percentText(used)) used")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(HeadroomStyle.color(forUsed: used))
-                } else {
-                    Text("Unknown")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                if bar.isFromProvider {
+                    ProviderSourceMark(sampledAt: bar.sampledAt)
                 }
-            }
-            UsageBar(usedPercent: bar.usedPercent, height: 6)
-            if let resetsAt = bar.resetsAt {
+                if bar.isAtLimit(at: now) {
+                    Text("At limit")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.red)
+                }
+                Spacer(minLength: 4)
                 Group {
-                    if resetsAt > .now {
-                        Text("Resets in \(Text(resetsAt, style: .relative))")
+                    if bar.startsOnUse(provider: provider, at: now) {
+                        Text("Starts on use, \(HeadroomStyle.percentText(100)) left")
                     } else {
-                        Text("Reset time passed; waiting for a new sample")
+                        HeadroomStyle.remainingText(remaining)
                     }
                 }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(remaining == nil ? .secondary : HeadroomStyle.color(forRemaining: remaining))
+            }
+            RemainingBar(remainingPercent: remaining, height: compact ? 5 : 6)
+            if let resetsAt = bar.resetsAt {
+                ResetNote(resetsAt: resetsAt)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+struct ProviderSourceMark: View {
+    let sampledAt: Date?
+
+    var body: some View {
+        Image(systemName: "antenna.radiowaves.left.and.right")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .help(helpText)
+            .accessibilityLabel(helpText)
+    }
+
+    private var helpText: Text {
+        if let sampledAt {
+            Text("Checked with the provider \(ElapsedTime.text(from: sampledAt, to: .now)) ago")
+        } else {
+            Text("Checked with the provider")
+        }
+    }
+}
+
+struct NoFiveHourWindowRow: View {
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(QuotaWindow.session5h.label)
+                .font(.caption.weight(.medium))
+            Spacer(minLength: 4)
+            Text("No 5-hour window running")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct ModelCooldownNote: View {
+    let cooldown: ModelCooldown
+
+    var body: some View {
+        Label {
+            Group {
+                if let until = cooldown.until, until > .now {
+                    Text("\(cooldown.model) cooling down until \(ResetClock.text(until)) · in \(Text(until, style: .relative))")
+                } else {
+                    Text("\(cooldown.model) cooling down")
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "hourglass")
+        }
+        .foregroundStyle(.orange)
     }
 }
 
@@ -230,28 +426,32 @@ struct DisplayName: View {
 private struct AutoRefreshID<Target: Hashable>: Hashable {
     var target: Target
     var interval: TimeInterval
+    var repeats: Bool
     var isInForeground: Bool
 }
 
 private struct AutoRefreshModifier<Target: Hashable>: ViewModifier {
     let interval: TimeInterval
     let target: Target
+    let repeats: Bool
     let action: @MainActor () async -> Void
     @Environment(\.scenePhase) private var scenePhase
 
     func body(content: Content) -> some View {
-        content.task(id: AutoRefreshID(target: target, interval: interval, isInForeground: scenePhase != .background)) {
+        content.task(id: AutoRefreshID(target: target, interval: interval, repeats: repeats, isInForeground: scenePhase != .background)) {
             guard scenePhase != .background else { return }
-            while !Task.isCancelled {
-                await action()
-                try? await Task.sleep(for: .seconds(interval))
-            }
+            await AutoRefreshLoop.run(refreshesAutomatically: repeats, interval: interval, refresh: action)
         }
     }
 }
 
 extension View {
-    func autoRefresh<Target: Hashable>(every interval: TimeInterval, target: Target, perform action: @escaping @MainActor () async -> Void) -> some View {
-        modifier(AutoRefreshModifier(interval: interval, target: target, action: action))
+    func autoRefresh<Target: Hashable>(
+        every interval: TimeInterval,
+        target: Target,
+        repeats: Bool,
+        perform action: @escaping @MainActor () async -> Void
+    ) -> some View {
+        modifier(AutoRefreshModifier(interval: interval, target: target, repeats: repeats, action: action))
     }
 }

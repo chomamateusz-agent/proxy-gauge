@@ -39,7 +39,7 @@ public struct ModelCatalog: Sendable, Equatable {
     private static func fetch(_ target: Target, from client: ManagementClient) async throws -> Fetched {
         do {
             return (target, try await client.credentialModels(name: target.name))
-        } catch let error as APIError where !error.isAuthenticationFailure {
+        } catch let error as APIError where !error.stopsFurtherRequests {
             return (target, nil)
         }
     }

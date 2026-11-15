@@ -5,8 +5,9 @@ XCODEBUILD_SIMULATOR_ADHOC := -derivedDataPath $(APPLE_DERIVED) CODE_SIGNING_ALL
 ASC_ENV ?= $(HOME)/.appstoreconnect/asc.env
 PLATFORM ?= all
 BUMP ?= patch
+RENDER_DIR ?= .build/renders
 
-.PHONY: build test generate build-ios build-mac strings integration icon testflight testflight-confirm bump
+.PHONY: build test generate build-ios build-mac strings integration icon renders testflight testflight-confirm bump
 
 build:
 	swift build
@@ -32,6 +33,10 @@ strings:
 
 integration:
 	bash scripts/integration.sh
+
+renders: generate
+	xcodebuild -project $(APPLE_PROJECT) -scheme RenderTool -configuration Debug -destination 'platform=macOS' $(XCODEBUILD_UNSIGNED) build
+	$(APPLE_DERIVED)/Build/Products/Debug/RenderTool "$(RENDER_DIR)" -AppleLanguages '(en)' -AppleLocale en_US
 
 icon:
 	swift scripts/render-icon.swift Apple/Assets.xcassets/AppIcon.appiconset

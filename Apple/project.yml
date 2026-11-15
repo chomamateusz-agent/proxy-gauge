@@ -112,6 +112,34 @@ targets:
         COMBINE_HIDPI_IMAGES: YES
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
     scheme: {}
+  RenderTool:
+    type: tool
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Shared
+        excludes:
+          - PrivacyInfo.xcprivacy
+      - path: SharedUI
+        excludes:
+          - Localizable.xcstrings
+      - path: macOS/MenuBarContent.swift
+      - path: RenderTool
+    dependencies:
+      - package: ProxyGaugePackage
+        product: ProxyGaugeCore
+      - package: ProxyGaugePackage
+        product: ProxyGaugeStore
+      - package: ProxyGaugePackage
+        product: ProxyGaugeSession
+    settings:
+      base:
+        PRODUCT_NAME: RenderTool
+        PRODUCT_MODULE_NAME: ProxyGaugeRender
+        SWIFT_EMIT_LOC_STRINGS: NO
+        ENABLE_APP_SANDBOX: NO
+        SKIP_INSTALL: YES
+    scheme: {}
 schemes:
   PhoneApp:
     build:
