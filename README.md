@@ -16,14 +16,14 @@ Built-in demo server and the anonymised sample fleet, Mac:
   <img src="docs/screenshots/widget-pooled-medium.png" width="364" alt="Medium pooled capacity widget">
 </p>
 
-Built-in demo server, iPhone (outdated: taken before the usable-now and timeline changes, retaken once a device is available):
+Built-in demo server, iPhone:
 
 <p>
-  <img src="docs/screenshots/overview.png" width="200" alt="Overview">
-  <img src="docs/screenshots/accounts.png" width="200" alt="Accounts">
-  <img src="docs/screenshots/account-detail.png" width="200" alt="Account detail">
-  <img src="docs/screenshots/usage.png" width="200" alt="Usage">
-  <img src="docs/screenshots/overview-pl-dark.png" width="200" alt="Overview in Polish, dark mode">
+  <img src="docs/screenshots/overview.png" width="200" alt="Overview with pooled capacity, usable now and blocked quota, iPhone">
+  <img src="docs/screenshots/accounts.png" width="200" alt="Accounts as cards, iPhone">
+  <img src="docs/screenshots/account-detail.png" width="200" alt="Account detail with quota windows, iPhone">
+  <img src="docs/screenshots/usage.png" width="200" alt="Usage with requests per provider, iPhone">
+  <img src="docs/screenshots/overview-pl-dark.png" width="200" alt="Overview in Polish, dark mode, iPhone">
 </p>
 
 ## Status
