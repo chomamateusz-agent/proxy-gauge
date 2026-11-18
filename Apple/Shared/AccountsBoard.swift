@@ -119,6 +119,7 @@ extension AccountsLayout {
         case .cards: "Cards"
         case .list: "List"
         case .table: "Table"
+        case .timeline: "Timeline"
         }
     }
 
@@ -127,6 +128,7 @@ extension AccountsLayout {
         case .cards: "square.grid.2x2"
         case .list: "list.bullet"
         case .table: "tablecells"
+        case .timeline: "calendar.day.timeline.left"
         }
     }
 }
@@ -176,6 +178,8 @@ struct AccountsBoard: View {
                     cards
                 }
             }
+        case .timeline:
+            AccountsTimeline(accounts: accounts)
         }
     }
 
@@ -456,7 +460,7 @@ struct AccountsTable: View {
     private func stateCell(_ account: AccountSummary) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             StateChip(state: account.state)
-            if let until = account.blockedUntil, until > .now {
+            if let until = account.block(at: .now)?.until {
                 Text("until \(ResetClock.text(until))")
                     .font(.caption2)
                     .foregroundStyle(.orange)

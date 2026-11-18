@@ -143,6 +143,34 @@ struct AccountSummaryDetailTests {
         #expect(summary.modelCooldowns == [ModelCooldown(model: "claude-opus-5-5", until: date("2026-11-14T10:40:00Z"))])
         #expect(summary.blockedUntil == date("2026-11-14T10:30:00Z"))
     }
+
+    @Test func cooldownWithoutAnEndBlocksTheAccountWithNoTimeLikeThePool() throws {
+        let json = """
+        {"label":"claude-1","provider":"claude","plan":null,"state":"cooldown","bars":[{"id":"weekly_all","percent":40}],
+         "cooldowns":[{"scope":"credential","reason":"quota","until":null},
+                      {"scope":"credential","reason":"quota","until":"2026-11-14T12:00:00Z"}]}
+        """
+        let credential = try JSONDecoder.wire().decode(FleetCredential.self, from: Data(json.utf8))
+        let summary = AccountSummary(fleet: credential, now: now)
+        #expect(summary.availability == PoolAccount(fleet: credential).availability)
+        #expect(summary.blockedUntil == nil)
+        #expect(summary.block(at: now) == PoolAccount.Block(until: nil, reason: .cooldown))
+
+        let management = Credential(name: "a", authIndex: "a", provider: "claude", cooldowns: [Cooldown(scope: "credential", reason: "quota", retryAt: nil)])
+        let managementSummary = AccountSummary(credential: management, now: now)
+        #expect(managementSummary.availability == PoolAccount(credential: management, now: now).availability)
+        #expect(managementSummary.block(at: now) == PoolAccount.Block(until: nil, reason: .cooldown))
+    }
+
+    @Test func fleetCooldownStateWithoutCredentialWideCooldownsIsNotABlock() throws {
+        let json = """
+        {"label":"claude-1","provider":"claude","plan":null,"state":"cooldown","bars":[{"id":"weekly_all","percent":40}],
+         "cooldowns":[{"scope":"model","model":"claude-opus-5-5","reason":"quota","until":null}]}
+        """
+        let credential = try JSONDecoder.wire().decode(FleetCredential.self, from: Data(json.utf8))
+        #expect(AccountSummary(fleet: credential, now: now).block(at: now) == nil)
+        #expect(PoolAccount(fleet: credential).availability == .available)
+    }
 }
 
 @Suite("Selection after removing a server")

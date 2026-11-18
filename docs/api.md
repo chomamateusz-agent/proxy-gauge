@@ -743,3 +743,5 @@ All files are raw stock responses and contain no configured keys, account emails
 | `fixtures/client-api-keys-empty.json` | `GET /v8/management/config/access/api-keys` | 200 | Bare empty array `[]`, not `{"api-keys":[]}`. |
 
 Populated provider quotas, successful account toggles/cooldown resets, and fleet extension responses are source-derived only. The stock binary's 404 for `/v1/fleet/limits` and the routing write/read-back were also probed, but are not extra fixture files.
+
+`fixtures/fleet-limits-cooling-pool.json` is a `GET /v1/fleet/limits` response from a fleet build with anonymised credential labels (no client block, models or generated time). It holds four Claude accounts (one active, one disabled, two in a credential-wide cooldown because their all-model weekly window is at the limit) and one Codex account at its weekly limit. The pooled-capacity tests read it in both client-key and an equivalent management form.

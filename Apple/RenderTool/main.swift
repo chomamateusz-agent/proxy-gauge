@@ -3,6 +3,7 @@ import ProxyGaugeCore
 import ProxyGaugeSession
 import ProxyGaugeStore
 import SwiftUI
+import WidgetKit
 
 final class MemorySecretStore: SecretStore {
     func secret(for serverID: UUID) throws -> String? { "render" }
@@ -78,7 +79,8 @@ enum Renderer {
         RenderScene(name: "overview", section: .overview, layout: .cards),
         RenderScene(name: "accounts-cards", section: .accounts, layout: .cards),
         RenderScene(name: "accounts-list", section: .accounts, layout: .list),
-        RenderScene(name: "accounts-table", section: .accounts, layout: .table)
+        RenderScene(name: "accounts-table", section: .accounts, layout: .table),
+        RenderScene(name: "accounts-timeline", section: .accounts, layout: .timeline)
     ]
 
     static func run(output: URL) async throws {
@@ -123,10 +125,11 @@ enum Renderer {
             }
             try await render(sidebar, size: CGSize(width: 260, height: 200), appearance: appearance, to: output.appending(path: "mac-sidebar-rows-260-\(scheme).png"))
             let menu = MenuBarContent().environment(model)
-            try await render(menu, size: CGSize(width: 340, height: 560), appearance: appearance, to: output.appending(path: "mac-menubar-\(scheme).png"))
+            try await render(menu, size: CGSize(width: MenuBarStyle.width, height: 760), appearance: appearance, to: output.appending(path: "mac-menubar-\(scheme).png"))
             let footnotes = DashboardFootnotes().padding().frame(width: 440)
             try await render(footnotes, size: CGSize(width: 440, height: 400), appearance: appearance, to: output.appending(path: "mac-footnotes-popover-\(scheme).png"))
         }
+        try await renderCoolingPool(model: model, defaults: defaults, output: output)
         try await renderFiveWindows(model: model, defaults: defaults, output: output)
         try await renderSavedWhileOff(model: model, defaults: defaults, output: output)
         try await renderProviderRefresh(model: model, defaults: defaults, output: output)
@@ -177,6 +180,56 @@ enum Renderer {
             model.setRefreshesLimitsFromProviders(false, for: demo)
             let client = NavigationStack { ClientLimitsView(session: clientKey) }.environment(model).defaultAppStorage(defaults)
             try await render(client, size: CGSize(width: 940, height: 420), appearance: appearance, to: output.appending(path: "mac-client-limits-note-940x420-\(scheme).png"))
+        }
+    }
+
+    static func renderCoolingPool(model: AppModel, defaults: UserDefaults, output: URL) async throws {
+        func session(_ mode: AuthMode) -> ServerSession {
+            let profile = ServerProfile(name: "Sample fleet", baseURL: URL(string: "https://render.invalid")!, authMode: mode)
+            return ServerSession(profile: profile, secrets: MemorySecretStore(), latchStore: nil, transport: CoolingPoolTransport())
+        }
+        let management = session(.management)
+        await management.refresh(.accounts, trigger: .manual)
+        let clientKey = session(.clientKey)
+        await clientKey.refresh(.limits, trigger: .manual)
+        for appearance in [NSAppearance.Name.darkAqua, .aqua] {
+            let scheme = appearance == .darkAqua ? "dark" : "light"
+            for (name, source) in [("client-key", clientKey), ("management", management)] {
+                let menu = VStack(alignment: .leading, spacing: 10) {
+                    MenuBarServerSummary(session: source, refreshesAutomatically: true)
+                }
+                .padding(14)
+                .frame(width: MenuBarStyle.width)
+                try await render(menu, size: CGSize(width: MenuBarStyle.width, height: 760), appearance: appearance, to: output.appending(path: "mac-menubar-cooling-pool-\(name)-\(scheme).png"))
+            }
+            let widgetDate = Date.now
+            let snapshot = clientKey.fleetLimits.map { HeadroomSnapshot.clientKey(clientKey.profile, limits: $0, now: widgetDate) }
+            for (name, family, size, isStale) in [
+                ("medium", WidgetFamily.systemMedium, CGSize(width: 364, height: 170), false),
+                ("medium-338x158-stale", WidgetFamily.systemMedium, CGSize(width: 338, height: 158), true),
+                ("large", WidgetFamily.systemLarge, CGSize(width: 364, height: 382), false)
+            ] {
+                let entry = PooledCapacityEntry(date: widgetDate, serverName: "Sample fleet", snapshot: snapshot, isStale: isStale, primaryProvider: "claude")
+                let widget = PooledCapacityWidgetView(entry: entry, familyOverride: family)
+                    .padding(16)
+                    .background(BoardStyle.cardBackground)
+                try await render(widget, size: size, appearance: appearance, to: output.appending(path: "widget-pooled-\(name)-cooling-pool-\(scheme).png"))
+            }
+            defaults.set(AccountsLayout.cards.rawValue, forKey: AccountsLayout.storageKey)
+            let overview = NavigationStack { OverviewView(session: management) }.environment(model).defaultAppStorage(defaults)
+            try await render(overview, size: CGSize(width: 1440, height: 1100), appearance: appearance, to: output.appending(path: "mac-overview-cooling-pool-1440x1100-\(scheme).png"))
+            let limits = NavigationStack { ClientLimitsView(session: clientKey) }.environment(model).defaultAppStorage(defaults)
+            try await render(limits, size: CGSize(width: 1440, height: 1100), appearance: appearance, to: output.appending(path: "mac-client-limits-cooling-pool-1440x1100-\(scheme).png"))
+            defaults.set(AccountsLayout.timeline.rawValue, forKey: AccountsLayout.storageKey)
+            for scale in TimelineScale.allCases {
+                defaults.set(scale.rawValue, forKey: TimelineScale.storageKey)
+                let timeline = NavigationStack { AccountsView(session: management) }.environment(model).defaultAppStorage(defaults)
+                try await render(timeline, size: CGSize(width: 1400, height: 640), appearance: appearance, to: output.appending(path: "mac-accounts-timeline-\(scale.rawValue)-cooling-pool-1400x640-\(scheme).png"))
+            }
+            defaults.set(TimelineScale.weekly.rawValue, forKey: TimelineScale.storageKey)
+            let wideOverview = NavigationStack { OverviewView(session: management) }.environment(model).defaultAppStorage(defaults)
+            try await render(wideOverview, size: CGSize(width: 1440, height: 1100), appearance: appearance, to: output.appending(path: "mac-overview-timeline-cooling-pool-1440x1100-\(scheme).png"))
+            defaults.set(AccountsLayout.cards.rawValue, forKey: AccountsLayout.storageKey)
         }
     }
 

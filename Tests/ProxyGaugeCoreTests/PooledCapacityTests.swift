@@ -56,6 +56,33 @@ struct PooledCapacityTests {
         #expect(session.latestSampleAt == date("2026-11-14T09:30:00Z"))
     }
 
+    @Test func blockClearsAtOnceWhenEveryBlockedAccountUnblocksTogetherDespiteDecimalPercents() throws {
+        let unblock = date("2026-11-20T11:00:00Z")
+        let later = date("2026-11-21T11:00:00Z")
+        func account(_ fablePercentUsed: Double, weeklyRejectedUntil: Date?) -> PoolAccount {
+            var bars = [QuotaBar(id: "weekly_fable", usedPercent: fablePercentUsed, resetsAt: date("2026-11-22T00:00:00Z"))]
+            bars.append(weeklyRejectedUntil.map { QuotaBar(id: "weekly_all", usedPercent: 100, status: "rejected", resetsAt: $0) }
+                ?? QuotaBar(id: "weekly_all", usedPercent: 10, resetsAt: date("2026-11-22T00:00:00Z")))
+            return PoolAccount(provider: "claude", availability: .available, bars: bars)
+        }
+        let together = try #require(PooledCapacity.pools([
+            account(66.7, weeklyRejectedUntil: nil),
+            account(41.3, weeklyRejectedUntil: unblock),
+            account(55.9, weeklyRejectedUntil: unblock)
+        ], now: now).first?.window(.weeklyFable))
+        #expect(together.hasBlockedQuota)
+        #expect(together.blockClearsAtOnce)
+        #expect(together.blockedUntil == unblock)
+
+        let staggered = try #require(PooledCapacity.pools([
+            account(66.7, weeklyRejectedUntil: nil),
+            account(41.3, weeklyRejectedUntil: unblock),
+            account(55.9, weeklyRejectedUntil: later)
+        ], now: now).first?.window(.weeklyFable))
+        #expect(!staggered.blockClearsAtOnce)
+        #expect(staggered.blockedUntil == unblock)
+    }
+
     @Test func disabledAccountsLeaveTheCapacity() throws {
         let window = try #require(pools([
             claude("a", session: 20, weekly: 10),
@@ -65,19 +92,25 @@ struct PooledCapacityTests {
         #expect(window.remainingPercent == 80)
     }
 
-    @Test func coolingAccountContributesNothingUntilItsCooldownEnds() throws {
+    @Test func coolingAccountKeepsItsQuotaButBlocksItUntilTheCooldownEnds() throws {
         let pool = try #require(pools([
             claude("a", session: 20, weekly: 10),
             claude("b", session: 0, weekly: 0, cooldownUntil: "2026-11-14T10:30:00Z")
         ]).first)
         let window = try #require(pool.window(.session5h))
         #expect(window.capacityPercent == 200)
-        #expect(window.remainingPercent == 80)
+        #expect(window.remainingPercent == 180)
+        #expect(window.usablePercent == 80)
+        #expect(window.blockedPercent == 100)
+        #expect(window.blockedUntil == date("2026-11-14T10:30:00Z"))
+        #expect(window.blockReason == .cooldown)
         #expect(window.nextIncreaseAt == date("2026-11-14T10:30:00Z"))
 
         let account = PoolAccount(credential: claude("b", session: 0, weekly: 0, cooldownUntil: "2026-11-14T10:30:00Z"), now: now)
-        let later = PooledCapacity.pools([account], now: date("2026-11-14T10:31:00Z"))
-        #expect(later.first?.window(.session5h)?.remainingPercent == 100)
+        let later = try #require(PooledCapacity.pools([account], now: date("2026-11-14T10:31:00Z")).first?.window(.session5h))
+        #expect(later.remainingPercent == 100)
+        #expect(later.usablePercent == 100)
+        #expect(!later.hasBlockedQuota)
     }
 
     @Test func accountThatHitTheLimitContributesNothingUntilTheReset() throws {
@@ -87,6 +120,19 @@ struct PooledCapacityTests {
         ]).first?.window(.session5h))
         #expect(window.remainingPercent == 0)
         #expect(window.nextIncreaseAt == date("2026-11-14T12:00:00Z"))
+    }
+
+    @Test func windowAtItsLimitBlocksTheAccountsOtherWindowsUntilItResets() throws {
+        let pool = try #require(pools([
+            claude("a", session: 100, weekly: 40),
+            claude("b", session: 30, weekly: 10)
+        ]).first)
+        let weekly = try #require(pool.window(.weekly))
+        #expect(weekly.remainingPercent == 150)
+        #expect(weekly.usablePercent == 90)
+        #expect(weekly.blockedUntil == date("2026-11-14T12:00:00Z"))
+        #expect(weekly.blockReason == .windowAtLimit("session_5h"))
+        #expect(pool.usableAccounts == 1)
     }
 
     @Test func passedResetCountsAsAFreshWindow() throws {
@@ -110,21 +156,24 @@ struct PooledCapacityTests {
         #expect(window.accountsWithoutRunningWindow == 0)
     }
 
-    @Test func sampledAccountWithoutAFiveHourBarIsLeftOutOfThatWindowOnly() throws {
+    @Test func usableAccountWithoutAFiveHourBarCountsAsFullAndABlockedOneIsLeftOut() throws {
         let pool = try #require(pools([
             claude("a", session: 30, weekly: 10),
             claude("b", session: nil, weekly: 20),
             claude("c", session: nil, weekly: 50, cooldownUntil: "2026-11-14T11:00:00Z")
         ]).first)
         let session = try #require(pool.window(.session5h))
-        #expect(session.accountsWithoutRunningWindow == 2)
+        #expect(session.accountsCountedAsFull == 1)
+        #expect(session.accountsWithoutRunningWindow == 1)
         #expect(session.unknownAccounts == 0)
-        #expect(session.capacityPercent == 100)
-        #expect(session.remainingPercent == 70)
-        #expect(session.remainingShareOfKnown == 0.7)
+        #expect(session.capacityPercent == 200)
+        #expect(session.remainingPercent == 170)
+        #expect(session.usablePercent == 170)
+        #expect(session.remainingShareOfKnown == 0.85)
         let weekly = try #require(pool.window(.weekly))
         #expect(weekly.capacityPercent == 300)
-        #expect(weekly.remainingPercent == 170)
+        #expect(weekly.remainingPercent == 220)
+        #expect(weekly.usablePercent == 170)
         #expect(weekly.accountsWithoutRunningWindow == 0)
     }
 
@@ -172,12 +221,15 @@ struct PooledCapacityTests {
         #expect(afterCooldown.first?.usableAccounts == 1)
     }
 
-    @Test func accountWaitingForSignInContributesNothingWithoutAGrowthTime() throws {
+    @Test func accountWaitingForSignInIsBlockedWithoutAnEndTime() throws {
         var needsSignIn = claude("b", session: 0, weekly: 0, sessionReset: "2026-11-14T09:00:00Z")
         needsSignIn.status = "error"
         needsSignIn.requiresSignIn = true
         let window = try #require(pools([claude("a", session: 50, weekly: 10, sessionReset: "2026-11-14T13:00:00Z"), needsSignIn]).first?.window(.session5h))
-        #expect(window.remainingPercent == 50)
+        #expect(window.remainingPercent == 150)
+        #expect(window.usablePercent == 50)
+        #expect(window.blockedUntil == nil)
+        #expect(window.blockReason == .signIn)
         #expect(window.nextIncreaseAt == date("2026-11-14T13:00:00Z"))
     }
 
@@ -199,6 +251,27 @@ struct PooledCapacityTests {
         #expect(all.map(\.provider) == ["claude", "codex"])
         #expect(all[0].bindingWindow?.window == .weekly)
         #expect(PooledCapacity.mostConstrained(all)?.provider == "codex")
+    }
+
+    @Test func rankingFollowsWhatIsUsableNowWithTheSumAsTieBreaker() throws {
+        let other = Credential(name: "x", authIndex: "x", provider: "codex", quota: QuotaObservation(signals: [
+            "X-Codex-Primary-Used-Percent": "50",
+            "X-Codex-Primary-Window-Minutes": "10080"
+        ], observedAt: now))
+        let all = pools([
+            claude("a", session: 10, weekly: 10, cooldownUntil: "2026-11-14T10:30:00Z"),
+            claude("b", session: 10, weekly: 10, cooldownUntil: "2026-11-14T10:30:00Z"),
+            other
+        ])
+        #expect(all[0].window(.session5h)?.remainingShareOfKnown == 0.9)
+        #expect(all[0].window(.session5h)?.usableShareOfKnown == 0)
+        #expect(PooledCapacity.mostConstrained(all)?.provider == "claude")
+
+        let tied = try #require(pools([
+            claude("a", session: 40, weekly: 10, cooldownUntil: "2026-11-14T10:30:00Z"),
+            claude("b", session: 10, weekly: 10, cooldownUntil: "2026-11-14T10:30:00Z")
+        ]).first)
+        #expect(tied.bindingWindow?.window == .session5h)
     }
 
     @Test func providerWithoutSignalsHasAccountsButNoWindows() throws {
@@ -226,12 +299,13 @@ struct PooledCapacityTests {
         let snapshot = HeadroomSnapshot.clientKey(.demo(authMode: .clientKey), limits: limits, now: now)
         let pool = try #require(snapshot.pools(at: now).first)
         let session = try #require(pool.window(.session5h))
-        let weeklyModel = try #require(pool.window(.weeklyModel))
+        let weeklyModel = try #require(pool.window(.weeklyFable))
         #expect(pool.accounts == 3)
-        #expect(session.remainingPercent == 170)
+        #expect(session.remainingPercent == 260)
+        #expect(session.usablePercent == 170)
         #expect(session.nextIncreaseAt == date("2026-11-14T11:00:00Z"))
         #expect(weeklyModel.remainingPercent == 50)
-        #expect(weeklyModel.unknownAccounts == 1)
+        #expect(weeklyModel.unknownAccounts == 2)
     }
 
     func fleetAccount(state: String, cooldowns: String) throws -> PoolAccount {
@@ -249,7 +323,8 @@ struct PooledCapacityTests {
         #expect(modelOnly.availability == .available)
         #expect(openEnded.availability == .blocked(until: nil))
         #expect(dated.availability == .blocked(until: date("2026-11-14T11:00:00Z")))
-        #expect(openEnded.remainingPercent(in: "session_5h", at: date("2026-11-14T12:00:00Z")) == 0)
+        #expect(openEnded.remainingPercent(in: "session_5h", at: date("2026-11-14T12:00:00Z")) == 60)
+        #expect(openEnded.usablePercent(in: "session_5h", at: date("2026-11-14T12:00:00Z")) == 0)
     }
 
     @Test func passedFleetResetDropsTheRejectedStatus() throws {
@@ -264,8 +339,10 @@ struct PooledCapacityTests {
         needsSignIn.requiresSignIn = true
         let snapshot = HeadroomSnapshot.management(.demo(), credentials: [needsSignIn], now: now)
         let later = try #require(snapshot.pools(at: date("2026-11-14T11:00:00Z")).first?.window(.session5h))
-        #expect(later.remainingPercent == 0)
-        #expect(later.nextIncreaseAt == nil)
+        #expect(later.remainingPercent == 90)
+        #expect(later.usablePercent == 0)
+        #expect(later.blockReason == .signIn)
+        #expect(later.nextIncreaseAt == date("2026-11-14T12:00:00Z"))
     }
 
     @Test func growthTimeSkipsACooldownEndThatLeavesTheWindowExhausted() throws {
@@ -278,7 +355,8 @@ struct PooledCapacityTests {
         let exhausted = try #require(pools([claude("a", session: 100, weekly: 100, cooldownUntil: "2026-11-14T11:00:00Z")]).first)
         #expect(exhausted.window(.weekly)?.nextIncreaseAt == date("2026-11-18T00:00:00Z"))
         let partlyUsed = try #require(pools([claude("a", session: 100, weekly: 30, cooldownUntil: "2026-11-14T11:00:00Z")]).first)
-        #expect(partlyUsed.window(.weekly)?.nextIncreaseAt == date("2026-11-14T11:00:00Z"))
+        #expect(partlyUsed.window(.weekly)?.nextIncreaseAt == date("2026-11-14T12:00:00Z"))
+        #expect(partlyUsed.window(.weekly)?.blockedUntil == date("2026-11-14T12:00:00Z"))
     }
 
     @Test func mostConstrainedFallbackSkipsProvidersWithoutAccounts() {

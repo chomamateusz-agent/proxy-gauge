@@ -52,7 +52,7 @@ struct MenuBarContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let profile = model.defaultProfile {
-                content(profile)
+                MenuBarServerSummary(session: model.session(for: profile), refreshesAutomatically: model.refreshesAutomatically(profile))
             } else {
                 Text("Add a server in Proxy Gauge to see its quota here.")
                     .font(.callout)
@@ -83,12 +83,21 @@ struct MenuBarContent: View {
             }
         }
         .padding(14)
-        .frame(width: 340)
+        .frame(width: MenuBarStyle.width)
     }
+}
 
-    @ViewBuilder
-    private func content(_ profile: ServerProfile) -> some View {
-        let session = model.session(for: profile)
+enum MenuBarStyle {
+    static let width: CGFloat = 360
+    static let maxPoolsHeight: CGFloat = 560
+}
+
+struct MenuBarServerSummary: View {
+    let session: ServerSession
+    let refreshesAutomatically: Bool
+
+    var body: some View {
+        let profile = session.profile
         let quota = session.quotaOverview(at: .now)
         HStack {
             DisplayName(profile: profile).font(.headline)
@@ -114,7 +123,7 @@ struct MenuBarContent: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        if !model.refreshesAutomatically(profile) {
+        if !refreshesAutomatically {
             Label("Automatic refresh is off", systemImage: "pause.circle")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -129,14 +138,129 @@ struct MenuBarContent: View {
             }
             .font(.callout)
             .foregroundStyle(.secondary)
-        }
-        ForEach(quota.pools) { pool in
-            VStack(alignment: .leading, spacing: 6) {
-                PooledProviderRow(pool: pool, compact: true)
-                if let headroom = quota.headroom.first(where: { $0.provider == pool.provider }), headroom.isWorthShowingBesideThePool {
-                    BestAccountLine(headroom: headroom, compact: true)
+        } else {
+            let accounts = session.accountSummaries
+            CappedScrollView(maxHeight: MenuBarStyle.maxPoolsHeight) {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(quota.pools) { pool in
+                        VStack(alignment: .leading, spacing: 6) {
+                            PooledProviderRow(pool: pool, compact: true)
+                            if let headroom = quota.headroom.first(where: { $0.provider == pool.provider }), headroom.isWorthShowingBesideThePool {
+                                BestAccountLine(headroom: headroom, compact: true)
+                            }
+                            MenuBarAccountList(accounts: accounts.filter { $0.provider == pool.provider }, pool: pool)
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+struct CappedScrollView<Content: View>: View {
+    let maxHeight: CGFloat
+    @ViewBuilder var content: Content
+    @State private var contentHeight: CGFloat = 0
+
+    var body: some View {
+        ScrollView {
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onGeometryChange(for: CGFloat.self, of: { $0.size.height }, action: { contentHeight = $0 })
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(height: min(max(contentHeight, 1), maxHeight))
+    }
+}
+
+struct MenuBarAccountList: View {
+    let accounts: [AccountSummary]
+    let pool: ProviderPool
+
+    var body: some View {
+        if !accounts.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(accounts) { account in
+                    MenuBarAccountRow(account: account, pool: pool)
+                }
+            }
+            .padding(8)
+            .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 8))
+        }
+    }
+}
+
+struct MenuBarAccountRow: View {
+    let account: AccountSummary
+    let pool: ProviderPool
+
+    var body: some View {
+        let now = Date.now
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Text(verbatim: account.label)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(Text(verbatim: account.label))
+                Spacer(minLength: 4)
+                if let until = account.block(at: now)?.until {
+                    Text("until \(ResetClock.text(until))")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+                StateChip(state: account.state)
+            }
+            if account.bars.isEmpty {
+                Group {
+                    if account.state == .disabled {
+                        Text("Disabled, not counted")
+                    } else {
+                        Text("No quota data reported yet")
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            } else {
+                Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 1) {
+                    ForEach(account.barsIncludingIdleFiveHourWindow(in: pool, at: now)) { bar in
+                        MenuBarWindowRow(bar: bar, provider: account.provider, now: now)
+                    }
+                }
+            }
+        }
+        .opacity(account.state == .disabled ? 0.6 : 1)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct MenuBarWindowRow: View {
+    let bar: QuotaBar
+    let provider: String
+    let now: Date
+
+    var body: some View {
+        let remaining = bar.remainingPercent(at: now)
+        GridRow {
+            bar.title
+                .foregroundStyle(.secondary)
+            Text(HeadroomStyle.percentText(remaining))
+                .monospacedDigit()
+                .fontWeight(.semibold)
+                .foregroundStyle(remaining == nil ? .secondary : HeadroomStyle.color(forRemaining: remaining))
+                .gridColumnAlignment(.trailing)
+            Group {
+                if bar.startsOnUse(provider: provider, at: now) {
+                    Text("starts on use")
+                } else if let resetsAt = bar.resetsAt, resetsAt > now {
+                    Text("resets \(ResetClock.text(resetsAt))")
+                } else if bar.hasReset(at: now) {
+                    Text("reset passed")
+                }
+            }
+            .foregroundStyle(.secondary)
+        }
+        .font(.caption2)
+        .lineLimit(1)
     }
 }

@@ -5,6 +5,35 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
         case available
         case disabled
         case blocked(until: Date?)
+        case needsSignIn
+
+        public init(state: CredentialState, requiresSignIn: Bool, credentialCooldownEnds: [Date?]) {
+            if state == .disabled {
+                self = .disabled
+            } else if requiresSignIn {
+                self = .needsSignIn
+            } else if state == .cooldown, !credentialCooldownEnds.isEmpty {
+                self = .blocked(until: credentialCooldownEnds.contains(nil) ? nil : credentialCooldownEnds.compactMap(\.self).max())
+            } else {
+                self = .available
+            }
+        }
+    }
+
+    public struct Block: Codable, Sendable, Equatable, Hashable {
+        public enum Reason: Codable, Sendable, Equatable, Hashable {
+            case windowAtLimit(String)
+            case cooldown
+            case signIn
+        }
+
+        public var until: Date?
+        public var reason: Reason
+
+        public init(until: Date?, reason: Reason) {
+            self.until = until
+            self.reason = reason
+        }
     }
 
     public var provider: String
@@ -20,16 +49,11 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
     }
 
     public init(credential: Credential, active: ActiveQuota? = nil, now: Date) {
-        let state = credential.state(at: now)
-        let availability: Availability = if state == .disabled {
-            .disabled
-        } else if credential.requiresSignIn {
-            .blocked(until: nil)
-        } else if state == .cooldown {
-            .blocked(until: credential.activeCredentialCooldown(at: now)?.retryAt)
-        } else {
-            .available
-        }
+        let availability = Availability(
+            state: credential.state(at: now),
+            requiresSignIn: credential.requiresSignIn,
+            credentialCooldownEnds: credential.activeCooldowns(at: now).filter(\.isCredentialWide).map(\.retryAt)
+        )
         self.init(provider: credential.provider, availability: availability, bars: QuotaMerge.bars(passive: credential.quotaBars, active: active), credentialID: credential.stableID)
     }
 
@@ -40,59 +64,95 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
     }
 
     public init(fleet credential: FleetCredential) {
-        let availability: Availability = switch credential.credentialState {
-        case .disabled: .disabled
-        case .cooldown: Self.coolingAvailability(credential.cooldowns.filter { $0.scope != "model" })
-        case .active, .error: .available
-        }
+        let availability = Availability(
+            state: credential.credentialState,
+            requiresSignIn: false,
+            credentialCooldownEnds: credential.cooldowns.filter { $0.scope != "model" }.map(\.until)
+        )
         self.init(provider: credential.provider, availability: availability, bars: credential.bars.map(\.quotaBar))
     }
 
-    private static func coolingAvailability(_ credentialCooldowns: [FleetCooldown]) -> Availability {
-        if credentialCooldowns.isEmpty { return .available }
-        if credentialCooldowns.contains(where: { $0.until == nil }) { return .blocked(until: nil) }
-        return .blocked(until: credentialCooldowns.compactMap(\.until).max())
-    }
-
     enum Contribution: Equatable {
-        case remaining(Double)
+        case remaining(Double, blockedBy: Block?)
         case unknown
-        case noWindowRunning
+        case noWindowRunning(blockedBy: Block?)
     }
 
     var countsTowardCapacity: Bool { availability != .disabled }
 
-    func isBlocked(at now: Date) -> Bool {
-        guard case .blocked(let until) = availability else { return false }
-        return until.map { $0 > now } ?? true
+    public func block(for barID: String?, at now: Date) -> Block? {
+        guard countsTowardCapacity else { return nil }
+        let held = heldBlock(at: now)
+        let exhausted = bars.filter { $0.id != barID && $0.window.limitsWholeAccount && $0.isAtLimit(at: now) }
+        guard let latestExhausted = exhausted.max(by: { ($0.resetsAt ?? .distantFuture) < ($1.resetsAt ?? .distantFuture) }) else { return held }
+        let ends = exhausted.map(\.resetsAt) + (held.map { [$0.until] } ?? [])
+        let until = ends.contains(nil) ? nil : ends.compactMap(\.self).max()
+        let reason: Block.Reason
+        if held?.reason == .signIn {
+            reason = .signIn
+        } else if let held, let reset = latestExhausted.resetsAt,
+                  held.until.map({ $0.timeIntervalSince(reset) > 60 }) ?? true {
+            reason = .cooldown
+        } else {
+            reason = .windowAtLimit(latestExhausted.id)
+        }
+        return Block(until: until, reason: reason)
+    }
+
+    private func heldBlock(at now: Date) -> Block? {
+        switch availability {
+        case .needsSignIn: Block(until: nil, reason: .signIn)
+        case .blocked(let until) where until.map { $0 > now } ?? true: Block(until: until, reason: .cooldown)
+        case .available, .disabled, .blocked: nil
+        }
+    }
+
+    func countsIdleFiveHourWindowAsFull(at now: Date) -> Bool {
+        countsTowardCapacity && contribution(in: FiveHourWindowState.barID, at: now) == .noWindowRunning(blockedBy: nil)
     }
 
     func isUsable(at now: Date) -> Bool {
-        countsTowardCapacity && !isBlocked(at: now)
+        countsTowardCapacity && block(for: nil, at: now) == nil
     }
 
     func contribution(in barID: String, at now: Date) -> Contribution {
         let bar = bars.first { $0.id == barID }
-        if bar == nil, barID == FiveHourWindowState.barID, ProviderCatalog.reportsFiveHourWindow(provider), !bars.isEmpty { return .noWindowRunning }
-        if isBlocked(at: now) { return .remaining(0) }
-        return bar?.remainingPercent(at: now).map(Contribution.remaining) ?? .unknown
+        if bar == nil, barID == FiveHourWindowState.barID, ProviderCatalog.reportsFiveHourWindow(provider), !bars.isEmpty {
+            return .noWindowRunning(blockedBy: block(for: barID, at: now))
+        }
+        guard let remaining = bar?.remainingPercent(at: now) else { return .unknown }
+        return .remaining(remaining, blockedBy: block(for: barID, at: now))
     }
 
     func remainingPercent(in barID: String, at now: Date) -> Double? {
-        if case .remaining(let percent) = contribution(in: barID, at: now) { return percent }
-        return nil
+        switch contribution(in: barID, at: now) {
+        case .remaining(let percent, _): percent
+        case .noWindowRunning(blockedBy: nil): 100
+        case .noWindowRunning, .unknown: nil
+        }
+    }
+
+    func usablePercent(in barID: String, at now: Date) -> Double? {
+        switch contribution(in: barID, at: now) {
+        case .remaining(let percent, blockedBy: nil): percent
+        case .remaining: 0
+        case .noWindowRunning(blockedBy: nil): 100
+        case .noWindowRunning, .unknown: nil
+        }
     }
 
     func nextIncrease(in barID: String, at now: Date) -> Date? {
-        let current = remainingPercent(in: barID, at: now) ?? 0
-        return changeDates(in: barID, after: now).first { (remainingPercent(in: barID, at: $0) ?? 0) > current }
+        let remaining = remainingPercent(in: barID, at: now) ?? 0
+        let usable = usablePercent(in: barID, at: now) ?? 0
+        return changeDates(after: now).first { date in
+            (remainingPercent(in: barID, at: date) ?? 0) > remaining || (usablePercent(in: barID, at: date) ?? 0) > usable
+        }
     }
 
-    private func changeDates(in barID: String, after now: Date) -> [Date] {
-        var dates: [Date] = []
+    private func changeDates(after now: Date) -> [Date] {
+        var dates = bars.compactMap(\.resetsAt)
         if case .blocked(let until?) = availability { dates.append(until) }
-        if let resetsAt = bars.first(where: { $0.id == barID })?.resetsAt { dates.append(resetsAt) }
-        return dates.filter { $0 > now }.sorted()
+        return Set(dates).filter { $0 > now }.sorted()
     }
 
     func sampledAt(in barID: String) -> Date? {
@@ -109,7 +169,13 @@ public struct PooledWindow: Codable, Sendable, Equatable, Hashable, Identifiable
     public var accounts: Int
     public var unknownAccounts: Int
     public var accountsWithoutRunningWindow: Int
+    public var accountsCountedAsFull: Int
     public var remainingPercent: Double
+    public var usablePercent: Double
+    public var blockedUntil: Date?
+    public var blockedPercentClearingFirst: Double?
+    public var blockClearsAtOnce: Bool
+    public var blockReason: PoolAccount.Block.Reason?
     public var nextIncreaseAt: Date?
     public var latestSampleAt: Date?
     public var label: String?
@@ -118,17 +184,52 @@ public struct PooledWindow: Codable, Sendable, Equatable, Hashable, Identifiable
     public var window: QuotaWindow { QuotaWindow(barID: barID) }
     public var capacityPercent: Double { Double(accounts) * 100 }
     public var knownAccounts: Int { accounts - unknownAccounts }
+    public var blockedPercent: Double { max(0, remainingPercent - usablePercent) }
+    public var hasBlockedQuota: Bool { blockedPercent > 0 }
 
     public var remainingShareOfKnown: Double? {
-        knownAccounts > 0 ? remainingPercent / (Double(knownAccounts) * 100) : nil
+        shareOfKnown(remainingPercent)
     }
 
-    public init(barID: String, accounts: Int, unknownAccounts: Int, accountsWithoutRunningWindow: Int = 0, remainingPercent: Double, nextIncreaseAt: Date?, latestSampleAt: Date?, label: String? = nil) {
+    public var usableShareOfKnown: Double? {
+        shareOfKnown(usablePercent)
+    }
+
+    private func shareOfKnown(_ percent: Double) -> Double? {
+        knownAccounts > 0 ? percent / (Double(knownAccounts) * 100) : nil
+    }
+
+    public func isMoreConstrained(than other: PooledWindow) -> Bool {
+        (usableShareOfKnown ?? 1, remainingShareOfKnown ?? 1) < (other.usableShareOfKnown ?? 1, other.remainingShareOfKnown ?? 1)
+    }
+
+    public init(
+        barID: String,
+        accounts: Int,
+        unknownAccounts: Int,
+        accountsWithoutRunningWindow: Int = 0,
+        accountsCountedAsFull: Int = 0,
+        remainingPercent: Double,
+        usablePercent: Double? = nil,
+        blockedUntil: Date? = nil,
+        blockedPercentClearingFirst: Double? = nil,
+        blockClearsAtOnce: Bool = true,
+        blockReason: PoolAccount.Block.Reason? = nil,
+        nextIncreaseAt: Date?,
+        latestSampleAt: Date?,
+        label: String? = nil
+    ) {
         self.barID = barID
         self.accounts = accounts
         self.unknownAccounts = unknownAccounts
         self.accountsWithoutRunningWindow = accountsWithoutRunningWindow
+        self.accountsCountedAsFull = accountsCountedAsFull
         self.remainingPercent = remainingPercent
+        self.usablePercent = usablePercent ?? remainingPercent
+        self.blockedUntil = blockedUntil
+        self.blockedPercentClearingFirst = blockedPercentClearingFirst
+        self.blockClearsAtOnce = blockClearsAtOnce
+        self.blockReason = blockReason
         self.nextIncreaseAt = nextIncreaseAt
         self.latestSampleAt = latestSampleAt
         self.label = label
@@ -153,7 +254,7 @@ public struct ProviderPool: Codable, Sendable, Equatable, Hashable, Identifiable
     }
 
     public var bindingWindow: PooledWindow? {
-        windows.filter { $0.remainingShareOfKnown != nil }.min { ($0.remainingShareOfKnown ?? 1) < ($1.remainingShareOfKnown ?? 1) }
+        windows.filter { $0.knownAccounts > 0 }.min { $0.isMoreConstrained(than: $1) }
     }
 
     public func window(_ kind: QuotaWindow) -> PooledWindow? {
@@ -182,8 +283,8 @@ public enum PooledCapacity {
     }
 
     public static func mostConstrained(_ pools: [ProviderPool]) -> ProviderPool? {
-        pools.filter { $0.bindingWindow != nil }
-            .min { ($0.bindingWindow?.remainingShareOfKnown ?? 1) < ($1.bindingWindow?.remainingShareOfKnown ?? 1) }
+        pools.compactMap { pool in pool.bindingWindow.map { (pool: pool, binding: $0) } }
+            .min { $0.binding.isMoreConstrained(than: $1.binding) }?.pool
             ?? pools.first { $0.accounts > 0 }
     }
 
@@ -206,20 +307,58 @@ public enum PooledCapacity {
     }
 
     private static func window(_ barID: String, members: [PoolAccount], now: Date) -> PooledWindow {
-        let contributions = members.map { $0.contribution(in: barID, at: now) }
-        let known = contributions.compactMap { contribution -> Double? in
-            if case .remaining(let percent) = contribution { percent } else { nil }
+        let tally = WindowTally(members.map { $0.contribution(in: barID, at: now) })
+        let earliestEnd = tally.blocked.compactMap(\.block.until).min()
+        let firstGroup = tally.blocked.filter { entry in
+            guard let earliestEnd else { return entry.block.until == nil }
+            return entry.block.until.map { $0.timeIntervalSince(earliestEnd) <= 60 } ?? false
         }
-        let withoutRunningWindow = contributions.filter { $0 == .noWindowRunning }.count
+        let firstToClear = firstGroup.max { ($0.block.until ?? .distantFuture) < ($1.block.until ?? .distantFuture) }
         return PooledWindow(
             barID: barID,
-            accounts: members.count - withoutRunningWindow,
-            unknownAccounts: contributions.filter { $0 == .unknown }.count,
-            accountsWithoutRunningWindow: withoutRunningWindow,
-            remainingPercent: known.reduce(0, +),
+            accounts: members.count - tally.leftOutWithoutRunningWindow,
+            unknownAccounts: tally.unknown,
+            accountsWithoutRunningWindow: tally.leftOutWithoutRunningWindow,
+            accountsCountedAsFull: tally.countedAsFull,
+            remainingPercent: tally.remaining,
+            usablePercent: tally.usable,
+            blockedUntil: firstToClear?.block.until,
+            blockedPercentClearingFirst: firstGroup.isEmpty ? nil : firstGroup.map(\.percent).reduce(0, +),
+            blockClearsAtOnce: firstGroup.count == tally.blocked.count,
+            blockReason: firstToClear?.block.reason,
             nextIncreaseAt: members.compactMap { $0.nextIncrease(in: barID, at: now) }.min(),
             latestSampleAt: members.compactMap { $0.sampledAt(in: barID) }.max(),
             label: members.lazy.compactMap { $0.label(in: barID) }.first
         )
+    }
+}
+
+private struct WindowTally {
+    var remaining = 0.0
+    var usable = 0.0
+    var unknown = 0
+    var countedAsFull = 0
+    var leftOutWithoutRunningWindow = 0
+    var blocked: [(percent: Double, block: PoolAccount.Block)] = []
+
+    init(_ contributions: [PoolAccount.Contribution]) {
+        for contribution in contributions {
+            switch contribution {
+            case .remaining(let percent, blockedBy: nil):
+                remaining += percent
+                usable += percent
+            case .remaining(let percent, blockedBy: let block?):
+                remaining += percent
+                if percent > 0 { blocked.append((percent, block)) }
+            case .noWindowRunning(blockedBy: nil):
+                remaining += 100
+                usable += 100
+                countedAsFull += 1
+            case .noWindowRunning:
+                leftOutWithoutRunningWindow += 1
+            case .unknown:
+                unknown += 1
+            }
+        }
     }
 }

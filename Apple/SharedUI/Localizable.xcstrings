@@ -1,6 +1,22 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ %@ left": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ left"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: zostało %2$@"
+          }
+        }
+      }
+    },
     "%@ cooling down": {
       "localizations": {
         "en": {
@@ -45,6 +61,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "pozostało %@"
+          }
+        }
+      }
+    },
+    "%@ left · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ left · %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ zostało · %2$@"
           }
         }
       }
@@ -113,6 +145,22 @@
         }
       }
     },
+    "%@ · usable %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · usable %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · dostępne %2$@"
+          }
+        }
+      }
+    },
     "%@, resets %@": {
       "localizations": {
         "en": {
@@ -141,6 +189,58 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@: %2$lld"
+          }
+        }
+      }
+    },
+    "%lld account has no 5-hour window running, counted as full": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld account has no 5-hour window running, counted as full"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld accounts have no 5-hour window running, counted as full"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld konto bez uruchomionego okna 5-godzinnego, liczone jako pełne"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld konta bez uruchomionego okna 5-godzinnego, liczone jako pełne"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kont bez uruchomionego okna 5-godzinnego, liczonych jako pełne"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld konta bez uruchomionego okna 5-godzinnego, liczone jako pełne"
+                }
+              }
+            }
           }
         }
       }
@@ -209,18 +309,34 @@
         }
       }
     },
-    "A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. It is listed as \"No 5-hour window\" and left out of the 5-hour capacity, because the proxy does not say whether that window is idle or does not exist.": {
+    "5-hour limit": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. It is listed as \"No 5-hour window\" and left out of the 5-hour capacity, because the proxy does not say whether that window is idle or does not exist."
+            "value": "5-hour limit"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Konto Claude lub Codex, które zgłasza inne okna, ale nie zgłasza okna 5-godzinnego, nie ma uruchomionego okna 5-godzinnego. Jest pokazane jako „Brak okna 5-godzinnego” i pominięte w 5-godzinnym zapasie, bo proxy nie mówi, czy to okno czeka na użycie, czy w ogóle nie istnieje."
+            "value": "limit 5-godzinny"
+          }
+        }
+      }
+    },
+    "A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. While it can take requests it counts as a full 5-hour window, because its next request starts one. A blocked account without a 5-hour window is left out of the 5-hour capacity.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. While it can take requests it counts as a full 5-hour window, because its next request starts one. A blocked account without a 5-hour window is left out of the 5-hour capacity."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konto Claude lub Codex, które zgłasza inne okna, ale nie zgłasza okna 5-godzinnego, nie ma uruchomionego okna 5-godzinnego. Dopóki może przyjmować zapytania, liczy się jako pełne okno 5-godzinne, bo jego następne zapytanie je uruchomi. Zablokowane konto bez okna 5-godzinnego jest pominięte w 5-godzinnym zapasie."
           }
         }
       }
@@ -333,6 +449,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Konto"
+          }
+        }
+      }
+    },
+    "Account blocked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account blocked"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konto zablokowane"
           }
         }
       }
@@ -769,34 +901,66 @@
         }
       }
     },
-    "Best account": {
+    "Best usable account": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Best account"
+            "value": "Best usable account"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Najlepsze konto"
+            "value": "Najlepsze dostępne konto"
           }
         }
       }
     },
-    "Best account: the most quota a single account that can take requests has left in its tightest window. Shown when at least two accounts can take requests.": {
+    "Best usable account: the most quota a single account that can take requests right now has left in its tightest window. Shown when at least two accounts can take requests.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Best account: the most quota a single account that can take requests has left in its tightest window. Shown when at least two accounts can take requests."
+            "value": "Best usable account: the most quota a single account that can take requests right now has left in its tightest window. Shown when at least two accounts can take requests."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Najlepsze konto: największy limit, jaki zostało jednemu kontu zdolnemu przyjmować żądania, w jego najciaśniejszym oknie. Pokazywane, gdy żądania mogą przyjmować co najmniej dwa konta."
+            "value": "Najlepsze dostępne konto: najwięcej limitu, ile zostało jednemu kontu, które może teraz przyjmować zapytania, w jego najciaśniejszym oknie. Widoczne, gdy co najmniej dwa konta mogą przyjmować zapytania."
+          }
+        }
+      }
+    },
+    "Blocked until %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked until %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zablokowane do %@"
+          }
+        }
+      }
+    },
+    "Blocked with no 5-hour window, left out: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked with no 5-hour window, left out: %lld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zablokowane bez okna 5-godzinnego, pominięte: %lld"
           }
         }
       }
@@ -1297,6 +1461,22 @@
         }
       }
     },
+    "Current window, elapsed part highlighted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current window, elapsed part highlighted"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bieżące okno, miniona część wyróżniona"
+          }
+        }
+      }
+    },
     "Daily": {
       "localizations": {
         "en": {
@@ -1501,6 +1681,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Wyłączone na serwerze."
+          }
+        }
+      }
+    },
+    "Disabled, not counted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disabled, not counted"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyłączone, nie liczy się"
           }
         }
       }
@@ -2497,6 +2693,38 @@
         }
       }
     },
+    "Next window": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next window"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Następne okno"
+          }
+        }
+      }
+    },
+    "Next window %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next window %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Następne okno %@"
+          }
+        }
+      }
+    },
     "No 5-hour window": {
       "localizations": {
         "en": {
@@ -2525,22 +2753,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Brak uruchomionego okna 5-godzinnego"
-          }
-        }
-      }
-    },
-    "No 5-hour window: %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No 5-hour window: %lld"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bez okna 5-godzinnego: %lld"
           }
         }
       }
@@ -2721,6 +2933,22 @@
         }
       }
     },
+    "No reset time reported": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No reset time reported"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak czasu odnowienia"
+          }
+        }
+      }
+    },
     "No servers yet": {
       "localizations": {
         "en": {
@@ -2733,6 +2961,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Brak serwerów"
+          }
+        }
+      }
+    },
+    "No window reported": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No window reported"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak zgłoszonego okna"
           }
         }
       }
@@ -2861,6 +3105,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nieobsługiwane: panel zarządzania nie odczytuje limitów tego dostawcy."
+          }
+        }
+      }
+    },
+    "Now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teraz"
           }
         }
       }
@@ -3073,18 +3333,18 @@
         }
       }
     },
-    "Pooled capacity: remaining quota of every enabled account added up, so three accounts make %@. A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately.": {
+    "Pooled capacity: remaining quota of every enabled account added up the way the management panel adds it, so three accounts make %@. A window whose reset has passed counts as full, and an account without a sample is listed separately.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pooled capacity: remaining quota of every enabled account added up, so three accounts make %@. A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately."
+            "value": "Pooled capacity: remaining quota of every enabled account added up the way the management panel adds it, so three accounts make %@. A window whose reset has passed counts as full, and an account without a sample is listed separately."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Łączny zapas: pozostały limit wszystkich włączonych kont zsumowany, więc trzy konta to %@. Konto wstrzymane liczy się jako 0 do końca wstrzymania, okno po resecie liczy się jako pełne, a konto bez próbki jest pokazane osobno."
+            "value": "Łączny zapas: pozostały limit wszystkich włączonych kont zsumowany tak jak w panelu zarządzania, więc trzy konta dają %@. Okno, którego czas odnowienia minął, liczy się jako pełne, a konto bez próbki jest wymienione osobno."
           }
         }
       }
@@ -3293,6 +3553,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Limit pozostały na najlepszym pojedynczym koncie każdego dostawcy na domyślnym serwerze."
+          }
+        }
+      }
+    },
+    "Quota windows": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quota windows"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Okna limitów"
           }
         }
       }
@@ -3581,6 +3857,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zakończenie wstrzymania usuwa tylko lokalną blokadę routingu w proxy. Nie odnawia limitu u dostawcy i nie zużywa kredytów."
+          }
+        }
+      }
+    },
+    "Reset passed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset passed"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odnowienie minęło"
           }
         }
       }
@@ -4833,6 +5125,22 @@
         }
       }
     },
+    "Timeline": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timeline"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oś czasu"
+          }
+        }
+      }
+    },
     "Token refreshed": {
       "localizations": {
         "en": {
@@ -4929,6 +5237,86 @@
         }
       }
     },
+    "Usable now: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usable now: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępne teraz: %@"
+          }
+        }
+      }
+    },
+    "Usable now: %@ · %@ blocked (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usable now: %1$@ · %2$@ blocked (%3$@)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępne teraz: %1$@ · %2$@ zablokowane (%3$@)"
+          }
+        }
+      }
+    },
+    "Usable now: %@ · %@ blocked (%@) · %@ back %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usable now: %1$@ · %2$@ blocked (%3$@) · %4$@ back %5$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępne teraz: %1$@ · %2$@ zablokowane (%3$@) · %4$@ wraca %5$@"
+          }
+        }
+      }
+    },
+    "Usable now: %@ · %@ blocked (%@) · back %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usable now: %1$@ · %2$@ blocked (%3$@) · back %4$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępne teraz: %1$@ · %2$@ zablokowane (%3$@) · wraca %4$@"
+          }
+        }
+      }
+    },
+    "Usable now: the part of that quota on accounts that can take requests right now. Quota on an account in cooldown, with another window at its limit, or waiting for a new sign-in is shown as blocked, with how much of it comes back first and when.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usable now: the part of that quota on accounts that can take requests right now. Quota on an account in cooldown, with another window at its limit, or waiting for a new sign-in is shown as blocked, with how much of it comes back first and when."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępne teraz: część tego limitu na kontach, które mogą teraz przyjmować zapytania. Limit konta wstrzymanego, z innym oknem na limicie albo czekającego na ponowne logowanie jest pokazany jako zablokowany, z tym, ile z niego wraca najpierw i kiedy."
+          }
+        }
+      }
+    },
     "Usage": {
       "localizations": {
         "en": {
@@ -4993,18 +5381,34 @@
         }
       }
     },
-    "Weekly (model)": {
+    "Weekly (%@)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Weekly (model)"
+            "value": "Weekly (%@)"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tygodniowy (model)"
+            "value": "Tygodniowy (%@)"
+          }
+        }
+      }
+    },
+    "Weekly Fable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekly Fable"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tygodniowy Fable"
           }
         }
       }
@@ -5089,6 +5493,22 @@
         }
       }
     },
+    "Window": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Window"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Okno"
+          }
+        }
+      }
+    },
     "Window reset at %@; waiting for a new sample": {
       "localizations": {
         "en": {
@@ -5165,6 +5585,122 @@
           "stringUnit": {
             "state": "translated",
             "value": "rozliczenia"
+          }
+        }
+      }
+    },
+    "cooldown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cooldown"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wstrzymanie"
+          }
+        }
+      }
+    },
+    "daily limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "daily limit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "limit dzienny"
+          }
+        }
+      }
+    },
+    "incl. %lld idle account at 100%%": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "incl. %lld idle account at 100%%"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "incl. %lld idle accounts at 100%%"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "w tym %lld nieużywane konto po 100%%"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "w tym %lld nieużywane konta po 100%%"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "w tym %lld nieużywanych kont po 100%%"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "w tym %lld nieużywanego konta po 100%%"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "monthly limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "monthly limit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "limit miesięczny"
+          }
+        }
+      }
+    },
+    "needs a new sign-in": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "needs a new sign-in"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wymaga ponownego logowania"
           }
         }
       }
@@ -5281,6 +5817,54 @@
         }
       }
     },
+    "reset passed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "reset passed"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "odnowienie minęło"
+          }
+        }
+      }
+    },
+    "resets %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "resets %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "odnowienie %@"
+          }
+        }
+      }
+    },
+    "starts on use": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "starts on use"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rusza przy użyciu"
+          }
+        }
+      }
+    },
     "subscription": {
       "localizations": {
         "en": {
@@ -5329,6 +5913,38 @@
         }
       }
     },
+    "weekly limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "weekly limit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "limit tygodniowy"
+          }
+        }
+      }
+    },
+    "window limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "window limit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "limit okna"
+          }
+        }
+      }
+    },
     "xAI: when both billing endpoints answer but report no usage, the refresh falls back to the panel's paid-key check, which sends one chat completion with max_tokens 1 to api.x.ai. On a paid key this can cost a token. A billing error never leads to this check.": {
       "localizations": {
         "en": {
@@ -5341,6 +5957,58 @@
           "stringUnit": {
             "state": "translated",
             "value": "xAI: gdy oba endpointy rozliczeń odpowiedzą, ale nie zgłoszą zużycia, odświeżanie przechodzi do sprawdzenia płatnego klucza z panelu, które wysyła jedno zapytanie chat completion z max_tokens 1 do api.x.ai. Na płatnym kluczu może to kosztować token. Błąd rozliczeń nigdy nie prowadzi do tego sprawdzenia."
+          }
+        }
+      }
+    },
+    "+%lld idle": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld idle"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld idle"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld nieużywane"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld nieużywane"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld nieużywanych"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld nieużywanego"
+                }
+              }
+            }
           }
         }
       }

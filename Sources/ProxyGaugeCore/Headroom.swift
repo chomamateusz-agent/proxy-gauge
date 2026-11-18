@@ -43,7 +43,10 @@ public enum HeadroomCalculator {
     public static func fromPoolAccounts(_ accounts: [PoolAccount], now: Date) -> [ProviderHeadroom] {
         Dictionary(grouping: accounts, by: \.provider).map { provider, members in
             let usable = members.filter { $0.isUsable(at: now) }
-            return makeHeadroom(provider, accountBars: usable.map(\.bars), usable: usable.count, total: members.count, now: now)
+            let considered = usable.isEmpty ? members.filter(\.countsTowardCapacity) : usable
+            var headroom = makeHeadroom(provider, accountBars: considered.map(\.bars), usable: usable.count, total: members.count, now: now)
+            headroom.bars = bestBars(usable.map(\.bars), now: now)
+            return headroom
         }
         .sortedForDisplay()
     }

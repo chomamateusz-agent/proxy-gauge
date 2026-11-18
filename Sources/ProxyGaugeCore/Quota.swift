@@ -86,22 +86,26 @@ public enum FiveHourWindowState: Equatable, Sendable {
 public enum QuotaWindow: Equatable, Sendable, Hashable {
     case session5h
     case weekly
-    case weeklyModel
+    case weeklyModel(String)
     case daily
     case monthly
     case minutes(Int)
     case other(String)
 
+    public static let weeklyFable = QuotaWindow.weeklyModel("fable")
+
     public init(barID: String) {
         switch barID {
         case "session_5h": self = .session5h
         case "weekly_all": self = .weekly
-        case "weekly_fable": self = .weeklyModel
+        case "7d_oi": self = .weeklyFable
         case "daily": self = .daily
         case "monthly": self = .monthly
         default:
             if let match = barID.wholeMatch(of: /window_(\d+)m/), let minutes = Int(match.1) {
                 self = .minutes(minutes)
+            } else if let match = barID.wholeMatch(of: /weekly_(.+)/) {
+                self = .weeklyModel(String(match.1))
             } else {
                 self = .other(barID)
             }
@@ -118,6 +122,38 @@ public enum QuotaWindow: Equatable, Sendable, Hashable {
         case .minutes: 5
         case .other: 6
         }
+    }
+
+    public var limitsWholeAccount: Bool {
+        switch self {
+        case .session5h, .weekly, .daily, .monthly, .minutes: true
+        case .weeklyModel, .other: false
+        }
+    }
+
+    public var isWeekly: Bool {
+        switch self {
+        case .weekly, .weeklyModel: true
+        default: false
+        }
+    }
+
+    public var duration: TimeInterval? {
+        switch self {
+        case .session5h: 5 * 3_600
+        case .weekly, .weeklyModel: 7 * 86_400
+        case .daily: 86_400
+        case .minutes(let minutes): TimeInterval(minutes) * 60
+        case .monthly, .other: nil
+        }
+    }
+
+    public var modelDisplayName: String? {
+        guard case .weeklyModel(let model) = self else { return nil }
+        return model
+            .split(whereSeparator: { $0 == "_" || $0 == "-" })
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined(separator: " ")
     }
 }
 

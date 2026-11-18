@@ -100,13 +100,20 @@ struct PooledCapacityWidget: Widget {
         }
         .configurationDisplayName(Text("Pooled capacity"))
         .description(Text("Remaining quota of all your accounts added up, per provider."))
+        #if os(iOS)
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular])
+        #else
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        #endif
     }
 }
 
 struct PooledCapacityWidgetView: View {
-    @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetFamily) private var widgetFamily
     let entry: PooledCapacityEntry
+    var familyOverride: WidgetFamily?
+
+    private var family: WidgetFamily { familyOverride ?? widgetFamily }
 
     var body: some View {
         switch family {
@@ -219,6 +226,12 @@ private struct PooledSmallBody: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 PooledCapacityBar(window: window, height: 6)
+                if window.hasBlockedQuota {
+                    window.usableNowText
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                }
             } else {
                 Text("No quota data reported yet")
                     .font(.caption2)
@@ -264,9 +277,9 @@ private struct PooledProviderList: View {
                         PooledWindowRow(window: window, compact: true)
                     }
                 } else {
-                    HStack(spacing: 10) {
+                    HStack(alignment: .top, spacing: 10) {
                         ForEach(windows) { window in
-                            PooledWindowRow(window: window, compact: true)
+                            PooledWindowRow(window: window, compact: true, blockedLine: .usableOnly)
                         }
                     }
                 }
@@ -320,10 +333,17 @@ private struct PooledRectangularView: View {
                     .lineLimit(1)
             }
             if let window {
-                window.amountText
-                    .font(.body.monospacedDigit())
-                    .lineLimit(1)
-                Gauge(value: window.remainingShareOfCapacity ?? 0) {
+                Group {
+                    if window.hasBlockedQuota {
+                        Text("\(window.amountText) · usable \(HeadroomStyle.percentText(window.usablePercent))")
+                    } else {
+                        window.amountText
+                    }
+                }
+                .font(.body.monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                Gauge(value: window.usableShareOfCapacity ?? 0) {
                     window.title
                 }
                 .gaugeStyle(.accessoryLinearCapacity)
@@ -341,10 +361,10 @@ private struct PooledCircularView: View {
 
     var body: some View {
         if let window {
-            Gauge(value: window.remainingShareOfCapacity ?? 0) {
+            Gauge(value: window.usableShareOfCapacity ?? 0) {
                 Image(systemName: "square.stack.3d.up.fill")
             } currentValueLabel: {
-                Text(verbatim: "\(Int(window.remainingPercent.rounded()))")
+                Text(verbatim: "\(Int(window.usablePercent.rounded()))")
                     .monospacedDigit()
             }
             .gaugeStyle(.accessoryCircularCapacity)

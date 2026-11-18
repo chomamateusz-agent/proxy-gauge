@@ -272,22 +272,6 @@ struct StateChip: View {
     }
 }
 
-enum ResetClock {
-    static func format(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> Date.FormatStyle {
-        if calendar.isDate(date, inSameDayAs: now) {
-            return .dateTime.hour().minute()
-        }
-        if abs(date.timeIntervalSince(now)) < 6 * 86_400 {
-            return .dateTime.weekday(.abbreviated).hour().minute()
-        }
-        return .dateTime.month(.abbreviated).day().hour().minute()
-    }
-
-    static func text(_ date: Date) -> Text {
-        Text(date, format: format(date))
-    }
-}
-
 struct ResetNote: View {
     let resetsAt: Date
 

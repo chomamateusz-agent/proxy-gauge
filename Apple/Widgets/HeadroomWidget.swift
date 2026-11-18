@@ -174,12 +174,3 @@ struct HeadroomWidgetView: View {
         }
     }
 }
-
-extension AuthPauseReason {
-    var widgetNote: LocalizedStringResource {
-        switch self {
-        case .keyRejected: "The server rejected the key. Open Proxy Gauge to fix it."
-        case .ipBanned: "The server has temporarily blocked this network address. Open Proxy Gauge to retry later."
-        }
-    }
-}

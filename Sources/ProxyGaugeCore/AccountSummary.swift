@@ -38,6 +38,7 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     public var plan: String?
     public var bars: [QuotaBar]
     public var blockedUntil: Date?
+    public var availability: PoolAccount.Availability
     public var statusMessage: String?
     public var requiresSignIn: Bool
     public var creditsBalance: Double?
@@ -53,6 +54,7 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
         plan: String? = nil,
         bars: [QuotaBar],
         blockedUntil: Date? = nil,
+        availability: PoolAccount.Availability? = nil,
         statusMessage: String? = nil,
         requiresSignIn: Bool = false,
         creditsBalance: Double? = nil,
@@ -66,6 +68,11 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
         self.plan = plan
         self.bars = bars.sortedForDisplay()
         self.blockedUntil = blockedUntil
+        self.availability = availability ?? PoolAccount.Availability(
+            state: state,
+            requiresSignIn: requiresSignIn,
+            credentialCooldownEnds: state == .cooldown ? [blockedUntil] : []
+        )
         self.statusMessage = statusMessage
         self.requiresSignIn = requiresSignIn
         self.creditsBalance = creditsBalance
@@ -84,6 +91,7 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
             plan: QuotaMerge.plan(passive: passivePlan, active: active),
             bars: QuotaMerge.bars(passive: credential.quotaBars, active: active),
             blockedUntil: credential.activeCredentialCooldown(at: now)?.retryAt,
+            availability: PoolAccount(credential: credential, active: active, now: now).availability,
             statusMessage: message?.isEmpty == false ? message : nil,
             requiresSignIn: credential.requiresSignIn,
             creditsBalance: active?.credits.flatMap { $0.currency == nil ? $0.balance : nil },
@@ -104,7 +112,8 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
             state: credential.credentialState,
             plan: credential.plan,
             bars: credential.bars.map(\.quotaBar),
-            blockedUntil: credentialWide.compactMap(\.until).max(),
+            blockedUntil: credentialWide.contains { $0.until == nil } ? nil : credentialWide.compactMap(\.until).max(),
+            availability: PoolAccount(fleet: credential).availability,
             creditsBalance: credential.credits?.balance,
             modelCooldowns: active.filter { $0.scope == "model" }.map { ModelCooldown(model: $0.model ?? "", until: $0.until) }
         )
@@ -124,6 +133,23 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
 
     public func bar(_ id: String) -> QuotaBar? {
         bars.first { $0.id == id }
+    }
+
+    public func block(for barID: String? = nil, at now: Date) -> PoolAccount.Block? {
+        poolAccount.block(for: barID, at: now)
+    }
+
+    var poolAccount: PoolAccount {
+        PoolAccount(provider: provider, availability: availability, bars: bars)
+    }
+
+    public func countsIdleFiveHourWindowAsFull(in pool: ProviderPool, at now: Date) -> Bool {
+        pool.provider == provider && pool.window(.session5h) != nil && poolAccount.countsIdleFiveHourWindowAsFull(at: now)
+    }
+
+    public func barsIncludingIdleFiveHourWindow(in pool: ProviderPool, at now: Date) -> [QuotaBar] {
+        guard countsIdleFiveHourWindowAsFull(in: pool, at: now) else { return bars }
+        return (bars + [QuotaBar(id: FiveHourWindowState.barID, usedPercent: 0)]).sortedForDisplay()
     }
 
     public func fiveHourWindow(at now: Date) -> FiveHourWindowState {

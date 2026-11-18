@@ -185,9 +185,10 @@ struct ServerFacts: View {
 struct DashboardFootnotes: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Pooled capacity: remaining quota of every enabled account added up, so three accounts make \(HeadroomStyle.percentText(300)). A cooling account counts as 0 until its cooldown ends, a window whose reset has passed counts as full, and an account without a sample is listed separately.")
-            Text("A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. It is listed as \"No 5-hour window\" and left out of the 5-hour capacity, because the proxy does not say whether that window is idle or does not exist.")
-            Text("Best account: the most quota a single account that can take requests has left in its tightest window. Shown when at least two accounts can take requests.")
+            Text("Pooled capacity: remaining quota of every enabled account added up the way the management panel adds it, so three accounts make \(HeadroomStyle.percentText(300)). A window whose reset has passed counts as full, and an account without a sample is listed separately.")
+            Text("Usable now: the part of that quota on accounts that can take requests right now. Quota on an account in cooldown, with another window at its limit, or waiting for a new sign-in is shown as blocked, with how much of it comes back first and when.")
+            Text("A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. While it can take requests it counts as a full 5-hour window, because its next request starts one. A blocked account without a 5-hour window is left out of the 5-hour capacity.")
+            Text("Best usable account: the most quota a single account that can take requests right now has left in its tightest window. Shown when at least two accounts can take requests.")
             Text("Passive data: numbers without a mark come from rate-limit headers the proxy already observed while serving requests. Reading them sends nothing to the providers.")
             Text("Active data: numbers with \(Image(systemName: "antenna.radiowaves.left.and.right")) come from Refresh limits, where the server asks the provider with the account's own sign-in. That happens only when you press Refresh limits, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings.")
         }

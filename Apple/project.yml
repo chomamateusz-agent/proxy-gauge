@@ -124,6 +124,8 @@ targets:
         excludes:
           - Localizable.xcstrings
       - path: macOS/MenuBarContent.swift
+      - path: Widgets/PooledCapacityWidget.swift
+      - path: Widgets/WidgetData.swift
       - path: RenderTool
     dependencies:
       - package: ProxyGaugePackage

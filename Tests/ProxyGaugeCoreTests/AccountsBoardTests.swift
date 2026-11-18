@@ -11,7 +11,7 @@ struct AccountsBoardTests {
         #expect(AccountsLayout.resolve("table", compactWidth: true) == .cards)
         #expect(AccountsLayout.resolve("list", compactWidth: true) == .list)
         #expect(AccountsLayout.available(compactWidth: true) == [.cards, .list])
-        #expect(AccountsLayout.available(compactWidth: false) == [.cards, .list, .table])
+        #expect(AccountsLayout.available(compactWidth: false) == [.cards, .list, .table, .timeline])
     }
 
     @Test func layoutChoicePersistsInTheDeviceDefaults() {

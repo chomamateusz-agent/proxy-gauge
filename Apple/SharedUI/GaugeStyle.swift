@@ -53,7 +53,8 @@ extension QuotaWindow {
         switch self {
         case .session5h: "5-hour"
         case .weekly: "Weekly"
-        case .weeklyModel: "Weekly (model)"
+        case .weeklyFable: "Weekly Fable"
+        case .weeklyModel: "Weekly (\(modelDisplayName ?? ""))"
         case .daily: "Daily"
         case .monthly: "Monthly"
         case .minutes(let minutes): "\(minutes)-minute window"
@@ -100,6 +101,26 @@ extension CredentialState {
         case .disabled: "pause.circle.fill"
         case .error: "exclamationmark.triangle.fill"
         }
+    }
+}
+
+enum ResetClock {
+    static func format(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> Date.FormatStyle {
+        if calendar.isDate(date, inSameDayAs: now) {
+            return .dateTime.hour().minute()
+        }
+        if abs(date.timeIntervalSince(now)) < 6 * 86_400 {
+            return .dateTime.weekday(.abbreviated).hour().minute()
+        }
+        return .dateTime.month(.abbreviated).day().hour().minute()
+    }
+
+    static func text(_ date: Date) -> Text {
+        Text(date, format: format(date))
+    }
+
+    static func string(_ date: Date, now: Date = .now) -> String {
+        date.formatted(format(date, now: now))
     }
 }
 
@@ -170,7 +191,7 @@ struct BestAccountLine: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Best account")
+                Text("Best usable account")
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 4)
                 HeadroomStyle.remainingText(headroom.headroomPercent)
@@ -208,6 +229,13 @@ extension AuthPauseReason {
         switch self {
         case .keyRejected: "key.slash"
         case .ipBanned: "exclamationmark.shield"
+        }
+    }
+
+    var widgetNote: LocalizedStringResource {
+        switch self {
+        case .keyRejected: "The server rejected the key. Open Proxy Gauge to fix it."
+        case .ipBanned: "The server has temporarily blocked this network address. Open Proxy Gauge to retry later."
         }
     }
 }

@@ -4,6 +4,7 @@ public enum AccountsLayout: String, CaseIterable, Sendable, Identifiable {
     case cards
     case list
     case table
+    case timeline
 
     public static let storageKey = "proxygauge.accounts-layout.v1"
 
