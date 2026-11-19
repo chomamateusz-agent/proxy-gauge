@@ -369,7 +369,7 @@ struct SectionDetail: View {
 
     var body: some View {
         content
-            .navigationTitle(Text(section.title))
+            .modifier(SectionTitle(section: section))
             .refreshable { await session.refresh(section.refreshScope, trigger: .manual) }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -391,6 +391,18 @@ struct SectionDetail: View {
         case .models: ModelsView(session: session)
         case .settings: ServerSettingsView(session: session)
         case .limits: ClientLimitsView(session: session)
+        }
+    }
+}
+
+private struct SectionTitle: ViewModifier {
+    let section: ServerSection
+
+    func body(content: Content) -> some View {
+        if section == .overview {
+            content
+        } else {
+            content.navigationTitle(Text(section.title))
         }
     }
 }

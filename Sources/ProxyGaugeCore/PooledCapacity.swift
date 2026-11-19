@@ -149,7 +149,7 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
         }
     }
 
-    private func changeDates(after now: Date) -> [Date] {
+    func changeDates(after now: Date) -> [Date] {
         var dates = bars.compactMap(\.resetsAt)
         if case .blocked(let until?) = availability { dates.append(until) }
         return Set(dates).filter { $0 > now }.sorted()

@@ -48,9 +48,20 @@ struct OfflineTransport: HTTPTransport {
 // cacheDisplay drops the system switch's on-state fill, so the settings render draws the state itself.
 struct CapturableSwitchStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
+        CapturableSwitch(configuration: configuration)
+    }
+}
+
+struct CapturableSwitch: View {
+    let configuration: ToggleStyleConfiguration
+    @Environment(\.labelsVisibility) private var labelsVisibility
+
+    var body: some View {
         HStack {
-            configuration.label
-            Spacer()
+            if labelsVisibility != .hidden {
+                configuration.label
+                Spacer()
+            }
             Capsule()
                 .fill(configuration.isOn ? Color.accentColor : Color.secondary.opacity(0.3))
                 .frame(width: 38, height: 22)
@@ -73,7 +84,11 @@ struct RenderScene {
 @MainActor
 enum Renderer {
     static let suiteName = "proxygauge.render-tool"
-    static let renderLocale = Locale(identifier: "en_US")
+    static let rendersPolish = CommandLine.arguments.contains(polishFlag)
+    static let polishFlag = "--polish"
+    static let rendersOnlyOverviewLayouts = CommandLine.arguments.contains("--overview-layouts-only")
+    static let renderLocale = Locale(identifier: rendersPolish ? "pl_PL" : "en_US")
+    static let phoneSize = CGSize(width: 402, height: 874)
     static let sizes: [(name: String, size: CGSize)] = [("1920x1080", CGSize(width: 1920, height: 1080)), ("1440x900", CGSize(width: 1440, height: 900))]
     static let scenes = [
         RenderScene(name: "overview", section: .overview, layout: .cards),
@@ -85,7 +100,7 @@ enum Renderer {
 
     static func run(output: URL) async throws {
         guard Locale.current.decimalSeparator == renderLocale.decimalSeparator else {
-            throw CocoaError(.featureUnsupported, userInfo: [NSLocalizedDescriptionKey: "run with -AppleLocale en_US so formatted numbers match the English renders"])
+            throw CocoaError(.featureUnsupported, userInfo: [NSLocalizedDescriptionKey: "run with -AppleLocale \(renderLocale.identifier) so formatted numbers match the \(rendersPolish ? "Polish" : "English") renders"])
         }
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -94,6 +109,8 @@ enum Renderer {
         guard let demo = model.defaultProfile else { throw CocoaError(.featureUnsupported) }
         model.select(demo)
         await model.session(for: demo).refresh(.accounts, trigger: .manual)
+        try await renderOverviewLayouts(model: model, defaults: defaults, output: output)
+        if rendersPolish || rendersOnlyOverviewLayouts { return }
         try await renderExtras(model: model, defaults: defaults, output: output)
         for scene in scenes {
             defaults.set(scene.layout.rawValue, forKey: AccountsLayout.storageKey)
@@ -133,6 +150,61 @@ enum Renderer {
         try await renderFiveWindows(model: model, defaults: defaults, output: output)
         try await renderSavedWhileOff(model: model, defaults: defaults, output: output)
         try await renderProviderRefresh(model: model, defaults: defaults, output: output)
+    }
+
+    static func renderOverviewLayouts(model: AppModel, defaults: UserDefaults, output: URL) async throws {
+        guard let demoProfile = model.defaultProfile else { return }
+        let demo = model.session(for: demoProfile)
+        let cooling = ServerSession(
+            profile: ServerProfile(name: "Sample fleet", baseURL: URL(string: "https://render.invalid")!, authMode: .management),
+            secrets: MemorySecretStore(),
+            latchStore: nil,
+            transport: CoolingPoolTransport()
+        )
+        await cooling.refresh(.accounts, trigger: .manual)
+        let language = rendersPolish ? "-pl" : ""
+        let sources = [("demo", demo), ("cooling-pool", cooling)]
+        defer { defaults.removeObject(forKey: OverviewLayout.storageKey) }
+        if rendersPolish {
+            defaults.set(OverviewLayout.compactRows.rawValue, forKey: OverviewLayout.storageKey)
+            for (name, session) in sources {
+                try await renderInWindow(phoneOverview(session, model: model, defaults: defaults), size: phoneSize, appearance: .darkAqua, to: output.appending(path: "iphone-overview-compact-rows-\(name)-402x874-dark\(language).png"))
+            }
+            return
+        }
+        for layout in OverviewLayout.allCases {
+            defaults.set(layout.rawValue, forKey: OverviewLayout.storageKey)
+            let slug = layout.renderSlug
+            for (name, session) in sources {
+                try await renderInWindow(phoneOverview(session, model: model, defaults: defaults), size: phoneSize, appearance: .aqua, to: output.appending(path: "iphone-overview-\(slug)-\(name)-402x874-light.png"))
+                try await renderInWindow(phoneOverview(session, model: model, defaults: defaults), size: CGSize(width: 402, height: 1800), appearance: .aqua, to: output.appending(path: "iphone-overview-\(slug)-\(name)-402x1800-full-light.png"))
+            }
+            model.selectedSection = .overview
+            try await renderWindow(model: model, defaults: defaults, size: CGSize(width: 1440, height: 900), appearance: .aqua, to: output.appending(path: "mac-overview-\(slug)-demo-1440x900-light.png"))
+            try await renderInWindow(phoneOverview(cooling, model: model, defaults: defaults), size: CGSize(width: 1440, height: 900), appearance: .aqua, to: output.appending(path: "mac-overview-\(slug)-cooling-pool-1440x900-light.png"))
+        }
+        defaults.set(OverviewLayout.accountsStrip.rawValue, forKey: OverviewLayout.storageKey)
+        try await renderInWindow(phoneOverview(cooling, model: model, defaults: defaults).environment(\.dynamicTypeSize, .accessibility3), size: CGSize(width: 402, height: 2400), appearance: .aqua, to: output.appending(path: "iphone-overview-accounts-strip-cooling-pool-402x2400-ax3-light.png"))
+        defaults.set(OverviewLayout.compactRows.rawValue, forKey: OverviewLayout.storageKey)
+        try await renderInWindow(phoneOverview(demo, model: model, defaults: defaults), size: phoneSize, appearance: .darkAqua, to: output.appending(path: "iphone-overview-compact-rows-demo-402x874-dark.png"))
+        for (name, session) in sources {
+            let detail = NavigationStack { ProviderDetailView(session: session, provider: "claude") }
+                .toggleStyle(CapturableSwitchStyle())
+                .environment(model)
+                .defaultAppStorage(defaults)
+            try await renderInWindow(detail, size: CGSize(width: 402, height: 1900), appearance: .aqua, to: output.appending(path: "iphone-provider-detail-claude-\(name)-402x1900-light.png"))
+        }
+        let sheet = ServerInfoSheet(session: demo).toggleStyle(CapturableSwitchStyle()).environment(model).defaultAppStorage(defaults)
+        try await renderInWindow(sheet, size: CGSize(width: 420, height: 640), appearance: .aqua, to: output.appending(path: "mac-overview-answer-first-server-sheet-420x640-light.png"))
+        let settings = AppSettingsView().toggleStyle(CapturableSwitchStyle()).environment(model).defaultAppStorage(defaults).frame(width: 460)
+        try await render(settings, size: CGSize(width: 460, height: 1300), appearance: .aqua, to: output.appending(path: "mac-settings-overview-layout-460x1300-light.png"))
+    }
+
+    static func phoneOverview(_ session: ServerSession, model: AppModel, defaults: UserDefaults) -> some View {
+        NavigationStack { OverviewView(session: session) }
+            .toggleStyle(CapturableSwitchStyle())
+            .environment(model)
+            .defaultAppStorage(defaults)
     }
 
     static func providerSession(_ name: String, transport: any HTTPTransport) -> ServerSession {
@@ -266,6 +338,10 @@ enum Renderer {
             let accounts = NavigationStack { AccountsView(session: session) }.environment(model).defaultAppStorage(defaults)
             try await render(accounts, size: CGSize(width: 940, height: 400), appearance: appearance, to: output.appending(path: "mac-accounts-refresh-off-detail-940x400-\(scheme).png"))
         }
+        defaults.set(OverviewLayout.accountsStrip.rawValue, forKey: OverviewLayout.storageKey)
+        let strip = NavigationStack { OverviewView(session: session) }.environment(model).defaultAppStorage(defaults)
+        try await render(strip, size: CGSize(width: 940, height: 900), appearance: .aqua, to: output.appending(path: "mac-overview-accounts-strip-saved-refresh-off-940x900-light.png"))
+        defaults.removeObject(forKey: OverviewLayout.storageKey)
         store.forgetServer(profile.id)
     }
 
@@ -340,6 +416,16 @@ extension Renderer {
         NSGraphicsContext.restoreGraphicsState()
         guard let png = output.representation(using: .png, properties: [:]) else { throw CocoaError(.fileWriteUnknown) }
         return png
+    }
+}
+
+extension OverviewLayout {
+    var renderSlug: String {
+        switch self {
+        case .answerFirst: "answer-first"
+        case .compactRows: "compact-rows"
+        case .accountsStrip: "accounts-strip"
+        }
     }
 }
 

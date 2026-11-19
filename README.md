@@ -9,7 +9,7 @@ There are several macOS menu-bar apps for CLIProxyAPI. Proxy Gauge exists becaus
 Built-in demo server and the anonymised sample fleet, Mac:
 
 <p>
-  <img src="docs/screenshots/mac-overview.png" width="420" alt="Overview with pooled capacity, usable now and blocked quota, Mac">
+  <img src="docs/screenshots/mac-overview.png" width="420" alt="Overview in the Compact rows layout with the accounts board and the Server section, Mac">
   <img src="docs/screenshots/mac-accounts-timeline.png" width="420" alt="Accounts as a timeline of quota windows, Mac">
   <img src="docs/screenshots/mac-accounts-table.png" width="420" alt="Accounts as a table, Mac">
   <img src="docs/screenshots/mac-menubar.png" width="280" alt="Menu bar with pooled capacity and the account list, Mac">
@@ -19,11 +19,18 @@ Built-in demo server and the anonymised sample fleet, Mac:
 Built-in demo server, iPhone:
 
 <p>
-  <img src="docs/screenshots/overview.png" width="200" alt="Overview with pooled capacity, usable now and blocked quota, iPhone">
+  <img src="docs/screenshots/overview-compact-rows.png" width="200" alt="Overview in the default Compact rows layout, iPhone">
+  <img src="docs/screenshots/provider-detail.png" width="200" alt="Provider detail with pooled windows and accounts by window, iPhone">
   <img src="docs/screenshots/accounts.png" width="200" alt="Accounts as cards, iPhone">
   <img src="docs/screenshots/account-detail.png" width="200" alt="Account detail with quota windows, iPhone">
-  <img src="docs/screenshots/usage.png" width="200" alt="Usage with requests per provider, iPhone">
   <img src="docs/screenshots/overview-pl-dark.png" width="200" alt="Overview in Polish, dark mode, iPhone">
+</p>
+
+The other two Overview layouts, picked in Settings: Answer first and Accounts strip.
+
+<p>
+  <img src="docs/screenshots/overview-answer-first.png" width="200" alt="Overview in the Answer first layout, iPhone">
+  <img src="docs/screenshots/overview-accounts-strip.png" width="200" alt="Overview in the Accounts strip layout, iPhone">
 </p>
 
 ## Status
@@ -35,7 +42,8 @@ Internal TestFlight builds; App Store release in preparation. Until then, build 
 - **Several servers**, each with a name, address and either a management key or a client key. The app checks a server when you save it and shows what it found: version, accounts or models, and which optional endpoints answer.
 - **Built-in demo server** with realistic sample data (seven accounts across Claude, Codex, Gemini CLI and xAI in every state, plus simulated provider answers for Refresh limits), clearly labelled, so you can try the app without a proxy. You can delete it like any other server and bring it back with "Add demo server" when adding a server.
 - **Management key mode**
-  - Overview: a dashboard with server version, last refresh, one tile per provider (pooled capacity per window with what is usable now, the best usable account when at least two accounts can take requests, "Accounts: 3 · usable: 2" and the number of accounts per state; an info button explains the numbers) and, on the Mac and other wide windows, the accounts board below, so up to about eight accounts fit one 1920×1080 screen without scrolling.
+  - Overview: one card per provider with the number of accounts per state, in one of three layouts picked in Settings ("Overview layout"): **Answer first** (one big number per provider: what is usable now in its tightest window and when it grows next, and who or what brings it back), **Compact rows**, the default (every window as a short bar with the pooled percent, blocked quota hatched, and one line on which account comes back when and how much it adds) and **Accounts strip** (one column per account and one row per window, so you see at once which account is blocked and until when, with the pooled total on the right). On the Mac and other wide windows the accounts board follows below, so up to about eight accounts fit one 1920×1080 screen without scrolling. Server details (version, commit, accounts on the server, server time, the automatic refresh switch and "How these numbers work") sit in a Server section at the bottom, or behind an info button in the toolbar in Answer first.
+  - Provider detail: opening a provider card shows its pooled windows (what is left, usable now, blocked and when more comes back), the accounts-by-window grid with totals, the comeback line, the best usable account when it says something the pool does not, and the provider's accounts. The title shows "Accounts: 3 · usable: 2".
   - Accounts: a board in four layouts, picked in the toolbar and remembered on each device: **Cards** (an adaptive grid of compact account cards), **List**, **Table** (one row per account, one column per quota window) and **Timeline** (one row per account, each quota window drawn as a bar from when it opened to when it resets, the next window dashed, a marker at the current time and a hatched strip while the account is blocked, whether by a cooldown, another window at its limit or a needed sign-in; a window whose reset has passed shows "Reset passed"; on a blocked account a "Starts on use" or "Reset passed" window is drawn from the end of the block, or shown as text only when the block has no end; switch between Weekly and 5-hour; VoiceOver reads each account row as one item). Table and Timeline are for the Mac and other wide windows. Each account shows its state (active, cooldown, disabled, error), the plan when the provider reports one, and every quota window as a bar with the remaining percent, the reset time and a countdown; accounts at the limit or cooling down are marked. Opening an account shows its cooldown details, recent request chart, enable/disable and reset cooldown (each with a confirmation).
   - Usage: request totals, failures, a chart of the last 200 minutes, requests per provider, and token totals per model when the server keeps a client-key usage report.
   - Models available across your accounts.
@@ -52,7 +60,7 @@ Internal TestFlight builds; App Store release in preparation. Until then, build 
 
 ### What "headroom" (best account) means
 
-CLIProxyAPI records the rate-limit headers that providers send back with normal responses. Proxy Gauge turns those passive observations into quota bars. For each provider it looks at every account that can currently serve requests (not disabled and not blocked: not cooling down, no account-wide window at the limit, not waiting for a new sign-in; an account in the error state still counts when it does not need one), takes that account's tightest window (the window with the least left, where a window at the limit counts as 0%), and shows the best of those as the provider's headroom: how much the best single account can still do. Windows of different accounts are never mixed, so accounts with (90% left in 5-hour, 10% weekly) and (10% 5-hour, 90% weekly) give 10%, not 90%. The app shows it as the "Best usable account" line in each provider tile and in the menu bar when at least two accounts can take requests (with one it would repeat the pooled numbers); the Headroom widget lists it per provider. Missing data is shown as unknown, never as zero. Pooled capacity (below) adds the accounts up instead, so the two answer different questions: "can one more long session fit on one account?" and "how much is left in total?".
+CLIProxyAPI records the rate-limit headers that providers send back with normal responses. Proxy Gauge turns those passive observations into quota bars. For each provider it looks at every account that can currently serve requests (not disabled and not blocked: not cooling down, no account-wide window at the limit, not waiting for a new sign-in; an account in the error state still counts when it does not need one), takes that account's tightest window (the window with the least left, where a window at the limit counts as 0%), and shows the best of those as the provider's headroom: how much the best single account can still do. Windows of different accounts are never mixed, so accounts with (90% left in 5-hour, 10% weekly) and (10% 5-hour, 90% weekly) give 10%, not 90%. The app shows it as the "Best usable account" line on the provider detail, in the provider tiles of client-key mode and in the menu bar when at least two accounts can take requests (with one it would repeat the pooled numbers); the Headroom widget lists it per provider. Missing data is shown as unknown, never as zero. Pooled capacity (below) adds the accounts up instead, so the two answer different questions: "can one more long session fit on one account?" and "how much is left in total?".
 
 ### What is left in a window
 
@@ -87,7 +95,7 @@ Part of that sum may not be usable right now. An account is **blocked** while it
 
 With the anonymised sample in `docs/fixtures/fleet-limits-cooling-pool.json` (one usable Claude account without a 5-hour window, one blocked by its weekly limit with a 5-hour window, one blocked without a 5-hour window, one disabled) the Claude 5-hour row reads "200% of 200%", usable 100%, "100% blocked (weekly limit) · back Fri 12:00".
 
-Each provider shows "Accounts: 3 · usable: 2": all accounts of the provider, and those that can take requests right now (not disabled and not blocked). The Overview tiles, the menu bar and the widget use the same two numbers.
+Each provider shows "Accounts: 3 · usable: 2": all accounts of the provider, and those that can take requests right now (not disabled and not blocked). The provider detail, the menu bar and the widget use the same two numbers.
 
 Each window also shows the soonest time the pool grows or more of it becomes usable (the next reset or cooldown end among its accounts). The same numbers appear on the Overview (or Limits in client-key mode), in the widget and in the Mac menu bar, computed from the account list in management mode and from the credentials in `/v1/fleet/limits` in client-key mode. The widget recomputes them at display time, so a reset that passes between refreshes shows up without a new request.
 

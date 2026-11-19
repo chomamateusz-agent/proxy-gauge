@@ -4,9 +4,30 @@ import SwiftUI
 
 struct AppSettingsView: View {
     @Environment(AppModel.self) private var model
+    @AppStorage(OverviewLayout.storageKey) private var storedOverviewLayout = OverviewLayout.standard.rawValue
 
     var body: some View {
         Form {
+            Section {
+                Picker("Overview layout", selection: Binding(
+                    get: { OverviewLayout.resolve(storedOverviewLayout) },
+                    set: { storedOverviewLayout = $0.rawValue }
+                )) {
+                    ForEach(OverviewLayout.allCases) { layout in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(layout.title)
+                            Text(layout.summary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .tag(layout)
+                    }
+                }
+                .pickerStyle(.inline)
+            } header: {
+                Text("Overview")
+            }
             Section {
                 Picker("Refresh every", selection: Binding(get: { model.settings.refreshInterval }, set: { model.setRefreshInterval($0) })) {
                     ForEach(StoredSettings.refreshIntervalChoices, id: \.self) { interval in

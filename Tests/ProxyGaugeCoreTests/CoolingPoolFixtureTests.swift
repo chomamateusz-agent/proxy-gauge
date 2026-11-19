@@ -124,7 +124,7 @@ private struct PoolNumbers: Equatable {
     }
 }
 
-private enum ManagementEquivalent {
+enum ManagementEquivalent {
     static func credential(_ fleet: FleetCredential) -> Credential {
         var signals: [String: String] = [:]
         for bar in fleet.bars {

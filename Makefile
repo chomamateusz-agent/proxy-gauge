@@ -35,8 +35,12 @@ integration:
 	bash scripts/integration.sh
 
 renders: generate
+	xcodebuild -project $(APPLE_PROJECT) -scheme MacApp -configuration Debug -destination 'generic/platform=macOS' $(XCODEBUILD_UNSIGNED) build
+	rm -rf $(APPLE_DERIVED)/Build/Products/Debug/*.lproj
+	cp -R $(APPLE_DERIVED)/Build/Products/Debug/*.app/Contents/Resources/*.lproj $(APPLE_DERIVED)/Build/Products/Debug/
 	xcodebuild -project $(APPLE_PROJECT) -scheme RenderTool -configuration Debug -destination 'platform=macOS' $(XCODEBUILD_UNSIGNED) build
 	$(APPLE_DERIVED)/Build/Products/Debug/RenderTool "$(RENDER_DIR)" -AppleLanguages '(en)' -AppleLocale en_US
+	$(APPLE_DERIVED)/Build/Products/Debug/RenderTool "$(RENDER_DIR)" --polish -AppleLanguages '(pl)' -AppleLocale pl_PL
 
 icon:
 	swift scripts/render-icon.swift Apple/Assets.xcassets/AppIcon.appiconset

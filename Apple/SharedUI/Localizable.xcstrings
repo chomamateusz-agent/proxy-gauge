@@ -17,6 +17,38 @@
         }
       }
     },
+    "%@ %@ of %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ %2$@ of %3$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ z %3$@"
+          }
+        }
+      }
+    },
+    "%@ blocked, no end time reported": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ blocked, no end time reported"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: wstrzymane bez podanego końca"
+          }
+        }
+      }
+    },
     "%@ cooling down": {
       "localizations": {
         "en": {
@@ -77,6 +109,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ zostało · %2$@"
+          }
+        }
+      }
+    },
+    "%@ needs a new sign-in": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ needs a new sign-in"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: wymaga ponownego logowania"
+          }
+        }
+      }
+    },
+    "%@ no data": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no data"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: brak danych"
           }
         }
       }
@@ -177,6 +241,38 @@
         }
       }
     },
+    "%@: %@ of %@ left, usable now %@, %@ blocked.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@: %2$@ of %3$@ left, usable now %4$@, %5$@ blocked."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: zostało %2$@ z %3$@, dostępne teraz %4$@, wstrzymane %5$@."
+          }
+        }
+      }
+    },
+    "%@: %@ of %@ left.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@: %2$@ of %3$@ left."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: zostało %2$@ z %3$@."
+          }
+        }
+      }
+    },
     "%@: %lld": {
       "localizations": {
         "en": {
@@ -189,6 +285,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@: %2$lld"
+          }
+        }
+      }
+    },
+    "%@: back at %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@: back at %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: powrót o %2$@"
+          }
+        }
+      }
+    },
+    "%@: no data": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: no data"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: brak danych"
+          }
+        }
+      }
+    },
+    "%@: reset at %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@: reset at %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: odnowienie o %2$@"
           }
         }
       }
@@ -216,12 +360,6 @@
         "pl": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld konto bez uruchomionego okna 5-godzinnego, liczone jako pełne"
-                }
-              },
               "few": {
                 "stringUnit": {
                   "state": "translated",
@@ -234,10 +372,328 @@
                   "value": "%lld kont bez uruchomionego okna 5-godzinnego, liczonych jako pełne"
                 }
               },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld konto bez uruchomionego okna 5-godzinnego, liczone jako pełne"
+                }
+              },
               "other": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld konta bez uruchomionego okna 5-godzinnego, liczone jako pełne"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld accounts": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld account"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld accounts"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld konto"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld konta"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kont"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld konta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld active": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld active"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld active"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld aktywne"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld aktywne"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld aktywnych"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld aktywnego"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld cooling down": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld cooling down"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld cooling down"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld wstrzymane"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld wstrzymane"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld wstrzymanych"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld wstrzymanego"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld disabled": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld disabled"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld disabled"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld wyłączone"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld wyłączone"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld wyłączonych"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld wyłączonego"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld error": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld error"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld errors"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld błąd"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld błędy"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld błędów"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld błędu"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld left out": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld left out"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld left out"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pominięte"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pominięte"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pominiętych"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pominiętego"
                 }
               }
             }
@@ -289,6 +745,106 @@
           "stringUnit": {
             "state": "translated",
             "value": "(nieudane: %lld)"
+          }
+        }
+      }
+    },
+    "+%@ %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "+%1$@ %2$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "+%@ at %@ · %@ back": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "+%1$@ at %2$@ · %3$@ back"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%1$@ o %2$@ · powrót: %3$@"
+          }
+        }
+      }
+    },
+    "+%@ at %@ · window reset for %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "+%1$@ at %2$@ · window reset for %3$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%1$@ o %2$@ · odnowienie okna: %3$@"
+          }
+        }
+      }
+    },
+    "+%lld idle": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld idle"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld idle"
+                }
+              }
+            }
+          }
+        },
+        "pl": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld nieużywane"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld nieużywanych"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld nieużywane"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld nieużywanego"
+                }
+              }
+            }
           }
         }
       }
@@ -501,6 +1057,54 @@
         }
       }
     },
+    "Accounts by window": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts by window"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konta w oknach"
+          }
+        }
+      }
+    },
+    "Accounts on server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts on server"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konta na serwerze"
+          }
+        }
+      }
+    },
+    "Accounts strip": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts strip"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasek kont"
+          }
+        }
+      }
+    },
     "Accounts without data: %lld": {
       "localizations": {
         "en": {
@@ -689,6 +1293,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Wszystkie"
+          }
+        }
+      }
+    },
+    "Answer first": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answer first"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najpierw odpowiedź"
           }
         }
       }
@@ -1269,6 +1889,22 @@
         }
       }
     },
+    "Compact rows": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compact rows"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwarte wiersze"
+          }
+        }
+      }
+    },
     "Connected": {
       "localizations": {
         "en": {
@@ -1829,6 +2465,22 @@
         }
       }
     },
+    "Every window as a short bar, with one line on who comes back when.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every window as a short bar, with one line on who comes back when."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Każde okno jako krótki pasek i jedna linia o tym, kto wraca o której."
+          }
+        }
+      }
+    },
     "Excluded by the server": {
       "localizations": {
         "en": {
@@ -1905,6 +2557,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Odsetek błędów"
+          }
+        }
+      }
+    },
+    "Fetch it with Refresh limits": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fetch it with Refresh limits"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pobierz je przyciskiem Odśwież limity"
           }
         }
       }
@@ -2629,6 +3297,22 @@
         }
       }
     },
+    "More at %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More at %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Więcej o %@"
+          }
+        }
+      }
+    },
     "More in %@": {
       "localizations": {
         "en": {
@@ -2849,6 +3533,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ten klucz klienta nie widzi żadnych poświadczeń."
+          }
+        }
+      }
+    },
+    "No data": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No data"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak danych"
           }
         }
       }
@@ -3157,6 +3857,38 @@
         }
       }
     },
+    "One big number per provider: what you can use now and when it grows.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One big number per provider: what you can use now and when it grows."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jedna duża liczba na dostawcę: ile możesz użyć teraz i kiedy to wzrośnie."
+          }
+        }
+      }
+    },
+    "One column per account, so you see at once which one is blocked and until when.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One column per account, so you see at once which one is blocked and until when."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kolumna na konto: od razu widać, które stoi i do kiedy."
+          }
+        }
+      }
+    },
     "Only servers added with a management key can ask providers for limits.": {
       "localizations": {
         "en": {
@@ -3233,6 +3965,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Przegląd"
+          }
+        }
+      }
+    },
+    "Overview layout": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overview layout"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Układ przeglądu"
           }
         }
       }
@@ -3713,6 +4461,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Odświeżanie limitów nigdy nie wykorzystuje ręcznych resetów, nie wydaje kredytów resetów i nie ponawia zapytań inną drogą. Dostawcy, którzy odpowiedzą limitem zapytań, nie są pytani, dopóki znów na to nie pozwolą."
+          }
+        }
+      }
+    },
+    "Refreshing…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refreshing…"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odświeżanie…"
           }
         }
       }
@@ -5189,6 +5953,38 @@
         }
       }
     },
+    "Total": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Razem"
+          }
+        }
+      }
+    },
+    "Total: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total: %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Razem: %@"
+          }
+        }
+      }
+    },
     "Unexpected response from the server (%@).": {
       "localizations": {
         "en": {
@@ -5233,6 +6029,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zaktualizowano %@ temu"
+          }
+        }
+      }
+    },
+    "Usable now in the %@ window: %@ of %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Usable now in the %1$@ window: %2$@ of %3$@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępne teraz w oknie %1$@: %2$@ z %3$@"
+          }
+        }
+      }
+    },
+    "Usable now · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usable now · %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dostępne teraz · %@"
           }
         }
       }
@@ -5525,6 +6353,22 @@
         }
       }
     },
+    "Windows": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Windows"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Okna"
+          }
+        }
+      }
+    },
     "Write anyway": {
       "localizations": {
         "en": {
@@ -5573,6 +6417,22 @@
         }
       }
     },
+    "active": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "active"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aktywne"
+          }
+        }
+      }
+    },
     "billing": {
       "localizations": {
         "en": {
@@ -5585,6 +6445,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "rozliczenia"
+          }
+        }
+      }
+    },
+    "blocked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "blocked"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wstrzymane"
           }
         }
       }
@@ -5605,6 +6481,22 @@
         }
       }
     },
+    "daily": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "daily"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dzień"
+          }
+        }
+      }
+    },
     "daily limit": {
       "localizations": {
         "en": {
@@ -5617,6 +6509,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "limit dzienny"
+          }
+        }
+      }
+    },
+    "disabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "disabled"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wyłączone"
+          }
+        }
+      }
+    },
+    "error": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "error"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "błąd"
           }
         }
       }
@@ -5644,12 +6568,6 @@
         "pl": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "w tym %lld nieużywane konto po 100%%"
-                }
-              },
               "few": {
                 "stringUnit": {
                   "state": "translated",
@@ -5662,6 +6580,12 @@
                   "value": "w tym %lld nieużywanych kont po 100%%"
                 }
               },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "w tym %lld nieużywane konto po 100%%"
+                }
+              },
               "other": {
                 "stringUnit": {
                   "state": "translated",
@@ -5669,6 +6593,22 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "monthly": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "monthly"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mies."
           }
         }
       }
@@ -5701,6 +6641,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "wymaga ponownego logowania"
+          }
+        }
+      }
+    },
+    "of %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "of %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "z %@"
           }
         }
       }
@@ -5849,6 +6805,22 @@
         }
       }
     },
+    "sign in": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sign in"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zaloguj"
+          }
+        }
+      }
+    },
     "starts on use": {
       "localizations": {
         "en": {
@@ -5913,6 +6885,22 @@
         }
       }
     },
+    "weekly": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "weekly"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tydz."
+          }
+        }
+      }
+    },
     "weekly limit": {
       "localizations": {
         "en": {
@@ -5961,54 +6949,18 @@
         }
       }
     },
-    "+%lld idle": {
+    "gain.five-hour": {
       "localizations": {
         "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "+%lld idle"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "+%lld idle"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "5-hour"
           }
         },
         "pl": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "+%lld nieużywane"
-                }
-              },
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "+%lld nieużywane"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "+%lld nieużywanych"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "+%lld nieużywanego"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 godz."
           }
         }
       }

@@ -130,58 +130,6 @@ struct StateCounts: View {
     }
 }
 
-struct ServerFacts: View {
-    let session: ServerSession
-
-    var body: some View {
-        EqualHeightGrid(minItemWidth: 150, spacing: 8) {
-            fact("Version") {
-                Text(verbatim: session.version?.version ?? "–")
-                    .textSelection(.enabled)
-            }
-            if let commit = session.version?.commit {
-                fact("Commit") {
-                    Text(verbatim: String(commit.prefix(12)))
-                        .monospaced()
-                        .textSelection(.enabled)
-                        .help(Text(verbatim: commit))
-                }
-            }
-            fact("Accounts") {
-                if session.hasLoaded(session.headroomScope) {
-                    Text(session.accountSummaries.count, format: .number)
-                } else {
-                    Text(verbatim: "–")
-                }
-            }
-            if let observedAt = session.observedAt ?? session.fleetLimits?.generatedAt {
-                fact("Server time") {
-                    Text(observedAt, format: .dateTime.hour().minute().second())
-                }
-            }
-            fact("Last refresh") {
-                RefreshFooter(lastRefresh: session.lastRefresh, isRefreshing: session.isRefreshing)
-            }
-        }
-    }
-
-    private func fact(_ title: LocalizedStringResource, @ViewBuilder value: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            value()
-                .font(.callout)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(BoardStyle.cardBackground, in: .rect(cornerRadius: 8))
-        .accessibilityElement(children: .combine)
-    }
-}
-
 struct DashboardFootnotes: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
