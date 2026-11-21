@@ -5,6 +5,7 @@ import SwiftUI
 struct AppSettingsView: View {
     @Environment(AppModel.self) private var model
     @AppStorage(OverviewLayout.storageKey) private var storedOverviewLayout = OverviewLayout.standard.rawValue
+    var title: LocalizedStringResource = "Settings"
 
     var body: some View {
         Form {
@@ -89,6 +90,6 @@ struct AppSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .navigationTitle(Text("Settings"))
+        .navigationTitle(Text(title))
     }
 }

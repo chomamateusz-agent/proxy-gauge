@@ -5,13 +5,9 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppModel.self) private var model
     @State private var editor: EditorTarget?
-    @State private var showingAppSettings = false
     @State private var pendingDeletion: ServerProfile?
     @State private var deletionError: Error?
     @State private var isAppVisible = true
-    #if os(iOS)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    #endif
 
     var body: some View {
         navigation
@@ -30,24 +26,9 @@ struct RootView: View {
             ) {
                 await refreshSelection(trigger: .automatic)
             }
-        #if os(iOS)
-            .onChange(of: horizontalSizeClass, initial: true) { _, sizeClass in
-                model.adopt(sizeClass == .compact ? .stack : .split)
-            }
-        #endif
             .onOpenURL { model.open($0) }
             .sheet(item: $editor) { target in
                 ServerEditor(target: target)
-            }
-            .sheet(isPresented: $showingAppSettings) {
-                NavigationStack {
-                    AppSettingsView()
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") { showingAppSettings = false }
-                            }
-                        }
-                }
             }
             .confirmationDialog(
                 "Delete this server?",
@@ -70,20 +51,28 @@ struct RootView: View {
             }
     }
 
-    private var usesStackNavigation: Bool {
-        #if os(iOS)
-        horizontalSizeClass == .compact
-        #else
-        false
-        #endif
+    @ViewBuilder
+    private var navigation: some View {
+        switch model.navigationStyle {
+        case .tabs: tabNavigation
+        case .split: splitNavigation
+        }
+    }
+
+    private var serverActions: ServerActions {
+        ServerActions(
+            add: { editor = .add },
+            edit: { editor = .edit($0) },
+            delete: { pendingDeletion = $0 }
+        )
     }
 
     @ViewBuilder
-    private var navigation: some View {
-        if usesStackNavigation {
-            stackNavigation
+    private var tabNavigation: some View {
+        if let profile = model.selectedProfile {
+            ServerTabs(profile: profile, actions: serverActions)
         } else {
-            splitNavigation
+            FirstRunView(onAdd: { editor = .add })
         }
     }
 
@@ -94,7 +83,7 @@ struct RootView: View {
         } content: {
             Group {
                 if let profile = model.selectedProfile {
-                    SectionList(profile: profile, pushesSections: false, onEdit: { editor = .edit(profile) })
+                    SectionList(profile: profile, onEdit: { editor = .edit(profile) })
                 } else {
                     ContentUnavailableView("Choose a server", systemImage: "server.rack")
                 }
@@ -111,29 +100,6 @@ struct RootView: View {
                 }
             }
             .navigationSplitViewColumnWidth(min: 520, ideal: 1100)
-        }
-    }
-
-    private var stackNavigation: some View {
-        NavigationStack(path: Binding(get: { model.stackPath }, set: { model.stackPath = $0 })) {
-            serverList
-                .navigationDestination(for: StackRoute.self) { route in
-                    stackDestination(route)
-                }
-        }
-    }
-
-    @ViewBuilder
-    private func stackDestination(_ route: StackRoute) -> some View {
-        switch route {
-        case .server(let id):
-            if let profile = model.profiles.first(where: { $0.id == id }) {
-                SectionList(profile: profile, pushesSections: true, onEdit: { editor = .edit(profile) })
-            }
-        case .section(let section):
-            if let profile = model.selectedProfile {
-                sectionDetail(section, of: profile)
-            }
         }
     }
 
@@ -176,30 +142,19 @@ struct RootView: View {
     }
 
     private var serverList: some View {
-        Group {
-            if usesStackNavigation {
-                List { serverSection }
-            } else {
-                List(selection: Binding(
-                    get: { model.selectedServerID },
-                    set: { id in
-                        if let profile = model.profiles.first(where: { $0.id == id }) { model.select(profile) }
-                    }
-                )) {
-                    serverSection
-                }
+        List(selection: Binding(
+            get: { model.selectedServerID },
+            set: { id in
+                if let profile = model.profiles.first(where: { $0.id == id }) { model.select(profile) }
             }
+        )) {
+            serverSection
         }
         .navigationTitle("Servers")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Add server", systemImage: "plus") { editor = .add }
             }
-            #if os(iOS)
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Settings", systemImage: "gearshape") { showingAppSettings = true }
-            }
-            #endif
         }
     }
 
@@ -209,38 +164,49 @@ struct RootView: View {
                 NoServersRow(onAdd: { editor = .add })
             }
             ForEach(model.profiles) { profile in
-                serverRow(profile)
-                    .contextMenu { actions(for: profile) }
-                    .swipeActions(edge: .trailing) {
-                        Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = profile }
-                        Button("Edit", systemImage: "pencil") { editor = .edit(profile) }
-                    }
-                    .swipeActions(edge: .leading) {
-                        Button("Make default", systemImage: "star") { model.makeDefault(profile) }
-                            .tint(.yellow)
-                    }
+                ServerRow(profile: profile, isDefault: profile.id == model.defaultProfile?.id)
+                    .tag(profile.id)
+                    .serverActions(for: profile, actions: serverActions)
             }
         } footer: {
             Text("The default server feeds the widget and the menu bar.")
         }
     }
+}
 
-    @ViewBuilder
-    private func serverRow(_ profile: ServerProfile) -> some View {
-        let row = ServerRow(profile: profile, isDefault: profile.id == model.defaultProfile?.id)
-        if usesStackNavigation {
-            NavigationLink(value: StackRoute.server(profile.id)) { row }
-        } else {
-            row.tag(profile.id)
-        }
+struct ServerActions {
+    let add: () -> Void
+    let edit: (ServerProfile) -> Void
+    let delete: (ServerProfile) -> Void
+}
+
+private struct ServerActionsModifier: ViewModifier {
+    @Environment(AppModel.self) private var model
+    let profile: ServerProfile
+    let actions: ServerActions
+
+    func body(content: Content) -> some View {
+        content
+            .contextMenu {
+                Button("Edit", systemImage: "pencil") { actions.edit(profile) }
+                Button("Make default", systemImage: "star") { model.makeDefault(profile) }
+                Divider()
+                Button("Delete", systemImage: "trash", role: .destructive) { actions.delete(profile) }
+            }
+            .swipeActions(edge: .trailing) {
+                Button("Delete", systemImage: "trash", role: .destructive) { actions.delete(profile) }
+                Button("Edit", systemImage: "pencil") { actions.edit(profile) }
+            }
+            .swipeActions(edge: .leading) {
+                Button("Make default", systemImage: "star") { model.makeDefault(profile) }
+                    .tint(.yellow)
+            }
     }
+}
 
-    @ViewBuilder
-    private func actions(for profile: ServerProfile) -> some View {
-        Button("Edit", systemImage: "pencil") { editor = .edit(profile) }
-        Button("Make default", systemImage: "star") { model.makeDefault(profile) }
-        Divider()
-        Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = profile }
+extension View {
+    func serverActions(for profile: ServerProfile, actions: ServerActions) -> some View {
+        modifier(ServerActionsModifier(profile: profile, actions: actions))
     }
 }
 
@@ -289,7 +255,6 @@ struct ServerRow: View {
 struct SectionList: View {
     @Environment(AppModel.self) private var model
     let profile: ServerProfile
-    let pushesSections: Bool
     let onEdit: () -> Void
 
     var body: some View {
@@ -302,38 +267,29 @@ struct SectionList: View {
             }
     }
 
-    @ViewBuilder
     private var sectionsList: some View {
-        if pushesSections {
-            List {
-                Section {
-                    sectionRows
-                } footer: {
-                    status
-                }
-            }
-        } else {
-            List(selection: Binding(get: { model.selectedSection }, set: { model.selectedSection = $0 })) {
-                sectionRows
-            }
-            .safeAreaInset(edge: .bottom) {
-                status
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        List(selection: Binding(get: { model.selectedSection }, set: { model.selectedSection = $0 })) {
+            ForEach(model.sections(for: profile)) { section in
+                Label { Text(section.title) } icon: { Image(systemName: section.symbol) }
+                    .tag(section)
             }
         }
-    }
-
-    private var sectionRows: some View {
-        ForEach(ServerSection.sections(for: profile.authMode)) { section in
-            sectionRow(section)
+        .safeAreaInset(edge: .bottom) {
+            ServerStatus(profile: profile)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
+}
 
-    private var status: some View {
+struct ServerStatus: View {
+    @Environment(AppModel.self) private var model
+    let profile: ServerProfile
+
+    var body: some View {
         let session = model.session(for: profile)
-        return VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 4) {
             if let version = session.version {
                 Text("CLIProxyAPI \(version.version)")
                     .font(.caption)
@@ -351,25 +307,16 @@ struct SectionList: View {
             }
         }
     }
-
-    @ViewBuilder
-    private func sectionRow(_ section: ServerSection) -> some View {
-        let label = Label { Text(section.title) } icon: { Image(systemName: section.symbol) }
-        if pushesSections {
-            NavigationLink(value: StackRoute.section(section)) { label }
-        } else {
-            label.tag(section)
-        }
-    }
 }
 
 struct SectionDetail: View {
     let session: ServerSession
     let section: ServerSection
+    var titledByServer = false
 
     var body: some View {
         content
-            .modifier(SectionTitle(section: section))
+            .modifier(SectionTitle(session: session, section: section, titledByServer: titledByServer))
             .refreshable { await session.refresh(section.refreshScope, trigger: .manual) }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -396,11 +343,15 @@ struct SectionDetail: View {
 }
 
 private struct SectionTitle: ViewModifier {
+    let session: ServerSession
     let section: ServerSection
+    let titledByServer: Bool
 
     func body(content: Content) -> some View {
         if section == .overview {
             content
+        } else if titledByServer {
+            content.modifier(ServerTitle(session: session))
         } else {
             content.navigationTitle(Text(section.title))
         }

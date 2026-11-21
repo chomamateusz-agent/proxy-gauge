@@ -1329,6 +1329,22 @@
         }
       }
     },
+    "App settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App settings"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ustawienia aplikacji"
+          }
+        }
+      }
+    },
     "Ask the providers for fresh limits through the server": {
       "localizations": {
         "en": {
@@ -3133,6 +3149,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ustaw jako domyślny"
+          }
+        }
+      }
+    },
+    "Manage servers": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage servers"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zarządzaj serwerami"
           }
         }
       }

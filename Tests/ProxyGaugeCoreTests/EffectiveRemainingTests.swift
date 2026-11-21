@@ -178,17 +178,59 @@ struct SelectionAfterRemovalTests {
     let removed = UUID()
     let other = UUID()
 
-    @Test func stackNavigationReturnsToTheServerList() {
-        #expect(SelectionAfterRemoval(removing: removed, selected: removed, usesStackNavigation: true, defaultServer: other) == .clear)
+    @Test func removingTheSelectedServerMovesToTheFallback() {
+        #expect(SelectionAfterRemoval(removing: removed, selected: removed, fallback: other) == .select(other))
     }
 
-    @Test func splitNavigationMovesToTheDefaultServer() {
-        #expect(SelectionAfterRemoval(removing: removed, selected: removed, usesStackNavigation: false, defaultServer: other) == .select(other))
-        #expect(SelectionAfterRemoval(removing: removed, selected: removed, usesStackNavigation: false, defaultServer: nil) == .clear)
-        #expect(SelectionAfterRemoval(removing: removed, selected: removed, usesStackNavigation: false, defaultServer: removed) == .clear)
+    @Test func removingTheLastServerClearsTheSelection() {
+        #expect(SelectionAfterRemoval(removing: removed, selected: removed, fallback: nil) == .clear)
+        #expect(SelectionAfterRemoval(removing: removed, selected: removed, fallback: removed) == .clear)
     }
 
     @Test func removingAnotherServerKeepsTheSelection() {
-        #expect(SelectionAfterRemoval(removing: removed, selected: other, usesStackNavigation: true, defaultServer: other) == .keep)
+        #expect(SelectionAfterRemoval(removing: removed, selected: other, fallback: other) == .keep)
+    }
+}
+
+@Suite("Selection after saving a server")
+struct SelectionAfterSaveTests {
+    let saved = UUID()
+    let demo = UUID()
+
+    @Test func addingTheFirstRealServerOpensItEvenWhenTheDemoIsSelected() {
+        #expect(SelectionAfterSave(saving: saved, selected: demo, selectionExists: true, savedBecameDefault: true) == .select)
+    }
+
+    @Test func addingAnotherServerKeepsTheCurrentOne() {
+        #expect(SelectionAfterSave(saving: saved, selected: demo, selectionExists: true, savedBecameDefault: false) == .keep)
+    }
+
+    @Test func addingAServerWithNothingSelectedOpensIt() {
+        #expect(SelectionAfterSave(saving: saved, selected: nil, selectionExists: false, savedBecameDefault: false) == .select)
+        #expect(SelectionAfterSave(saving: saved, selected: demo, selectionExists: false, savedBecameDefault: false) == .select)
+    }
+
+    @Test func editingTheSelectedServerReselectsIt() {
+        #expect(SelectionAfterSave(saving: saved, selected: saved, selectionExists: true, savedBecameDefault: false) == .select)
+    }
+}
+
+@Suite("Section after switching servers")
+struct SectionAfterSwitchTests {
+    let management = ["overview", "accounts", "usage", "models", "settings"]
+    let clientKey = ["limits", "models", "settings"]
+
+    @Test func tabsKeepTheCurrentSectionWhenTheNewServerHasIt() {
+        #expect(SectionAfterSwitch.section(current: "models", available: clientKey, keepsCurrent: true) == "models")
+        #expect(SectionAfterSwitch.section(current: "settings", available: management, keepsCurrent: true) == "settings")
+    }
+
+    @Test func tabsFallBackToTheFirstSectionWhenTheNewServerLacksIt() {
+        #expect(SectionAfterSwitch.section(current: "usage", available: clientKey, keepsCurrent: true) == "limits")
+        #expect(SectionAfterSwitch.section(current: nil, available: management, keepsCurrent: true) == "overview")
+    }
+
+    @Test func deepLinksAndTheSplitViewAlwaysOpenTheFirstSection() {
+        #expect(SectionAfterSwitch.section(current: "models", available: clientKey, keepsCurrent: false) == "limits")
     }
 }

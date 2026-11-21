@@ -24,6 +24,13 @@ enum ServerSection: String, Hashable, CaseIterable, Identifiable {
         }
     }
 
+    static func sections(for mode: AuthMode, in style: NavigationStyle) -> [ServerSection] {
+        switch (style, mode) {
+        case (.tabs, .clientKey): [.limits, .models, .settings]
+        default: sections(for: mode)
+        }
+    }
+
     var title: LocalizedStringResource {
         switch self {
         case .overview: "Overview"
@@ -33,6 +40,14 @@ enum ServerSection: String, Hashable, CaseIterable, Identifiable {
         case .settings: "Server settings"
         case .limits: "Limits"
         }
+    }
+
+    var tabTitle: LocalizedStringResource {
+        self == .settings ? "Settings" : title
+    }
+
+    var tabSymbol: String {
+        self == .settings ? "gearshape" : symbol
     }
 
     static let modelsRefreshInterval: TimeInterval = 900
@@ -61,19 +76,14 @@ enum ServerSection: String, Hashable, CaseIterable, Identifiable {
 
 enum NavigationStyle {
     case split
-    case stack
-}
+    case tabs
 
-enum StackRoute: Hashable {
-    case server(UUID)
-    case section(ServerSection)
-
-    var serverID: UUID? {
-        if case .server(let id) = self { id } else { nil }
-    }
-
-    var section: ServerSection? {
-        if case .section(let section) = self { section } else { nil }
+    static var platform: NavigationStyle {
+        #if os(iOS)
+        .tabs
+        #else
+        .split
+        #endif
     }
 }
 
@@ -88,8 +98,9 @@ final class AppModel {
     private(set) var settings: StoredSettings
     var selectedServerID: UUID?
     var selectedSection: ServerSection?
-    private(set) var navigationStyle: NavigationStyle?
-    @ObservationIgnored private var selectionCameFromLink = false
+    let navigationStyle = NavigationStyle.platform
+    private(set) var deepLinkCount = 0
+    private(set) var settingsResetCount = 0
 
     init(store: ProfileStore = ProfileStore(), secrets: any SecretStore = KeychainSecretStore()) {
         self.store = store
@@ -99,7 +110,7 @@ final class AppModel {
         let loaded = store.load()
         settings = loaded
         selectedServerID = loaded.defaultProfile?.id
-        selectedSection = loaded.defaultProfile.flatMap { ServerSection.sections(for: $0.authMode).first }
+        selectedSection = loaded.defaultProfile.flatMap { ServerSection.sections(for: $0.authMode, in: .platform).first }
     }
 
     var profiles: [ServerProfile] { settings.allProfiles }
@@ -163,29 +174,22 @@ final class AppModel {
         return session
     }
 
+    func sections(for profile: ServerProfile) -> [ServerSection] {
+        ServerSection.sections(for: profile.authMode, in: navigationStyle)
+    }
+
     func select(_ profile: ServerProfile) {
         selectedServerID = profile.id
-        selectedSection = navigationStyle == .stack ? nil : ServerSection.sections(for: profile.authMode).first
+        selectedSection = SectionAfterSwitch.section(
+            current: selectedSection,
+            available: sections(for: profile),
+            keepsCurrent: navigationStyle == .tabs
+        )
     }
 
-    func adopt(_ style: NavigationStyle) {
-        let launchesOnStack = navigationStyle == nil && style == .stack && !selectionCameFromLink
-        navigationStyle = style
-        if launchesOnStack {
-            selectedServerID = nil
-            selectedSection = nil
-        }
-    }
-
-    var stackPath: [StackRoute] {
-        get {
-            guard navigationStyle == .stack, let profile = selectedProfile else { return [] }
-            return [.server(profile.id)] + (selectedSection.map { [.section($0)] } ?? [])
-        }
-        set {
-            selectedServerID = newValue.lazy.compactMap(\.serverID).first
-            selectedSection = newValue.lazy.compactMap(\.section).first
-        }
+    func manageServers() {
+        selectedSection = .settings
+        settingsResetCount += 1
     }
 
     func open(_ url: URL) {
@@ -193,13 +197,14 @@ final class AppModel {
               case .serverOverview(let id)? = DeepLink(url: url, scheme: scheme),
               let profile = profiles.first(where: { $0.id == id })
         else { return }
-        selectionCameFromLink = true
         selectedServerID = profile.id
-        selectedSection = ServerSection.sections(for: profile.authMode).first
+        selectedSection = sections(for: profile).first
+        deepLinkCount += 1
     }
 
     func save(_ profile: ServerProfile, secret: String?, pausedBy pauseReason: AuthPauseReason? = nil) throws {
         let previous = settings.profiles.first { $0.id == profile.id }
+        var becameDefault = false
         let keepsData = previous.map { $0.reachesSameData(as: profile) } == true && !changesKey(of: profile.id, to: secret)
         if profile.isDemo {
             settings.demoAuthMode = profile.authMode
@@ -213,6 +218,7 @@ final class AppModel {
                 settings.profiles.append(profile)
                 if settings.profiles.count == 1 {
                     settings.defaultServerID = profile.id
+                    becameDefault = true
                 }
             }
         }
@@ -221,7 +227,13 @@ final class AppModel {
             forgetProviderReadingsIfUnused(previous)
         }
         persist()
-        if selectedServerID == profile.id {
+        let selection = SelectionAfterSave(
+            saving: profile.id,
+            selected: selectedServerID,
+            selectionExists: selectedProfile != nil,
+            savedBecameDefault: becameDefault
+        )
+        if selection == .select {
             select(profile)
         }
     }
@@ -250,8 +262,7 @@ final class AppModel {
         applySelection(SelectionAfterRemoval(
             removing: profile.id,
             selected: selectedServerID,
-            usesStackNavigation: navigationStyle == .stack,
-            defaultServer: defaultProfile?.id
+            fallback: defaultProfile?.id
         ))
         persist()
     }
@@ -259,7 +270,7 @@ final class AppModel {
     func restoreDemo() {
         settings.restoreDemo()
         persist()
-        if selectedServerID == nil, navigationStyle != .stack {
+        if selectedProfile == nil {
             select(settings.demoProfile)
         }
     }

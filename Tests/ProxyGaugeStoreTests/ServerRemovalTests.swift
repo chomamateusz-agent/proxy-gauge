@@ -47,6 +47,22 @@ struct ServerRemovalTests {
         #expect(settings.profile(for: ServerProfile.demoID) == nil)
     }
 
+    @Test func launchWithoutAStoredDefaultOpensTheFirstServer() {
+        let work = ServerProfile(name: "Work", baseURL: URL(string: "http://10.0.0.2:8317")!, authMode: .clientKey)
+        #expect(StoredSettings(profiles: [home, work]).defaultProfile == home)
+        #expect(StoredSettings(profiles: [home, work], defaultServerID: UUID()).defaultProfile == home)
+        #expect(StoredSettings(profiles: [home, work], defaultServerID: work.id).defaultProfile == work)
+    }
+
+    @Test func deletingTheDefaultServerFallsBackToTheNextOne() {
+        let work = ServerProfile(name: "Work", baseURL: URL(string: "http://10.0.0.2:8317")!, authMode: .clientKey)
+        var settings = StoredSettings(profiles: [home, work], defaultServerID: home.id, showsDemo: false)
+        settings.removeServer(home.id)
+        #expect(settings.defaultProfile == work)
+        settings.removeServer(work.id)
+        #expect(settings.defaultProfile == nil)
+    }
+
     @Test func restoredDemoStartsInManagementMode() {
         var settings = StoredSettings(demoAuthMode: .clientKey)
         settings.removeServer(ServerProfile.demoID)
