@@ -143,38 +143,44 @@ struct PooledCapacityTests {
         #expect(window.remainingPercent == 160)
     }
 
-    @Test func accountWithoutASampleIsUnknownNotZeroOrFull() throws {
+    @Test func accountWithoutAnyDataIsLeftOutOfTheFiveHourPoolAndUnknownElsewhere() throws {
         let pool = try #require(pools([
             claude("a", session: 30, weekly: 10),
             claude("b", session: nil, weekly: nil)
         ]).first)
         let window = try #require(pool.window(.session5h))
-        #expect(window.capacityPercent == 200)
+        #expect(window.capacityPercent == 100)
         #expect(window.remainingPercent == 70)
-        #expect(window.unknownAccounts == 1)
+        #expect(window.unknownAccounts == 0)
         #expect(window.knownAccounts == 1)
-        #expect(window.accountsWithoutRunningWindow == 0)
+        #expect(window.accountsLeftOut == 1)
+        let weekly = try #require(pool.window(.weekly))
+        #expect(weekly.capacityPercent == 200)
+        #expect(weekly.unknownAccounts == 1)
+        #expect(weekly.accountsLeftOut == 0)
     }
 
-    @Test func usableAccountWithoutAFiveHourBarCountsAsFullAndABlockedOneIsLeftOut() throws {
+    @Test func idleAccountsCountAsFullAndCooldownOnlyHatchesThem() throws {
         let pool = try #require(pools([
             claude("a", session: 30, weekly: 10),
             claude("b", session: nil, weekly: 20),
             claude("c", session: nil, weekly: 50, cooldownUntil: "2026-11-14T11:00:00Z")
         ]).first)
         let session = try #require(pool.window(.session5h))
-        #expect(session.accountsCountedAsFull == 1)
-        #expect(session.accountsWithoutRunningWindow == 1)
+        #expect(session.accountsCountedAsFull == 2)
+        #expect(session.accountsLeftOut == 0)
         #expect(session.unknownAccounts == 0)
-        #expect(session.capacityPercent == 200)
-        #expect(session.remainingPercent == 170)
+        #expect(session.capacityPercent == 300)
+        #expect(session.remainingPercent == 270)
         #expect(session.usablePercent == 170)
-        #expect(session.remainingShareOfKnown == 0.85)
+        #expect(session.blockedPercent == 100)
+        #expect(session.blockedUntil == date("2026-11-14T11:00:00Z"))
+        #expect(session.remainingShareOfKnown == 0.9)
         let weekly = try #require(pool.window(.weekly))
         #expect(weekly.capacityPercent == 300)
         #expect(weekly.remainingPercent == 220)
         #expect(weekly.usablePercent == 170)
-        #expect(weekly.accountsWithoutRunningWindow == 0)
+        #expect(weekly.accountsLeftOut == 0)
     }
 
     @Test func explicitIdleFiveHourWindowCountsAsFull() throws {
@@ -186,7 +192,7 @@ struct PooledCapacityTests {
         let window = try #require(pools([claude("a", session: 30, weekly: 10), idle]).first?.window(.session5h))
         #expect(window.remainingPercent == 170)
         #expect(window.capacityPercent == 200)
-        #expect(window.accountsWithoutRunningWindow == 0)
+        #expect(window.accountsLeftOut == 0)
         #expect(AccountSummary(credential: idle, now: now).fiveHourWindow(at: now) == .startsOnUse)
     }
 

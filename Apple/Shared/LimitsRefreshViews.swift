@@ -106,13 +106,13 @@ struct LimitsRefreshSheet: View {
                 }
             }
             .formStyle(.grouped)
-            .navigationTitle(Text("Refresh limits"))
+            .navigationTitle(Text(LimitsCheckWording.title))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Refresh limits") {
+                    Button(LimitsCheckWording.confirm) {
                         let ids = credentialIDs
                         Task { await session.refreshLimits(ids, trigger: .manual, origin: .visibleApp) }
                         dismiss()
@@ -451,4 +451,22 @@ struct ProviderRefreshLoopID: Hashable {
     var enabled: Bool
     var interval: TimeInterval
     var isVisible: Bool
+}
+
+enum LimitsCheckWording {
+    static var title: LocalizedStringResource {
+        #if os(iOS)
+        "Check limits with providers"
+        #else
+        "Refresh limits"
+        #endif
+    }
+
+    static var confirm: LocalizedStringResource {
+        #if os(iOS)
+        "Check limits"
+        #else
+        "Refresh limits"
+        #endif
+    }
 }

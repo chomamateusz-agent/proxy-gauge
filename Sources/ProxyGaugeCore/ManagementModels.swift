@@ -145,6 +145,8 @@ public struct Credential: Decodable, Sendable, Equatable, Identifiable {
     public var note: String?
     public var requiresSignIn: Bool
     public var chatgptAccountID: String?
+    public var endsAt: Date?
+    public var hasEnded: Bool
 
     public var id: String { authIndex ?? credentialID ?? name }
 
@@ -165,6 +167,8 @@ public struct Credential: Decodable, Sendable, Equatable, Identifiable {
         case updatedAt = "updated_at"
         case requiresSignIn = "requires_sign_in"
         case idToken = "id_token"
+        case endsAt = "fleet_ends_at"
+        case hasEnded = "fleet_ended"
     }
 
     struct IDTokenClaims: Decodable {
@@ -211,6 +215,7 @@ public struct Credential: Decodable, Sendable, Equatable, Identifiable {
         self.modelQuotas = modelQuotas
         self.cooldowns = cooldowns
         self.requiresSignIn = false
+        self.hasEnded = false
     }
 
     public init(from decoder: Decoder) throws {
@@ -240,6 +245,8 @@ public struct Credential: Decodable, Sendable, Equatable, Identifiable {
         note = container.lenientString(.note)
         requiresSignIn = container.lenientBool(.requiresSignIn) ?? false
         chatgptAccountID = ((try? container.decodeIfPresent(IDTokenClaims.self, forKey: .idToken)) ?? nil)?.chatgptAccountID
+        endsAt = container.lenientDate(.endsAt)
+        hasEnded = container.lenientBool(.hasEnded) ?? false
     }
 
     public var displayName: String {
@@ -371,6 +378,10 @@ public struct ServerVersion: Sendable, Equatable, Codable {
         self.version = version
         self.commit = commit
         self.buildDate = buildDate
+    }
+
+    public var isFleetFork: Bool {
+        ServerLab.isFleetFork(version: version, fleetLimitsAnswered: false)
     }
 
     init?(headers response: HTTPResponse) {

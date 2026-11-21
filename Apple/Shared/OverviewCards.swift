@@ -96,8 +96,8 @@ enum OverviewWording {
         if window.accountsCountedAsFull > 0 {
             parts.append(String(localized: "+\(window.accountsCountedAsFull) idle"))
         }
-        if window.accountsWithoutRunningWindow > 0 {
-            parts.append(String(localized: "\(window.accountsWithoutRunningWindow) left out"))
+        if window.accountsLeftOut > 0 {
+            parts.append(String(localized: "\(window.accountsLeftOut) left out"))
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
@@ -131,66 +131,33 @@ extension Comeback.Kind {
     }
 }
 
-struct StateChipRow: View {
-    let counts: [StateCount]
-
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) { chips }
-            VStack(alignment: .leading, spacing: 4) { chips }
-        }
-    }
-
-    private var chips: some View {
-        ForEach(counts, id: \.self) { count in
-            StateCountChip(count: count)
-        }
-    }
-}
-
-struct StateCountChip: View {
-    let count: StateCount
-
-    var body: some View {
-        Label {
-            text
-        } icon: {
-            Image(systemName: count.state.symbol)
-                .imageScale(.small)
-        }
-        .labelStyle(.titleAndIcon)
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(count.state.color)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .background(count.state.color.opacity(0.13), in: .capsule)
-        .fixedSize()
-    }
-
-    private var text: Text {
-        switch count.state {
-        case .active: Text("\(count.count) active")
-        case .cooldown: Text("\(count.count) cooling down")
-        case .disabled: Text("\(count.count) disabled")
-        case .error: Text("\(count.count) error")
-        }
-    }
-}
-
 struct ProviderCardHeader: View {
     let overview: ProviderOverview
     var showsChips = true
+    var showsChevron = false
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 name
-                Spacer(minLength: 6)
-                if showsChips { StateChipRow(counts: overview.stateCounts).fixedSize() }
+                Spacer(minLength: 4)
+                if showsChips { StatusChipRow(chips: overview.chips).fixedSize() }
+                chevron
             }
             VStack(alignment: .leading, spacing: 6) {
-                name
-                if showsChips { StateChipRow(counts: overview.stateCounts) }
+                HStack(spacing: 10) {
+                    name
+                    Spacer(minLength: 6)
+                    chevron
+                }
+                if showsChips {
+                    ViewThatFits(in: .horizontal) {
+                        StatusChipRow(chips: overview.chips)
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(overview.chips, id: \.self) { StatusChipView(chip: $0) }
+                        }
+                    }
+                }
             }
         }
     }
@@ -201,6 +168,16 @@ struct ProviderCardHeader: View {
             Text(verbatim: ProviderCatalog.displayName(overview.pool.provider))
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private var chevron: some View {
+        if showsChevron {
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
     }
 }
@@ -275,7 +252,11 @@ struct NoQuotaDataReason: View {
         } else if !signIn.isEmpty {
             Text(verbatim: String(localized: "\(OverviewWording.names(signIn)) needs a new sign-in"))
         } else if fetchable {
+            #if os(iOS)
+            Text("Hold Refresh, then Check limits with providers")
+            #else
             Text("Fetch it with Refresh limits")
+            #endif
         } else {
             Text("No quota data reported yet")
         }
@@ -369,17 +350,24 @@ struct CompactWindowRow: View {
 struct CompactRowsCard: View {
     let overview: ProviderOverview
     let canRefreshLimits: Bool
+    var order: [String] = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ProviderCardHeader(overview: overview)
+        VStack(alignment: .leading, spacing: 9) {
+            ProviderCardHeader(overview: overview, showsChevron: true)
             if overview.pool.windows.isEmpty {
-                NoQuotaDataReason(overview: overview, canRefreshLimits: canRefreshLimits)
-                    .font(.subheadline)
+                if overview.accountsNeedingSignIn.isEmpty || overview.pool.accounts == 0 {
+                    NoQuotaDataReason(overview: overview, canRefreshLimits: canRefreshLimits)
+                        .font(.subheadline)
+                }
             } else {
-                CompactWindowRows(overview: overview)
-                Divider()
-                ComebackLine(overview: overview)
+                ForEach(overview.pool.windows) { window in
+                    PoolWindowRow(window: window, overview: overview, order: order)
+                }
+                if overview.comeback != nil || overview.pool.nextIncreaseAt.map({ $0 > .now }) == true {
+                    Divider()
+                    ComebackFooter(overview: overview)
+                }
             }
         }
         .boardCard()
@@ -490,6 +478,7 @@ struct ProviderOverviewCard: View {
     let overview: ProviderOverview
     let layout: OverviewLayout
     let session: ServerSession
+    var order: [String] = []
 
     var body: some View {
         NavigationLink {
@@ -504,7 +493,7 @@ struct ProviderOverviewCard: View {
     private var card: some View {
         switch layout {
         case .answerFirst: AnswerFirstCard(overview: overview, canRefreshLimits: session.supportsLimitsRefresh)
-        case .compactRows: CompactRowsCard(overview: overview, canRefreshLimits: session.supportsLimitsRefresh)
+        case .compactRows: CompactRowsCard(overview: overview, canRefreshLimits: session.supportsLimitsRefresh, order: order)
         case .accountsStrip: AccountsStripCard(overview: overview, canRefreshLimits: session.supportsLimitsRefresh)
         }
     }

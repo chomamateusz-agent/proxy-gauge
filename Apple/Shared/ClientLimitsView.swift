@@ -50,6 +50,14 @@ struct ClientLimitsView: View {
         }
     }
 
+    private var clientKeyNote: Text {
+        #if os(iOS)
+        Text("Checking limits with providers needs the management key: a client key cannot ask the server to contact providers.")
+        #else
+        Text("Refresh limits needs the management key: a client key cannot ask the server to contact providers.")
+        #endif
+    }
+
     @ViewBuilder
     private func content(_ limits: FleetLimits) -> some View {
         let accounts = session.accountSummaries
@@ -59,7 +67,7 @@ struct ClientLimitsView: View {
                 .foregroundStyle(.secondary)
         }
         Label {
-            Text("Refresh limits needs the management key: a client key cannot ask the server to contact providers.")
+            clientKeyNote
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: "key")

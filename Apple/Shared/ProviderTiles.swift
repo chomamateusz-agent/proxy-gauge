@@ -138,7 +138,11 @@ struct DashboardFootnotes: View {
             Text("A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. While it can take requests it counts as a full 5-hour window, because its next request starts one. A blocked account without a 5-hour window is left out of the 5-hour capacity.")
             Text("Best usable account: the most quota a single account that can take requests right now has left in its tightest window. Shown when at least two accounts can take requests.")
             Text("Passive data: numbers without a mark come from rate-limit headers the proxy already observed while serving requests. Reading them sends nothing to the providers.")
+            #if os(iOS)
+            Text("Active data: numbers with \(Image(systemName: "antenna.radiowaves.left.and.right")) come from a check with the provider, where the server asks the provider with the account's own sign-in. That happens only when you hold Refresh and choose Check limits with providers, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings.")
+            #else
             Text("Active data: numbers with \(Image(systemName: "antenna.radiowaves.left.and.right")) come from Refresh limits, where the server asks the provider with the account's own sign-in. That happens only when you press Refresh limits, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings.")
+            #endif
         }
         .font(.callout)
         .fixedSize(horizontal: false, vertical: true)

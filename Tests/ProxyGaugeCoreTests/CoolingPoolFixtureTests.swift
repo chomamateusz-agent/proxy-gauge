@@ -43,14 +43,14 @@ struct CoolingPoolFixtureTests {
         #expect(fable.blockReason == .windowAtLimit("weekly_all"))
 
         let session = try #require(claude.window(.session5h))
-        #expect(session.remainingPercent == 200)
-        #expect(session.capacityPercent == 200)
+        #expect(session.remainingPercent == 300)
+        #expect(session.capacityPercent == 300)
         #expect(session.usablePercent == 100)
-        #expect(session.blockedPercent == 100)
+        #expect(session.blockedPercent == 200)
         #expect(session.blockedUntil == fridayUnblock)
-        #expect(session.blockClearsAtOnce)
-        #expect(session.accountsCountedAsFull == 1)
-        #expect(session.accountsWithoutRunningWindow == 1)
+        #expect(!session.blockClearsAtOnce)
+        #expect(session.accountsCountedAsFull == 3)
+        #expect(session.accountsLeftOut == 0)
     }
 
     @Test func widgetsLeadWithTheProviderThatCanTakeTheLeastRequests() throws {
@@ -114,7 +114,7 @@ private struct PoolNumbers: Equatable {
                 barID: $0.barID,
                 accounts: $0.accounts,
                 unknown: $0.unknownAccounts,
-                withoutRunningWindow: $0.accountsWithoutRunningWindow,
+                withoutRunningWindow: $0.accountsLeftOut,
                 remaining: $0.remainingPercent,
                 usable: $0.usablePercent,
                 blockedUntil: $0.blockedUntil,

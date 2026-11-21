@@ -13,12 +13,18 @@ enum BoardWidth {
 
 struct OverviewView: View {
     let session: ServerSession
+    private let routerOrder: RouterOrderStorage
     @AppStorage(AccountsLayout.storageKey) private var storedLayout = AccountsLayout.cards.rawValue
     @AppStorage(OverviewLayout.storageKey) private var storedOverviewLayout = OverviewLayout.standard.rawValue
     @State private var width: CGFloat = 0
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
+
+    init(session: ServerSession) {
+        self.session = session
+        routerOrder = RouterOrderStorage(serverID: session.profile.id)
+    }
 
     private var compactWidth: Bool {
         #if os(iOS)
@@ -48,6 +54,7 @@ struct OverviewView: View {
                     AccountsLayoutPicker(storedLayout: $storedLayout, compactWidth: compactWidth)
                 }
             }
+            #if os(macOS)
             if session.supportsLimitsRefresh {
                 ToolbarItem {
                     RefreshLimitsButton(session: session)
@@ -58,6 +65,7 @@ struct OverviewView: View {
                     ServerInfoButton(session: session)
                 }
             }
+            #endif
         }
     }
 
@@ -65,13 +73,20 @@ struct OverviewView: View {
         let accounts = session.accountSummaries
         let quota = session.quotaOverview(at: now)
         let overviews = ProviderOverview.all(pools: quota.pools, accounts: accounts, now: now)
-        return VStack(alignment: .leading, spacing: 16) {
+        #if os(macOS)
+        let order = accounts.map(\.id)
+        #else
+        let order = session.orderedAccounts(provider: nil, routerOrder: routerOrder.isOn, now: now).map(\.id)
+        #endif
+        return VStack(alignment: .leading, spacing: compactWidth ? 12 : 16) {
             SessionStatusBanner(session: session, scope: .accounts)
             ProviderRefreshStatus(session: session)
+            #if os(macOS)
             if let savedAt = quota.savedAt {
                 SavedDataNote(savedAt: savedAt, refreshesAutomatically: session.refreshesAutomatically)
             }
-            providerCards(overviews, layout: layout)
+            #endif
+            providerCards(overviews, layout: layout, order: order)
             if showsAccountsBoard && !accounts.isEmpty {
                 DashboardSection(title: "Accounts") {
                     AccountsBoard(
@@ -82,16 +97,18 @@ struct OverviewView: View {
                     )
                 }
             }
+            #if os(macOS)
             if layout != .answerFirst {
                 ServerInfoCard(session: session)
             }
+            #endif
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
     }
 
     @ViewBuilder
-    private func providerCards(_ overviews: [ProviderOverview], layout: OverviewLayout) -> some View {
+    private func providerCards(_ overviews: [ProviderOverview], layout: OverviewLayout, order: [String]) -> some View {
         let phase = session.loadPhase(for: .accounts, loaded: session.accountsLoaded)
         if overviews.isEmpty {
             Group {
@@ -105,9 +122,9 @@ struct OverviewView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .boardCard()
         } else {
-            EqualHeightGrid(minItemWidth: layout.cardMinWidth) {
+            EqualHeightGrid(minItemWidth: layout.cardMinWidth, spacing: compactWidth ? 10 : BoardStyle.spacing) {
                 ForEach(overviews) { overview in
-                    ProviderOverviewCard(overview: overview, layout: layout, session: session)
+                    ProviderOverviewCard(overview: overview, layout: layout, session: session, order: order)
                 }
             }
         }
@@ -121,17 +138,21 @@ struct ServerTitle: ViewModifier {
         TimelineView(.periodic(from: .now, by: 10)) { context in
             content
                 .navigationTitle(Text(verbatim: session.profile.isDemo ? String(localized: "Demo server") : session.profile.name))
+                #if os(macOS)
                 .navigationSubtitle(subtitle(at: context.date))
+                #endif
         }
         #if os(iOS)
         .toolbarTitleDisplayMode(.inline)
         #endif
     }
 
+    #if os(macOS)
     private func subtitle(at now: Date) -> Text {
         if let lastRefresh = session.lastRefresh {
             return Text("Updated \(ElapsedTime.text(from: lastRefresh, to: now)) ago")
         }
         return session.isRefreshing ? Text("Refreshing…") : Text("Not refreshed yet")
     }
+    #endif
 }

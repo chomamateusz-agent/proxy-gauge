@@ -3,6 +3,7 @@ import Foundation
 public struct AccountList: Sendable {
     public var credentials: Versioned<CredentialList>
     public var keyCounters: Result<[ProviderKeyCounters], APIError>
+    public var routerSettings: RouterSettings?
 }
 
 public enum ScopeData: Sendable {
@@ -13,6 +14,7 @@ public enum ScopeData: Sendable {
     case clientModels([ModelInfo])
     case fleetLimits(FleetLimits?)
     case accountModels(name: String, [ModelInfo])
+    case routerSettings(RouterSettings)
 }
 
 public enum ScopeLoader {
@@ -20,20 +22,23 @@ public enum ScopeLoader {
 
     public static let usageWindow: TimeInterval = 7 * 86_400
 
-    public static func load(_ scope: RefreshScope, authMode: AuthMode, management: ManagementClient, client: ClientKeyClient, now: Date = Date(), publish: Publish) async throws {
+    public static func load(_ scope: RefreshScope, authMode: AuthMode, management: ManagementClient, client: ClientKeyClient, readsRouterSettings: Bool = true, now: Date = Date(), publish: Publish) async throws {
         switch (authMode, scope) {
         case (.management, .accounts), (.management, .limits), (.management, .accountDetail):
-            await publish(.accounts(try await accounts(management)))
+            await publish(.accounts(try await accounts(management, readsRouterSettings: readsRouterSettings)))
         case (.management, .usage):
-            await publish(.accounts(try await accounts(management)))
+            await publish(.accounts(try await accounts(management, readsRouterSettings: readsRouterSettings)))
             await publish(.tokenUsage(try await management.clientKeyUsage(since: now.addingTimeInterval(-usageWindow))))
         case (.management, .models):
-            let list = try await accounts(management)
+            let list = try await accounts(management, readsRouterSettings: readsRouterSettings)
             await publish(.accounts(list))
             await publish(.catalog(try await ModelCatalog.load(from: management, credentials: list.credentials.value.files)))
         case (.management, .settings):
             let routing = try await management.routingStrategy()
             await publish(.settings(routing, clientKeyCount: try await optional { try await management.clientKeyPolicyCount() } ?? nil))
+            if readsRouterSettings, let settings = try await optional({ try await management.routerSettings(strategy: routing?.strategy) }) {
+                await publish(.routerSettings(settings))
+            }
         case (.management, .accountModels(let name)):
             await publish(.accountModels(name: name, try await management.credentialModels(name: name)))
         case (.clientKey, .models):
@@ -45,13 +50,18 @@ public enum ScopeLoader {
         }
     }
 
-    public static func accounts(_ management: ManagementClient) async throws -> AccountList {
+    public static func accounts(_ management: ManagementClient, readsRouterSettings: Bool = true) async throws -> AccountList {
         let credentials = try await management.credentials()
+        var list: AccountList
         do {
-            return AccountList(credentials: credentials, keyCounters: .success(try await management.upstreamKeyCounters()))
+            list = AccountList(credentials: credentials, keyCounters: .success(try await management.upstreamKeyCounters()))
         } catch let error as APIError where !error.stopsFurtherRequests {
-            return AccountList(credentials: credentials, keyCounters: .failure(error))
+            list = AccountList(credentials: credentials, keyCounters: .failure(error))
         }
+        if readsRouterSettings, credentials.version?.isFleetFork == true {
+            list.routerSettings = try await optional { try await management.routerSettings() } ?? nil
+        }
+        return list
     }
 
     private static func optional<Value>(_ read: () async throws -> Value) async throws -> Value? {

@@ -147,6 +147,28 @@ public struct ManagementClient: Sendable {
         }
     }
 
+    public func routerSettings() async throws -> RouterSettings {
+        try await routerSettings(strategy: try await routingStrategy()?.strategy)
+    }
+
+    public func routerSettings(strategy: String?) async throws -> RouterSettings {
+        guard RouterSettings.normalizedStrategy(strategy) == RouterSettings.useOrLose else { return RouterSettings(strategy: strategy) }
+        return RouterSettings(
+            strategy: strategy,
+            shortWindowCapPercent: try await configValue(Double.self, at: "routing/use-or-lose/short-window-cap-pct"),
+            drainEndingCredentials: try await configValue(Bool.self, at: "routing/use-or-lose/drain-ending-credentials")
+        )
+    }
+
+    private func configValue<Value: Decodable>(_ type: Value.Type, at path: String) async throws -> Value? {
+        do {
+            let response = try await exchange.send(builder.request(.get, "v8/management/config/" + path))
+            return try? exchange.decode(type, from: response)
+        } catch APIError.notFound(_) {
+            return nil
+        }
+    }
+
     public func configVersionETag() async throws -> String? {
         do {
             return try await exchange.send(builder.request(.get, "v8/management/config/config-version")).header("ETag")

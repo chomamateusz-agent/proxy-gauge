@@ -76,7 +76,11 @@ struct AppSettingsView: View {
             } header: {
                 Text("Limits from providers")
             } footer: {
+                #if os(iOS)
+                Text("Off by default. While Proxy Gauge is visible on screen and automatic refresh is on, the server checks Claude, Codex, Kimi and Devin accounts with their providers at this interval: Claude at most every 30 minutes, plans at most once a day. xAI and Google accounts, reset grants and reset credits are checked only when you choose Check limits with providers. The widget never contacts providers, and rate limits from a provider pause the checks for that account.")
+                #else
                 Text("Off by default. While Proxy Gauge is visible on screen and automatic refresh is on, the server checks Claude, Codex, Kimi and Devin accounts with their providers at this interval: Claude at most every 30 minutes, plans at most once a day. xAI and Google accounts, reset grants and reset credits are checked only when you choose Refresh limits. The widget and the menu bar never contact providers, and rate limits from a provider pause the checks for that account.")
+                #endif
             }
             Section("Privacy") {
                 Text("Keys stay in the Keychain on this device. Proxy Gauge talks only to the servers you add. No analytics, no tracking, no accounts.")

@@ -55,6 +55,7 @@ public final class ServerSession {
     public private(set) var keyCountersError: APIError?
     public private(set) var routing: RoutingStrategySetting?
     public private(set) var routingLoaded = false
+    public private(set) var routerSettings: RouterSettings?
     public private(set) var clientKeyCount: Int?
     public private(set) var tokenUsage: TokenUsageSummary?
     public private(set) var tokenUsageLoaded = false
@@ -68,6 +69,7 @@ public final class ServerSession {
     public private(set) var limitsLoaded = false
     public private(set) var accountsLoaded = false
     public private(set) var lastRefresh: Date?
+    private var lastRefreshByScope: [RefreshScope: Date] = [:]
     public private(set) var authLatch: AuthFailureLatch
     public private(set) var authError: APIError?
     public private(set) var connectionError: APIError?
@@ -193,6 +195,14 @@ public final class ServerSession {
     public func proxyRefusalNotice(at now: Date) -> ProxyRefusalNotice? {
         guard refreshesLimitsAutomatically, let until = proxyRefusalBackoff?.automaticChecksResume(after: now) else { return nil }
         return refreshesAutomatically ? .nextAutomaticTry(until) : .automaticChecksPaused(until: until)
+    }
+
+    public var isFleetFork: Bool {
+        ServerLab.isFleetFork(version: version?.version, fleetLimitsAnswered: fleetLimits != nil)
+    }
+
+    public var supportsRouterOrder: Bool {
+        profile.authMode == .management && isFleetFork
     }
 
     public var supportsLimitsRefresh: Bool {
@@ -349,12 +359,12 @@ public final class ServerSession {
         }
         let ticket = sendGate.ticket()
         do {
-            try await ScopeLoader.load(scope, authMode: profile.authMode, management: live.management.sending(under: ticket), client: live.client.sending(under: ticket)) { [self] stage in
+            try await ScopeLoader.load(scope, authMode: profile.authMode, management: live.management.sending(under: ticket), client: live.client.sending(under: ticket), readsRouterSettings: readsRouterSettings(for: scope)) { [self] stage in
                 await apply(stage, authFailuresAtStart: ticket.epoch)
             }
             guard !isRetired else { return }
             markLoaded(scope)
-            if !scope.isPerAccount { lastRefresh = .now }
+            recordRefresh(of: scope, at: .now)
         } catch is CancellationError, is SendRefusal {
             return
         } catch let error as APIError where error.isPausedBeforeSending {
@@ -365,6 +375,22 @@ public final class ServerSession {
             guard !isRetired else { return }
             recordLoadFailure(APIError.wrapping(error), scope: scope)
         }
+    }
+
+    private func readsRouterSettings(for scope: RefreshScope) -> Bool {
+        scope == .settings ? isFleetFork : routerSettings == nil
+    }
+
+    private func recordRefresh(of scope: RefreshScope, at date: Date) {
+        guard !scope.isPerAccount else { return }
+        lastRefresh = date
+        for key in scope.refreshedFreshnessKeys(authMode: profile.authMode) {
+            lastRefreshByScope[key] = date
+        }
+    }
+
+    public func lastRefresh(for scope: RefreshScope) -> Date? {
+        lastRefreshByScope[scope.freshnessKey(authMode: profile.authMode)]
     }
 
     private func liveConnection() -> ServerConnection? {
@@ -427,6 +453,8 @@ public final class ServerSession {
         case .accountModels(let name, let list):
             accountModels[name] = list
             accountModelsFailed.remove(name)
+        case .routerSettings(let settings):
+            routerSettings = settings
         }
     }
 
@@ -434,6 +462,7 @@ public final class ServerSession {
         credentials = list.credentials.value.files
         observedAt = list.credentials.value.observedAt
         version = list.credentials.version ?? version
+        routerSettings = list.routerSettings ?? routerSettings
         switch list.keyCounters {
         case .success(let value):
             keyCounters = value

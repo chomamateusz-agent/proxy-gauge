@@ -118,6 +118,11 @@ struct AccountDetailView: View {
         .refreshable {
             await session.refreshAccountDetail(credential.name)
         }
+        #if os(iOS)
+        .freshnessHeader(session: session, scope: .accounts, credentialIDs: [credential.id]) {
+            await session.refreshAccountDetail(credential.name)
+        }
+        #else
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Refresh", systemImage: "arrow.clockwise") {
@@ -132,6 +137,7 @@ struct AccountDetailView: View {
                 }
             }
         }
+        #endif
         .confirmationDialog(
             Text(confirmationTitle),
             isPresented: Binding(get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }),
@@ -148,12 +154,20 @@ struct AccountDetailView: View {
         }
     }
 
+    private var notCheckedYet: Text {
+        #if os(iOS)
+        Text("Not checked with the provider yet. Hold Refresh and choose Check limits with providers to ask the provider for this account's current limits, plan and resets.")
+        #else
+        Text("Not checked with the provider yet. Refresh limits asks the provider for this account's current limits, plan and resets.")
+        #endif
+    }
+
     @ViewBuilder
     private func providerSection(_ credential: Credential) -> some View {
         if let account = session.accountSummaries.first(where: { $0.id == credential.id }), session.supportsLimitsRefresh {
             Section {
                 if account.providerCheck == nil && account.providerCheckState == nil {
-                    Text("Not checked with the provider yet. Refresh limits asks the provider for this account's current limits, plan and resets.")
+                    notCheckedYet
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

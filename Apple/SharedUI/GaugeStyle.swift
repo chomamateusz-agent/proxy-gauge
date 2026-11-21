@@ -31,10 +31,18 @@ enum HeadroomStyle {
     static func color(forRemaining remaining: Double?) -> Color {
         guard let remaining else { return .secondary }
         switch remaining {
-        case ..<15: return .red
-        case ..<40: return .orange
+        case ..<30: return .red
+        case ..<70: return .orange
         default: return .green
         }
+    }
+
+    static var track: Color {
+        #if os(macOS)
+        Color.secondary.opacity(0.2)
+        #else
+        Color(uiColor: .tertiarySystemFill)
+        #endif
     }
 
     static func percentText(_ value: Double?) -> String {
@@ -146,7 +154,7 @@ struct RemainingBar: View {
         GeometryReader { proxy in
             let fraction = min(1, max(0, (remainingPercent ?? 0) / 100))
             ZStack(alignment: .leading) {
-                Capsule().fill(.quaternary)
+                Capsule().fill(HeadroomStyle.track)
                 if let remainingPercent, remainingPercent > 0 {
                     Capsule()
                         .fill(HeadroomStyle.color(forRemaining: remainingPercent).gradient)

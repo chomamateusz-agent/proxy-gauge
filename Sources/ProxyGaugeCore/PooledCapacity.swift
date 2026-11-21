@@ -76,6 +76,7 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
         case remaining(Double, blockedBy: Block?)
         case unknown
         case noWindowRunning(blockedBy: Block?)
+        case leftOut
     }
 
     var countsTowardCapacity: Bool { availability != .disabled }
@@ -111,33 +112,39 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
         countsTowardCapacity && contribution(in: FiveHourWindowState.barID, at: now) == .noWindowRunning(blockedBy: nil)
     }
 
+    func hasIdleFiveHourWindow(at now: Date) -> Bool {
+        guard countsTowardCapacity, case .noWindowRunning = contribution(in: FiveHourWindowState.barID, at: now) else { return false }
+        return true
+    }
+
     func isUsable(at now: Date) -> Bool {
         countsTowardCapacity && block(for: nil, at: now) == nil
     }
 
     func contribution(in barID: String, at now: Date) -> Contribution {
         let bar = bars.first { $0.id == barID }
-        if bar == nil, barID == FiveHourWindowState.barID, ProviderCatalog.reportsFiveHourWindow(provider), !bars.isEmpty {
+        let tracksFiveHourWindow = barID == FiveHourWindowState.barID && ProviderCatalog.reportsFiveHourWindow(provider)
+        if tracksFiveHourWindow, !bars.isEmpty, bar.map({ $0.startsOnUse(provider: provider, at: now) }) ?? true {
             return .noWindowRunning(blockedBy: block(for: barID, at: now))
         }
-        guard let remaining = bar?.remainingPercent(at: now) else { return .unknown }
+        guard let remaining = bar?.remainingPercent(at: now) else { return tracksFiveHourWindow ? .leftOut : .unknown }
         return .remaining(remaining, blockedBy: block(for: barID, at: now))
     }
 
     func remainingPercent(in barID: String, at now: Date) -> Double? {
         switch contribution(in: barID, at: now) {
         case .remaining(let percent, _): percent
-        case .noWindowRunning(blockedBy: nil): 100
-        case .noWindowRunning, .unknown: nil
+        case .noWindowRunning: 100
+        case .unknown, .leftOut: nil
         }
     }
 
     func usablePercent(in barID: String, at now: Date) -> Double? {
         switch contribution(in: barID, at: now) {
         case .remaining(let percent, blockedBy: nil): percent
-        case .remaining: 0
         case .noWindowRunning(blockedBy: nil): 100
-        case .noWindowRunning, .unknown: nil
+        case .remaining, .noWindowRunning: 0
+        case .unknown, .leftOut: nil
         }
     }
 
@@ -168,7 +175,7 @@ public struct PooledWindow: Codable, Sendable, Equatable, Hashable, Identifiable
     public var barID: String
     public var accounts: Int
     public var unknownAccounts: Int
-    public var accountsWithoutRunningWindow: Int
+    public var accountsLeftOut: Int
     public var accountsCountedAsFull: Int
     public var remainingPercent: Double
     public var usablePercent: Double
@@ -207,7 +214,7 @@ public struct PooledWindow: Codable, Sendable, Equatable, Hashable, Identifiable
         barID: String,
         accounts: Int,
         unknownAccounts: Int,
-        accountsWithoutRunningWindow: Int = 0,
+        accountsLeftOut: Int = 0,
         accountsCountedAsFull: Int = 0,
         remainingPercent: Double,
         usablePercent: Double? = nil,
@@ -222,7 +229,7 @@ public struct PooledWindow: Codable, Sendable, Equatable, Hashable, Identifiable
         self.barID = barID
         self.accounts = accounts
         self.unknownAccounts = unknownAccounts
-        self.accountsWithoutRunningWindow = accountsWithoutRunningWindow
+        self.accountsLeftOut = accountsLeftOut
         self.accountsCountedAsFull = accountsCountedAsFull
         self.remainingPercent = remainingPercent
         self.usablePercent = usablePercent ?? remainingPercent
@@ -316,9 +323,9 @@ public enum PooledCapacity {
         let firstToClear = firstGroup.max { ($0.block.until ?? .distantFuture) < ($1.block.until ?? .distantFuture) }
         return PooledWindow(
             barID: barID,
-            accounts: members.count - tally.leftOutWithoutRunningWindow,
+            accounts: members.count - tally.leftOut,
             unknownAccounts: tally.unknown,
-            accountsWithoutRunningWindow: tally.leftOutWithoutRunningWindow,
+            accountsLeftOut: tally.leftOut,
             accountsCountedAsFull: tally.countedAsFull,
             remainingPercent: tally.remaining,
             usablePercent: tally.usable,
@@ -338,7 +345,7 @@ private struct WindowTally {
     var usable = 0.0
     var unknown = 0
     var countedAsFull = 0
-    var leftOutWithoutRunningWindow = 0
+    var leftOut = 0
     var blocked: [(percent: Double, block: PoolAccount.Block)] = []
 
     init(_ contributions: [PoolAccount.Contribution]) {
@@ -354,8 +361,12 @@ private struct WindowTally {
                 remaining += 100
                 usable += 100
                 countedAsFull += 1
-            case .noWindowRunning:
-                leftOutWithoutRunningWindow += 1
+            case .noWindowRunning(blockedBy: let block?):
+                remaining += 100
+                countedAsFull += 1
+                blocked.append((100, block))
+            case .leftOut:
+                leftOut += 1
             case .unknown:
                 unknown += 1
             }

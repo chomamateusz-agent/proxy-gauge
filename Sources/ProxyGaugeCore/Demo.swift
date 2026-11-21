@@ -62,7 +62,7 @@ actor DemoServer {
     static let initialAccounts: [DemoAccount] = [
         DemoAccount(name: "claude-studio.json", authIndex: "a1f3c9", provider: "claude", email: "studio@example.com", label: "Studio", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 42, weeklyUsed: 63, weeklyModelUsed: 18, sessionResetMinutes: 134, weeklyResetHours: 61, success: 18_402, failed: 211, seed: 3, models: claudeModels),
         DemoAccount(name: "claude-team.json", authIndex: "b72e04", provider: "claude", email: "team@example.com", label: "Team", disabled: false, status: "active", cooldownMinutes: 47, sessionUsed: 100, weeklyUsed: 88, weeklyModelUsed: 40, sessionResetMinutes: 47, weeklyResetHours: 30, success: 25_118, failed: 655, seed: 7, models: claudeModels),
-        DemoAccount(name: "claude-lab.json", authIndex: "c0d915", provider: "claude", email: "lab@example.com", label: "Lab", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 12, weeklyUsed: 34, weeklyModelUsed: nil, sessionResetMinutes: 260, weeklyResetHours: 118, success: 6_930, failed: 48, seed: 11, models: claudeModels),
+        DemoAccount(name: "claude-lab.json", authIndex: "c0d915", provider: "claude", email: "lab@example.com", label: "Lab", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: nil, weeklyUsed: 34, weeklyModelUsed: nil, sessionResetMinutes: 260, weeklyResetHours: 118, success: 6_930, failed: 48, seed: 11, models: claudeModels),
         DemoAccount(name: "codex-main.json", authIndex: "d4a7b2", provider: "codex", email: "codex@example.com", label: "Main", disabled: false, status: "active", cooldownMinutes: nil, sessionUsed: 38, weeklyUsed: 71, weeklyModelUsed: nil, sessionResetMinutes: 90, weeklyResetHours: 75, success: 12_604, failed: 97, seed: 5, models: codexModels),
         DemoAccount(name: "codex-backup.json", authIndex: "e19f60", provider: "codex", email: "backup@example.com", label: "Backup", disabled: true, status: "disabled", cooldownMinutes: nil, sessionUsed: 5, weeklyUsed: 22, weeklyModelUsed: nil, sessionResetMinutes: 200, weeklyResetHours: 140, success: 1_212, failed: 9, seed: 13, models: codexModels),
         DemoAccount(name: "gemini-cli-sandbox.json", authIndex: "07be55", provider: "gemini-cli", email: nil, projectID: "sandbox-demo-0193", label: "Sandbox", disabled: false, status: "error", statusMessage: "token refresh failed: invalid_grant", cooldownMinutes: nil, sessionUsed: nil, weeklyUsed: nil, weeklyModelUsed: nil, sessionResetMinutes: 0, weeklyResetHours: 0, success: 402, failed: 61, seed: 19, models: geminiModels, requiresSignIn: true),
@@ -222,14 +222,18 @@ actor DemoServer {
 
     private func cooldownsJSON(_ account: DemoAccount, now: Date) -> [[String: Any]] {
         guard let minutes = account.cooldownMinutes else { return [] }
-        return [[
+        let retryAt = WireDate.format(now.addingTimeInterval(Double(minutes) * 60))
+        let credential: [String: Any] = [
             "scope": "credential",
             "reason": "quota_exhausted",
-            "retry_at": WireDate.format(now.addingTimeInterval(Double(minutes) * 60)),
+            "retry_at": retryAt,
             "remaining_seconds": minutes * 60,
             "backoff_level": 1,
             "http_status": 429
-        ]]
+        ]
+        return [credential] + account.models.map { model in
+            ["scope": "model", "model_key": model, "reason": "quota_exhausted", "retry_at": retryAt, "remaining_seconds": minutes * 60, "http_status": 429]
+        }
     }
 
     private func quotaJSON(_ account: DemoAccount, now: Date) -> [String: Any] {

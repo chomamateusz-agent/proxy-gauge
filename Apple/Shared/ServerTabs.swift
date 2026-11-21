@@ -77,6 +77,14 @@ private struct SettingsTab: View {
     let profile: ServerProfile
     let session: ServerSession
     let actions: ServerActions
+    private let routerOrder: RouterOrderStorage
+
+    init(profile: ServerProfile, session: ServerSession, actions: ServerActions) {
+        self.profile = profile
+        self.session = session
+        self.actions = actions
+        routerOrder = RouterOrderStorage(serverID: profile.id)
+    }
 
     var body: some View {
         List {
@@ -107,6 +115,10 @@ private struct SettingsTab: View {
                 Text("The default server feeds the widget and the menu bar.")
             }
             Section {
+                ServerFactRows(session: session, includesLastRefresh: false) { title, value in
+                    LabeledContent { value } label: { Text(title) }
+                }
+                AutoRefreshToggle(profile: profile)
                 if profile.authMode == .management {
                     NavigationLink {
                         SectionDetail(session: session, section: .settings)
@@ -117,9 +129,9 @@ private struct SettingsTab: View {
                 Button("Edit server", systemImage: "pencil") { actions.edit(profile) }
             } header: {
                 DisplayName(profile: profile)
-            } footer: {
-                ServerStatus(profile: profile)
-                    .padding(.top, 4)
+            }
+            if session.supportsRouterOrder {
+                LabSection(session: session, routerOrder: routerOrder.binding)
             }
             Section {
                 NavigationLink {
@@ -148,6 +160,32 @@ struct FirstRunView: View {
                 Button("Add server", systemImage: "plus", action: onAdd)
                     .buttonStyle(.borderedProminent)
                 Button("Add demo server", systemImage: "play.rectangle") { model.restoreDemo() }
+            }
+        }
+    }
+}
+
+struct LabSection: View {
+    let session: ServerSession
+    @Binding var routerOrder: Bool
+
+    var body: some View {
+        Section {
+            Toggle("Router order", isOn: $routerOrder)
+        } header: {
+            Text("Lab")
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Account cards and pool bars follow the order in which the proxy picks accounts, like Quota Cards in router order in the fork panel.")
+                if routerOrder {
+                    if let settings = session.routerSettings {
+                        if !settings.ranksByUseOrLose {
+                            Text("This server does not route with use-or-lose, so the cards keep the list order.")
+                        }
+                    } else {
+                        Text("Router settings not read yet, so the cards keep the usable-first order.")
+                    }
+                }
             }
         }
     }

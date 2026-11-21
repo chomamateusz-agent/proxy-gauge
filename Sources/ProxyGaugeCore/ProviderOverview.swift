@@ -20,8 +20,8 @@ public struct AccountCell: Sendable, Equatable {
     init(_ contribution: PoolAccount.Contribution) {
         switch contribution {
         case .remaining(let percent, let block): self.init(value: .remaining(percent), isBlocked: block != nil)
-        case .noWindowRunning(blockedBy: nil): self.init(value: .idleCountedAsFull)
-        case .noWindowRunning: self.init(value: .leftOutWithoutRunningWindow, isBlocked: true)
+        case .noWindowRunning(let block): self.init(value: .idleCountedAsFull, isBlocked: block != nil)
+        case .leftOut: self.init(value: .leftOutWithoutRunningWindow)
         case .unknown: self.init(value: .unknown)
         }
     }
@@ -291,5 +291,82 @@ private struct ComebackTimeline {
             }
         }
         return ends
+    }
+}
+
+public struct PoolSegment: Sendable, Equatable, Identifiable {
+    public enum Kind: Sendable, Equatable {
+        case counted
+        case idle
+        case leftOut
+        case unknown
+        case disabled
+    }
+
+    public var id: String
+    public var name: String
+    public var kind: Kind
+    public var remainingPercent: Double
+    public var isBlocked: Bool
+
+    public init(id: String, name: String, kind: Kind, remainingPercent: Double = 0, isBlocked: Bool = false) {
+        self.id = id
+        self.name = name
+        self.kind = kind
+        self.remainingPercent = remainingPercent
+        self.isBlocked = isBlocked
+    }
+
+    public var isStub: Bool {
+        switch kind {
+        case .leftOut, .unknown, .disabled: true
+        case .counted, .idle: false
+        }
+    }
+}
+
+public struct StatusChip: Sendable, Equatable, Hashable {
+    public enum Kind: Sendable, Equatable, Hashable {
+        case state(CredentialState)
+        case needsSignIn
+    }
+
+    public var kind: Kind
+    public var count: Int
+
+    public init(kind: Kind, count: Int) {
+        self.kind = kind
+        self.count = count
+    }
+}
+
+public extension ProviderOverview {
+    func segments(_ barID: String, order: [String] = []) -> [PoolSegment] {
+        let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        let ordered = columns.enumerated().sorted { lhs, rhs in
+            (rank[lhs.element.id] ?? order.count + lhs.offset) < (rank[rhs.element.id] ?? order.count + rhs.offset)
+        }.map(\.element)
+        return ordered.map { column in
+            let cell = column.cell(barID)
+            let kind: PoolSegment.Kind = switch cell.value {
+            case .remaining: .counted
+            case .idleCountedAsFull: .idle
+            case .leftOutWithoutRunningWindow: .leftOut
+            case .unknown: .unknown
+            case .notCounted: .disabled
+            }
+            return PoolSegment(id: column.id, name: column.name, kind: kind, remainingPercent: min(100, max(0, cell.remainingPercent ?? 0)), isBlocked: cell.isBlocked)
+        }
+    }
+
+    var chips: [StatusChip] {
+        let signIn = columns.count { $0.status == .needsSignIn }
+        let signInErrors = columns.count { $0.status == .needsSignIn && $0.state == .error }
+        var chips = stateCounts.compactMap { count -> StatusChip? in
+            let value = count.state == .error ? count.count - signInErrors : count.count
+            return value > 0 ? StatusChip(kind: .state(count.state), count: value) : nil
+        }
+        if signIn > 0 { chips.append(StatusChip(kind: .needsSignIn, count: signIn)) }
+        return chips
     }
 }

@@ -45,6 +45,10 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     public var modelCooldowns: [ModelCooldown]
     public var providerCheck: ProviderCheck?
     public var providerCheckState: ActiveRefreshState?
+    public var priority = 0
+    public var endsAt: Date?
+    public var hasEnded = false
+    public var cooldownReason: String?
 
     public init(
         id: String,
@@ -100,6 +104,10 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
             },
             providerCheck: active.map(ProviderCheck.init)
         )
+        priority = credential.priority ?? 0
+        endsAt = credential.endsAt
+        hasEnded = credential.hasEnded
+        cooldownReason = credential.activeCredentialCooldown(at: now)?.reason
     }
 
     public init(fleet credential: FleetCredential, now: Date) {
@@ -117,6 +125,7 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
             creditsBalance: credential.credits?.balance,
             modelCooldowns: active.filter { $0.scope == "model" }.map { ModelCooldown(model: $0.model ?? "", until: $0.until) }
         )
+        cooldownReason = credentialWide.first?.reason
     }
 
     public static func board(_ accounts: [AccountSummary]) -> [AccountSummary] {
@@ -148,7 +157,7 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     }
 
     public func barsIncludingIdleFiveHourWindow(in pool: ProviderPool, at now: Date) -> [QuotaBar] {
-        guard countsIdleFiveHourWindowAsFull(in: pool, at: now) else { return bars }
+        guard countsIdleFiveHourWindowAsFull(in: pool, at: now), bar(FiveHourWindowState.barID) == nil else { return bars }
         return (bars + [QuotaBar(id: FiveHourWindowState.barID, usedPercent: 0)]).sortedForDisplay()
     }
 

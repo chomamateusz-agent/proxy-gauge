@@ -194,10 +194,34 @@ enum Renderer {
                 .defaultAppStorage(defaults)
             try await renderInWindow(detail, size: CGSize(width: 402, height: 1900), appearance: .aqua, to: output.appending(path: "iphone-provider-detail-claude-\(name)-402x1900-light.png"))
         }
+        try await renderFreshnessAndLab(demo: demo, output: output)
         let sheet = ServerInfoSheet(session: demo).toggleStyle(CapturableSwitchStyle()).environment(model).defaultAppStorage(defaults)
         try await renderInWindow(sheet, size: CGSize(width: 420, height: 640), appearance: .aqua, to: output.appending(path: "mac-overview-answer-first-server-sheet-420x640-light.png"))
         let settings = AppSettingsView().toggleStyle(CapturableSwitchStyle()).environment(model).defaultAppStorage(defaults).frame(width: 460)
         try await render(settings, size: CGSize(width: 460, height: 1300), appearance: .aqua, to: output.appending(path: "mac-settings-overview-layout-460x1300-light.png"))
+    }
+
+    static func renderFreshnessAndLab(demo: ServerSession, output: URL) async throws {
+        let now = Date.now
+        let states: [(Freshness, Bool)] = [
+            (.fresh(now.addingTimeInterval(-60)), false),
+            (.fresh(now.addingTimeInterval(-60)), true),
+            (.saved(now.addingTimeInterval(-3 * 3_600)), false),
+            (.notReached(now.addingTimeInterval(-20 * 60)), false),
+            (.notRefreshed, false)
+        ]
+        let strip = VStack(spacing: 12) {
+            ForEach(states.indices, id: \.self) { index in
+                FreshnessRow(freshness: states[index].0, isRefreshing: states[index].1, now: now, refresh: {}, checkLimits: {})
+            }
+        }
+        .padding(.vertical, 16)
+        .background(BoardStyle.pageBackground)
+        try await render(strip, size: CGSize(width: 402, height: 330), appearance: .aqua, to: output.appending(path: "iphone-freshness-states-402x330-light.png"))
+        let lab = Form { LabSection(session: demo, routerOrder: .constant(true)) }
+            .formStyle(.grouped)
+            .toggleStyle(CapturableSwitchStyle())
+        try await render(lab, size: CGSize(width: 402, height: 220), appearance: .aqua, to: output.appending(path: "iphone-settings-lab-402x220-light.png"))
     }
 
     static func phoneOverview(_ session: ServerSession, model: AppModel, defaults: UserDefaults) -> some View {

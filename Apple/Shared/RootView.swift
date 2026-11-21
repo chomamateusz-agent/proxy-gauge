@@ -314,19 +314,19 @@ struct SectionDetail: View {
     let section: ServerSection
     var titledByServer = false
 
+    private var showsFreshnessHeader: Bool {
+        #if os(iOS)
+        section != .settings
+        #else
+        false
+        #endif
+    }
+
     var body: some View {
         content
             .modifier(SectionTitle(session: session, section: section, titledByServer: titledByServer))
             .refreshable { await session.refresh(section.refreshScope, trigger: .manual) }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Refresh", systemImage: "arrow.clockwise") {
-                        Task { await session.refresh(section.refreshScope, trigger: .manual) }
-                    }
-                    .disabled(session.isRefreshing)
-                    .keyboardShortcut("r", modifiers: .command)
-                }
-            }
+            .modifier(SectionRefresh(session: session, scope: section.refreshScope, showsFreshnessHeader: showsFreshnessHeader))
     }
 
     @ViewBuilder
@@ -338,6 +338,28 @@ struct SectionDetail: View {
         case .models: ModelsView(session: session)
         case .settings: ServerSettingsView(session: session)
         case .limits: ClientLimitsView(session: session)
+        }
+    }
+}
+
+private struct SectionRefresh: ViewModifier {
+    let session: ServerSession
+    let scope: RefreshScope
+    let showsFreshnessHeader: Bool
+
+    func body(content: Content) -> some View {
+        if showsFreshnessHeader {
+            content.freshnessHeader(session: session, scope: scope)
+        } else {
+            content.toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Refresh", systemImage: "arrow.clockwise") {
+                        Task { await session.refresh(scope, trigger: .manual) }
+                    }
+                    .disabled(session.isRefreshing)
+                    .keyboardShortcut("r", modifiers: .command)
+                }
+            }
         }
     }
 }

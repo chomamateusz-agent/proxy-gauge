@@ -72,7 +72,7 @@ struct PooledCapacityBar: View {
             let usable = proxy.size.width * (window.usableShareOfCapacity ?? 0)
             let blocked = proxy.size.width * max(0, (window.remainingShareOfCapacity ?? 0) - (window.usableShareOfCapacity ?? 0))
             ZStack(alignment: .leading) {
-                Capsule().fill(.quaternary)
+                Capsule().fill(HeadroomStyle.track)
                 HStack(spacing: 0) {
                     Rectangle()
                         .fill(window.color.gradient)
@@ -182,7 +182,7 @@ struct PooledWindowNotes: View {
     let window: PooledWindow
 
     var body: some View {
-        if window.unknownAccounts > 0 || window.accountsCountedAsFull > 0 || window.accountsWithoutRunningWindow > 0 || window.nextIncreaseAt.map({ $0 > .now }) == true {
+        if window.unknownAccounts > 0 || window.accountsCountedAsFull > 0 || window.accountsLeftOut > 0 || window.nextIncreaseAt.map({ $0 > .now }) == true {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) { notes }
                 VStack(alignment: .leading, spacing: 2) { notes }
@@ -200,8 +200,8 @@ struct PooledWindowNotes: View {
         if window.accountsCountedAsFull > 0 {
             Text("\(window.accountsCountedAsFull) account has no 5-hour window running, counted as full")
         }
-        if window.accountsWithoutRunningWindow > 0 {
-            Text("Blocked with no 5-hour window, left out: \(window.accountsWithoutRunningWindow)")
+        if window.accountsLeftOut > 0 {
+            Text("No 5-hour reading, left out: \(window.accountsLeftOut)")
         }
         if let next = window.nextIncreaseAt, next > .now {
             Text("More in \(Text(next, style: .relative))")

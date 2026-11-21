@@ -14,7 +14,7 @@ struct FiveHourScopeTests {
         let weeklyOnly = PoolAccount(provider: "kimi", availability: .available, bars: [QuotaBar(id: "weekly_all", usedPercent: 20)])
         let pool = try #require(PooledCapacity.pools([reporting, weeklyOnly], now: now).first)
         let session = try #require(pool.window(.session5h))
-        #expect(session.accountsWithoutRunningWindow == 0)
+        #expect(session.accountsLeftOut == 0)
         #expect(session.accounts == 2)
         #expect(session.unknownAccounts == 1)
     }
@@ -24,7 +24,7 @@ struct FiveHourScopeTests {
         let weeklyOnly = PoolAccount(provider: "claude", availability: .available, bars: [QuotaBar(id: "weekly_all", usedPercent: 20)])
         let session = try #require(PooledCapacity.pools([reporting, weeklyOnly], now: now).first?.window(.session5h))
         #expect(session.accountsCountedAsFull == 1)
-        #expect(session.accountsWithoutRunningWindow == 0)
+        #expect(session.accountsLeftOut == 0)
         #expect(session.accounts == 2)
         #expect(session.remainingPercent == 160)
     }
