@@ -115,6 +115,21 @@ struct ServerSessionTests {
         #expect(!session.isAutomaticRefreshPaused)
     }
 
+    @Test func accountsFreshnessMovesWhenAUsageRefreshAppliesAccountsButItsReportFails() async throws {
+        let harness = SessionHarness()
+        let session = harness.makeSession()
+        await session.refresh(.accounts, trigger: .automatic)
+        let firstRead = try #require(session.lastRefresh(for: .accounts))
+        harness.server.overrides[Self.usageReport] = HTTPResponse(statusCode: 503, body: Data(#"{"error":"usage store unavailable"}"#.utf8))
+
+        await session.refresh(.usage, trigger: .manual)
+
+        let afterUsage = try #require(session.lastRefresh(for: .accounts))
+        #expect(afterUsage > firstRead)
+        #expect(session.lastRefresh(for: .usage) == nil)
+        #expect(session.failure(for: .usage) != nil)
+    }
+
     @Test func publishedSnapshotCarriesThePooledCapacityTheAppShows() async throws {
         let harness = SessionHarness()
         let session = harness.makeSession()

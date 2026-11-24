@@ -75,10 +75,21 @@ struct CapturableSwitch: View {
     }
 }
 
+struct ForkVersionTransport: HTTPTransport {
+    private let demo = DemoTransport()
+
+    func send(_ request: HTTPRequest) async throws -> HTTPResponse {
+        var response = try await demo.send(request)
+        if response.header("X-CPA-VERSION") != nil {
+            response.setHeader("X-CPA-VERSION", "8.0.69-fleet.c41d9e07")
+        }
+        return response
+    }
+}
+
 struct RenderScene {
     var name: String
     var section: ServerSection
-    var layout: AccountsLayout
 }
 
 @MainActor
@@ -87,15 +98,16 @@ enum Renderer {
     static let rendersPolish = CommandLine.arguments.contains(polishFlag)
     static let polishFlag = "--polish"
     static let rendersOnlyOverviewLayouts = CommandLine.arguments.contains("--overview-layouts-only")
+    static let rendersMacRedesign = CommandLine.arguments.contains("--mac-redesign")
     static let renderLocale = Locale(identifier: rendersPolish ? "pl_PL" : "en_US")
     static let phoneSize = CGSize(width: 402, height: 874)
     static let sizes: [(name: String, size: CGSize)] = [("1920x1080", CGSize(width: 1920, height: 1080)), ("1440x900", CGSize(width: 1440, height: 900))]
     static let scenes = [
-        RenderScene(name: "overview", section: .overview, layout: .cards),
-        RenderScene(name: "accounts-cards", section: .accounts, layout: .cards),
-        RenderScene(name: "accounts-list", section: .accounts, layout: .list),
-        RenderScene(name: "accounts-table", section: .accounts, layout: .table),
-        RenderScene(name: "accounts-timeline", section: .accounts, layout: .timeline)
+        RenderScene(name: "overview", section: .overview),
+        RenderScene(name: "accounts", section: .accounts),
+        RenderScene(name: "usage", section: .usage),
+        RenderScene(name: "models", section: .models),
+        RenderScene(name: "settings", section: .settings)
     ]
 
     static func run(output: URL) async throws {
@@ -109,11 +121,14 @@ enum Renderer {
         guard let demo = model.defaultProfile else { throw CocoaError(.featureUnsupported) }
         model.select(demo)
         await model.session(for: demo).refresh(.accounts, trigger: .manual)
+        if rendersMacRedesign {
+            try await MacRedesignRenders.run(model: model, defaults: defaults, output: output)
+            return
+        }
         try await renderOverviewLayouts(model: model, defaults: defaults, output: output)
         if rendersPolish || rendersOnlyOverviewLayouts { return }
         try await renderExtras(model: model, defaults: defaults, output: output)
         for scene in scenes {
-            defaults.set(scene.layout.rawValue, forKey: AccountsLayout.storageKey)
             model.selectedSection = scene.section
             for (sizeName, size) in sizes {
                 for appearance in [NSAppearance.Name.darkAqua, .aqua] {
@@ -127,7 +142,6 @@ enum Renderer {
     }
 
     static func renderExtras(model: AppModel, defaults: UserDefaults, output: URL) async throws {
-        defaults.set(AccountsLayout.cards.rawValue, forKey: AccountsLayout.storageKey)
         let eight = ServerProfile(name: "Eight accounts", baseURL: URL(string: "https://render.invalid")!, authMode: .management)
         let session = ServerSession(profile: eight, secrets: MemorySecretStore(), latchStore: nil, transport: EightAccountsTransport())
         await session.refresh(.accounts, trigger: .manual)
@@ -195,8 +209,6 @@ enum Renderer {
             try await renderInWindow(detail, size: CGSize(width: 402, height: 1900), appearance: .aqua, to: output.appending(path: "iphone-provider-detail-claude-\(name)-402x1900-light.png"))
         }
         try await renderFreshnessAndLab(demo: demo, output: output)
-        let sheet = ServerInfoSheet(session: demo).toggleStyle(CapturableSwitchStyle()).environment(model).defaultAppStorage(defaults)
-        try await renderInWindow(sheet, size: CGSize(width: 420, height: 640), appearance: .aqua, to: output.appending(path: "mac-overview-answer-first-server-sheet-420x640-light.png"))
         let settings = AppSettingsView().toggleStyle(CapturableSwitchStyle()).environment(model).defaultAppStorage(defaults).frame(width: 460)
         try await render(settings, size: CGSize(width: 460, height: 1300), appearance: .aqua, to: output.appending(path: "mac-settings-overview-layout-460x1300-light.png"))
     }
@@ -261,13 +273,8 @@ enum Renderer {
             try await renderInWindow(single, size: CGSize(width: 560, height: 720), appearance: appearance, to: output.appending(path: "mac-refresh-limits-sheet-waiting-560x720-\(scheme).png"))
             let loadFirst = LimitsRefreshSheet(session: notLoaded, credentialIDs: nil).environment(model)
             try await renderInWindow(loadFirst, size: CGSize(width: 560, height: 620), appearance: appearance, to: output.appending(path: "mac-refresh-limits-sheet-load-accounts-560x620-\(scheme).png"))
-            defaults.set(AccountsLayout.cards.rawValue, forKey: AccountsLayout.storageKey)
             let overview = NavigationStack { OverviewView(session: refreshed) }.environment(model).defaultAppStorage(defaults)
             try await render(overview, size: CGSize(width: 1440, height: 1300), appearance: appearance, to: output.appending(path: "mac-overview-provider-results-1440x1300-\(scheme).png"))
-            defaults.set(AccountsLayout.table.rawValue, forKey: AccountsLayout.storageKey)
-            let table = NavigationStack { AccountsView(session: refreshed) }.environment(model).defaultAppStorage(defaults)
-            try await render(table, size: CGSize(width: 1400, height: 1000), appearance: appearance, to: output.appending(path: "mac-accounts-table-provider-results-1400x1000-\(scheme).png"))
-            defaults.set(AccountsLayout.cards.rawValue, forKey: AccountsLayout.storageKey)
             let detail = NavigationStack { AccountDetailView(session: refreshed, credentialID: "a1f3c9") }.environment(model).defaultAppStorage(defaults)
             try await render(detail, size: CGSize(width: 720, height: 1300), appearance: appearance, to: output.appending(path: "mac-account-detail-provider-720x1300-\(scheme).png"))
             model.setRefreshesLimitsFromProviders(true, for: demo)
@@ -311,21 +318,10 @@ enum Renderer {
                     .background(BoardStyle.cardBackground)
                 try await render(widget, size: size, appearance: appearance, to: output.appending(path: "widget-pooled-\(name)-cooling-pool-\(scheme).png"))
             }
-            defaults.set(AccountsLayout.cards.rawValue, forKey: AccountsLayout.storageKey)
             let overview = NavigationStack { OverviewView(session: management) }.environment(model).defaultAppStorage(defaults)
             try await render(overview, size: CGSize(width: 1440, height: 1100), appearance: appearance, to: output.appending(path: "mac-overview-cooling-pool-1440x1100-\(scheme).png"))
             let limits = NavigationStack { ClientLimitsView(session: clientKey) }.environment(model).defaultAppStorage(defaults)
             try await render(limits, size: CGSize(width: 1440, height: 1100), appearance: appearance, to: output.appending(path: "mac-client-limits-cooling-pool-1440x1100-\(scheme).png"))
-            defaults.set(AccountsLayout.timeline.rawValue, forKey: AccountsLayout.storageKey)
-            for scale in TimelineScale.allCases {
-                defaults.set(scale.rawValue, forKey: TimelineScale.storageKey)
-                let timeline = NavigationStack { AccountsView(session: management) }.environment(model).defaultAppStorage(defaults)
-                try await render(timeline, size: CGSize(width: 1400, height: 640), appearance: appearance, to: output.appending(path: "mac-accounts-timeline-\(scale.rawValue)-cooling-pool-1400x640-\(scheme).png"))
-            }
-            defaults.set(TimelineScale.weekly.rawValue, forKey: TimelineScale.storageKey)
-            let wideOverview = NavigationStack { OverviewView(session: management) }.environment(model).defaultAppStorage(defaults)
-            try await render(wideOverview, size: CGSize(width: 1440, height: 1100), appearance: appearance, to: output.appending(path: "mac-overview-timeline-cooling-pool-1440x1100-\(scheme).png"))
-            defaults.set(AccountsLayout.cards.rawValue, forKey: AccountsLayout.storageKey)
         }
     }
 
@@ -335,12 +331,10 @@ enum Renderer {
         await session.refresh(.accounts, trigger: .manual)
         for appearance in [NSAppearance.Name.darkAqua, .aqua] {
             let scheme = appearance == .darkAqua ? "dark" : "light"
-            defaults.set(AccountsLayout.table.rawValue, forKey: AccountsLayout.storageKey)
             for width in [940, 1400] {
-                let table = NavigationStack { AccountsView(session: session) }.environment(model).defaultAppStorage(defaults)
-                try await render(table, size: CGSize(width: CGFloat(width), height: 900), appearance: appearance, to: output.appending(path: "mac-accounts-table-5-windows-detail-\(width)x900-\(scheme).png"))
+                let accounts = NavigationStack { AccountsView(session: session) }.environment(model).defaultAppStorage(defaults)
+                try await render(accounts, size: CGSize(width: CGFloat(width), height: 900), appearance: appearance, to: output.appending(path: "mac-accounts-5-windows-detail-\(width)x900-\(scheme).png"))
             }
-            defaults.set(AccountsLayout.cards.rawValue, forKey: AccountsLayout.storageKey)
             let overview = NavigationStack { OverviewView(session: session) }.environment(model).defaultAppStorage(defaults)
             try await render(overview, size: CGSize(width: 1400, height: 1300), appearance: appearance, to: output.appending(path: "mac-overview-5-windows-detail-1400x1300-\(scheme).png"))
         }
@@ -387,14 +381,15 @@ enum Renderer {
         window.close()
     }
 
-    static func renderWindow(model: AppModel, defaults: UserDefaults, size: CGSize, appearance: NSAppearance.Name, to file: URL) async throws {
+    static func renderWindow(model: AppModel, defaults: UserDefaults, size: CGSize, appearance: NSAppearance.Name, settle: Int = 12, to file: URL) async throws {
         let root = RootView()
+            .toggleStyle(CapturableSwitchStyle())
             .environment(model)
             .defaultAppStorage(defaults)
-        try await renderInWindow(root, size: size, appearance: appearance, to: file)
+        try await renderInWindow(root, size: size, appearance: appearance, settle: settle, to: file)
     }
 
-    static func renderInWindow(_ view: some View, size: CGSize, appearance: NSAppearance.Name, to file: URL) async throws {
+    static func renderInWindow(_ view: some View, size: CGSize, appearance: NSAppearance.Name, settle: Int = 12, to file: URL) async throws {
         let hosting = NSHostingView(rootView: view.environment(\.locale, renderLocale))
         hosting.sceneBridgingOptions = [.toolbars, .title]
         let window = UnconstrainedWindow(
@@ -410,7 +405,7 @@ enum Renderer {
         window.setContentSize(size)
         window.setFrameOrigin(CGPoint(x: -30_000, y: -30_000))
         window.orderBack(nil)
-        for _ in 0..<12 {
+        for _ in 0..<settle {
             try await Task.sleep(for: .milliseconds(100))
             hosting.layoutSubtreeIfNeeded()
         }

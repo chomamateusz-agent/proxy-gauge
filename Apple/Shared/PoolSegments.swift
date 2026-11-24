@@ -89,14 +89,14 @@ struct PoolWindowRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 window.title
-                    .font(.subheadline)
+                    .font(.board(.subheadline))
                     .lineLimit(1)
                 Spacer(minLength: 6)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(verbatim: HeadroomStyle.percentText(window.remainingPercent))
-                        .font(.title3.weight(.bold).monospacedDigit())
+                        .font(.board(.title3).weight(.bold).monospacedDigit())
                     Text("of \(HeadroomStyle.percentText(window.capacityPercent))")
-                        .font(.footnote.monospacedDigit())
+                        .font(.board(.footnote).monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
                 .fixedSize()
@@ -140,7 +140,7 @@ struct PoolWindowCaption: View {
                     notesButton(notes, short: true)
                 }
             }
-            .font(.footnote)
+            .font(.board(.footnote))
             .lineLimit(1)
             .popover(isPresented: $showsNotes) {
                 PoolNotesPopover(notes: notes)
@@ -226,11 +226,11 @@ struct PoolNotesPopover: View {
         if !names.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.board(.subheadline).weight(.semibold))
                 Text(verbatim: names.formatted(.list(type: .and)))
-                    .font(.subheadline)
+                    .font(.board(.subheadline))
                 Text(detail)
-                    .font(.footnote)
+                    .font(.board(.footnote))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -249,7 +249,7 @@ struct StatusChipView: View {
                 .imageScale(.small)
         }
         .labelStyle(.titleAndIcon)
-        .font(.caption.weight(.semibold))
+        .font(.board(.caption).weight(.semibold))
         .foregroundStyle(color)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
@@ -311,7 +311,7 @@ struct ComebackFooter: View {
                         .lineLimit(1)
                 }
             }
-            .font(.footnote)
+            .font(.board(.footnote))
             .accessibilityElement(children: .combine)
         } else if let next = overview.pool.nextIncreaseAt, next > .now {
             Label {
@@ -319,7 +319,7 @@ struct ComebackFooter: View {
             } icon: {
                 Image(systemName: "clock")
             }
-            .font(.footnote)
+            .font(.board(.footnote))
             .foregroundStyle(.secondary)
         }
     }

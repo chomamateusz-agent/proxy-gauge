@@ -21,7 +21,7 @@ extension OverviewLayout {
 
     var cardMinWidth: CGFloat {
         switch self {
-        case .answerFirst, .compactRows: BoardStyle.tileMinWidth
+        case .answerFirst, .compactRows: BoardStyle.providerCardMinWidth
         case .accountsStrip: 360
         }
     }
@@ -166,7 +166,7 @@ struct ProviderCardHeader: View {
         HStack(spacing: 10) {
             ProviderBadge(provider: overview.pool.provider, size: 28)
             Text(verbatim: ProviderCatalog.displayName(overview.pool.provider))
-                .font(.headline)
+                .font(.board(.headline))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -175,7 +175,7 @@ struct ProviderCardHeader: View {
     private var chevron: some View {
         if showsChevron {
             Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
+                .font(.board(.footnote).weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
         }
@@ -206,7 +206,7 @@ struct ComebackLine: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .font(.subheadline)
+            .font(.board(.subheadline))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: [lead, gains].compactMap(\.self).joined(separator: ", ")))
         } else if let next = overview.pool.nextIncreaseAt, next > .now {
@@ -215,7 +215,7 @@ struct ComebackLine: View {
             } icon: {
                 Image(systemName: "clock")
             }
-            .font(.subheadline)
+            .font(.board(.subheadline))
             .foregroundStyle(.secondary)
         }
     }
@@ -255,7 +255,7 @@ struct NoQuotaDataReason: View {
             #if os(iOS)
             Text("Hold Refresh, then Check limits with providers")
             #else
-            Text("Fetch it with Refresh limits")
+            Text("Open the Refresh menu, then Check limits with providers")
             #endif
         } else {
             Text("No quota data reported yet")
@@ -319,7 +319,7 @@ struct CompactWindowRow: View {
             }
             if let note = OverviewWording.windowNote(window, in: overview) {
                 Text(verbatim: note)
-                    .font(.caption)
+                    .font(.board(.caption))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -330,7 +330,7 @@ struct CompactWindowRow: View {
 
     private var title: some View {
         window.title
-            .font(.subheadline)
+            .font(.board(.subheadline))
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -338,9 +338,9 @@ struct CompactWindowRow: View {
     private var amount: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(verbatim: HeadroomStyle.percentText(window.remainingPercent))
-                .font(.subheadline.monospacedDigit().weight(.semibold))
+                .font(.board(.subheadline).monospacedDigit().weight(.semibold))
             Text("of \(HeadroomStyle.percentText(window.capacityPercent))")
-                .font(.caption.monospacedDigit())
+                .font(.board(.caption).monospacedDigit())
                 .foregroundStyle(.secondary)
         }
         .fixedSize()
@@ -358,7 +358,7 @@ struct CompactRowsCard: View {
             if overview.pool.windows.isEmpty {
                 if overview.accountsNeedingSignIn.isEmpty || overview.pool.accounts == 0 {
                     NoQuotaDataReason(overview: overview, canRefreshLimits: canRefreshLimits)
-                        .font(.subheadline)
+                        .font(.board(.subheadline))
                 }
             } else {
                 ForEach(overview.pool.windows) { window in
@@ -397,7 +397,7 @@ struct AnswerFirstCard: View {
                 let note = OverviewWording.windowNote(window, in: overview)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Usable now · \(window.title)")
-                        .font(.caption)
+                        .font(.board(.caption))
                         .foregroundStyle(.secondary)
                     ViewThatFits(in: .horizontal) {
                         HStack(alignment: .firstTextBaseline, spacing: 6) { bigNumber(window) }
@@ -405,7 +405,7 @@ struct AnswerFirstCard: View {
                     }
                     if let note {
                         Text(verbatim: note)
-                            .font(.caption)
+                            .font(.board(.caption))
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -416,10 +416,10 @@ struct AnswerFirstCard: View {
                 answer
             } else {
                 Text("No data")
-                    .font(.title2.weight(.semibold))
+                    .font(.board(.title2).weight(.semibold))
                     .foregroundStyle(.secondary)
                 NoQuotaDataReason(overview: overview, canRefreshLimits: canRefreshLimits)
-                    .font(.subheadline)
+                    .font(.board(.subheadline))
             }
         }
         .boardCard()
@@ -428,10 +428,10 @@ struct AnswerFirstCard: View {
     @ViewBuilder
     private func bigNumber(_ window: PooledWindow) -> some View {
         Text(verbatim: HeadroomStyle.percentText(window.usablePercent))
-            .font(.largeTitle.weight(.bold).monospacedDigit())
+            .font(.board(.largeTitle).weight(.bold).monospacedDigit())
             .foregroundStyle(window.color)
         Text("of \(HeadroomStyle.percentText(window.capacityPercent))")
-            .font(.title3.monospacedDigit())
+            .font(.board(.title3).monospacedDigit())
             .foregroundStyle(.secondary)
     }
 
@@ -445,7 +445,7 @@ struct AnswerFirstCard: View {
                 Image(systemName: comeback.kind == .accountsBack ? "arrow.up.circle.fill" : comeback.kind.symbol)
                     .foregroundStyle(comeback.kind == .accountsBack ? .green : comeback.kind.tint)
             }
-            .font(.subheadline)
+            .font(.board(.subheadline))
         }
     }
 }
@@ -467,7 +467,7 @@ struct AccountsStripCard: View {
                 ComebackLine(overview: overview)
             } else {
                 NoQuotaDataReason(overview: overview, canRefreshLimits: canRefreshLimits)
-                    .font(.subheadline)
+                    .font(.board(.subheadline))
             }
         }
         .boardCard()

@@ -284,20 +284,6 @@ struct ResetNote: View {
     }
 }
 
-struct CooldownNote: View {
-    let until: Date
-
-    var body: some View {
-        Label {
-            Text("Cooling down until \(ResetClock.text(until)) · in \(Text(until, style: .relative))")
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: "hourglass")
-        }
-        .foregroundStyle(.orange)
-    }
-}
-
 struct QuotaBarRow: View {
     let bar: QuotaBar
     let provider: String
@@ -358,40 +344,6 @@ struct ProviderSourceMark: View {
         } else {
             Text("Checked with the provider")
         }
-    }
-}
-
-struct NoFiveHourWindowRow: View {
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(QuotaWindow.session5h.label)
-                .font(.caption.weight(.medium))
-            Spacer(minLength: 4)
-            Text("No 5-hour window running")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-struct ModelCooldownNote: View {
-    let cooldown: ModelCooldown
-
-    var body: some View {
-        Label {
-            Group {
-                if let until = cooldown.until, until > .now {
-                    Text("\(cooldown.model) cooling down until \(ResetClock.text(until)) · in \(Text(until, style: .relative))")
-                } else {
-                    Text("\(cooldown.model) cooling down")
-                }
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: "hourglass")
-        }
-        .foregroundStyle(.orange)
     }
 }
 

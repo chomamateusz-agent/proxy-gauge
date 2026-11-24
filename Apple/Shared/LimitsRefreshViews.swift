@@ -15,23 +15,6 @@ extension View {
     }
 }
 
-struct RefreshLimitsButton: View {
-    let session: ServerSession
-    var credentialIDs: [String]?
-    @State private var request: LimitsRefreshRequest?
-
-    var body: some View {
-        Button {
-            request = LimitsRefreshRequest(credentialIDs: credentialIDs)
-        } label: {
-            Label("Refresh limits", systemImage: "arrow.triangle.2.circlepath.circle")
-        }
-        .disabled(!session.supportsLimitsRefresh || !session.refreshingLimits.isEmpty)
-        .help(Text("Ask the providers for fresh limits through the server"))
-        .limitsRefreshSheet(session: session, request: $request)
-    }
-}
-
 struct LimitsRefreshSheet: View {
     let session: ServerSession
     let credentialIDs: [String]?
@@ -433,7 +416,7 @@ struct ProviderRefreshStatus: View {
         }
         if let error = session.limitsRefreshError {
             Label {
-                Text("Refresh limits failed: \(Text(error.userMessage))")
+                Text("Checking limits with providers failed: \(Text(error.userMessage))")
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -454,19 +437,6 @@ struct ProviderRefreshLoopID: Hashable {
 }
 
 enum LimitsCheckWording {
-    static var title: LocalizedStringResource {
-        #if os(iOS)
-        "Check limits with providers"
-        #else
-        "Refresh limits"
-        #endif
-    }
-
-    static var confirm: LocalizedStringResource {
-        #if os(iOS)
-        "Check limits"
-        #else
-        "Refresh limits"
-        #endif
-    }
+    static let title: LocalizedStringResource = "Check limits with providers"
+    static let confirm: LocalizedStringResource = "Check limits"
 }

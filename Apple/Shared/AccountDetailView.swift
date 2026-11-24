@@ -29,11 +29,25 @@ struct AccountDetailView: View {
 
     private func content(_ credential: Credential) -> some View {
         let now = Date.now
-        let state = credential.state(at: now)
-        return List {
+        return container {
             if let actionError {
                 Section { Text(actionError.userMessage).foregroundStyle(.red) }
             }
+            #if os(macOS)
+            if let account = session.accountSummaries.first(where: { $0.id == credential.id }) {
+                Section {
+                    AccountQuotaCard(account: account, session: session, showsProvider: true, framed: false, showsSources: true)
+                } footer: {
+                    quotaSources(credential)
+                }
+                if let message = credential.statusMessage, !message.isEmpty {
+                    Section {
+                        Text(verbatim: message)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            #else
             Section {
                 HStack(spacing: 12) {
                     ProviderBadge(provider: credential.provider, size: 40)
@@ -45,7 +59,7 @@ struct AccountDetailView: View {
                             .truncationMode(.middle)
                             .textSelection(.enabled)
                         Text(ProviderCatalog.displayName(credential.provider)).font(.subheadline).foregroundStyle(.secondary)
-                        StateBadge(state: state)
+                        StateBadge(state: credential.state(at: now))
                     }
                 }
                 if let message = credential.statusMessage, !message.isEmpty {
@@ -55,6 +69,7 @@ struct AccountDetailView: View {
                 }
             }
             quotaSection(credential)
+            #endif
             providerSection(credential)
             cooldownSection(credential, now: now)
             Section("Requests") {
@@ -118,26 +133,9 @@ struct AccountDetailView: View {
         .refreshable {
             await session.refreshAccountDetail(credential.name)
         }
-        #if os(iOS)
         .freshnessHeader(session: session, scope: .accounts, credentialIDs: [credential.id]) {
             await session.refreshAccountDetail(credential.name)
         }
-        #else
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Refresh", systemImage: "arrow.clockwise") {
-                    Task { await session.refreshAccountDetail(credential.name) }
-                }
-                .disabled(session.isRefreshing)
-                .keyboardShortcut("r", modifiers: .command)
-            }
-            if session.supportsLimitsRefresh {
-                ToolbarItem(placement: .primaryAction) {
-                    RefreshLimitsButton(session: session, credentialIDs: [credential.id])
-                }
-            }
-        }
-        #endif
         .confirmationDialog(
             Text(confirmationTitle),
             isPresented: Binding(get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }),
@@ -158,7 +156,7 @@ struct AccountDetailView: View {
         #if os(iOS)
         Text("Not checked with the provider yet. Hold Refresh and choose Check limits with providers to ask the provider for this account's current limits, plan and resets.")
         #else
-        Text("Not checked with the provider yet. Refresh limits asks the provider for this account's current limits, plan and resets.")
+        Text("Not checked with the provider yet. Open the Refresh menu and choose Check limits with providers to ask the provider for this account's current limits, plan and resets.")
         #endif
     }
 
@@ -205,11 +203,24 @@ struct AccountDetailView: View {
         } header: {
             Text("Quota")
         } footer: {
-            QuotaSourcesLine(
-                trafficSampledAt: bars.filter { !$0.isFromProvider }.compactMap(\.sampledAt).max(),
-                providerCheckedAt: session.activeQuotas[credential.stableID]?.observedAt
-            )
+            quotaSources(credential)
         }
+    }
+
+    private func quotaSources(_ credential: Credential) -> some View {
+        QuotaSourcesLine(
+            trafficSampledAt: session.quotaBars(for: credential).filter { !$0.isFromProvider }.compactMap(\.sampledAt).max(),
+            providerCheckedAt: session.activeQuotas[credential.stableID]?.observedAt
+        )
+    }
+
+    @ViewBuilder
+    private func container(@ViewBuilder content: () -> some View) -> some View {
+        #if os(macOS)
+        Form(content: content).formStyle(.grouped)
+        #else
+        List(content: content)
+        #endif
     }
 
     @ViewBuilder

@@ -36,7 +36,7 @@ struct ServerTabs: View {
     @ViewBuilder
     private func content(_ section: ServerSection, session: ServerSession, isFirst: Bool) -> some View {
         if section == .settings {
-            SettingsTab(profile: profile, session: session, actions: actions)
+            SettingsPane(profile: profile, session: session, actions: actions)
         } else if isFirst {
             SectionDetail(session: session, section: section, titledByServer: true)
                 .modifier(ServerTitleMenu())
@@ -46,33 +46,54 @@ struct ServerTabs: View {
     }
 }
 
-private struct ServerTitleMenu: ViewModifier {
+struct ServerTitleMenu: ViewModifier {
     @Environment(AppModel.self) private var model
+    var onAdd: (() -> Void)?
 
     func body(content: Content) -> some View {
         if model.profiles.count > 1 {
-            content.toolbarTitleMenu {
-                Picker("Servers", selection: Binding(
-                    get: { model.selectedServerID },
-                    set: { id in
-                        if let profile = model.profiles.first(where: { $0.id == id }) { model.select(profile) }
+            #if os(macOS)
+            content.toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Menu {
+                        menuItems
+                    } label: {
+                        Label("Servers", systemImage: "server.rack")
+                            .labelStyle(.titleAndIcon)
                     }
-                )) {
-                    ForEach(model.profiles) { profile in
-                        DisplayName(profile: profile)
-                            .tag(Optional(profile.id))
-                    }
+                    .help(Text("Switch server"))
                 }
-                .pickerStyle(.inline)
-                Button("Manage servers", systemImage: "gearshape") { model.manageServers() }
             }
+            #else
+            content.toolbarTitleMenu { menuItems }
+            #endif
         } else {
             content
         }
     }
+
+    @ViewBuilder
+    private var menuItems: some View {
+        Picker("Servers", selection: Binding(
+            get: { model.selectedServerID },
+            set: { id in
+                if let profile = model.profiles.first(where: { $0.id == id }) { model.select(profile) }
+            }
+        )) {
+            ForEach(model.profiles) { profile in
+                DisplayName(profile: profile)
+                    .tag(Optional(profile.id))
+            }
+        }
+        .pickerStyle(.inline)
+        if let onAdd {
+            Button("Add server…", systemImage: "plus", action: onAdd)
+        }
+        Button("Manage servers", systemImage: "gearshape") { model.manageServers() }
+    }
 }
 
-private struct SettingsTab: View {
+struct SettingsPane: View {
     @Environment(AppModel.self) private var model
     let profile: ServerProfile
     let session: ServerSession
@@ -87,7 +108,7 @@ private struct SettingsTab: View {
     }
 
     var body: some View {
-        List {
+        container {
             Section {
                 ForEach(model.profiles) { server in
                     Button {
@@ -115,6 +136,10 @@ private struct SettingsTab: View {
                 Text("The default server feeds the widget and the menu bar.")
             }
             Section {
+                #if os(macOS)
+                LabeledContent("Address") { Text(verbatim: profile.isDemo ? "–" : profile.baseURL.absoluteString).textSelection(.enabled) }
+                LabeledContent("Mode") { Text(profile.authMode == .management ? "Management key" : "Client key") }
+                #endif
                 ServerFactRows(session: session, includesLastRefresh: false) { title, value in
                     LabeledContent { value } label: { Text(title) }
                 }
@@ -126,6 +151,13 @@ private struct SettingsTab: View {
                         Label("Server settings", systemImage: ServerSection.settings.symbol)
                     }
                 }
+                #if os(macOS)
+                NavigationLink {
+                    DashboardFootnotesPage()
+                } label: {
+                    Label("How these numbers work", systemImage: "info.circle")
+                }
+                #endif
                 Button("Edit server", systemImage: "pencil") { actions.edit(profile) }
             } header: {
                 DisplayName(profile: profile)
@@ -133,6 +165,9 @@ private struct SettingsTab: View {
             if session.supportsRouterOrder {
                 LabSection(session: session, routerOrder: routerOrder.binding)
             }
+            #if os(macOS)
+            AppSettingsSections()
+            #else
             Section {
                 NavigationLink {
                     AppSettingsView(title: "App settings")
@@ -140,9 +175,35 @@ private struct SettingsTab: View {
                     Label("App settings", systemImage: "gearshape")
                 }
             }
+            #endif
         }
+        #if os(iOS)
         .navigationTitle(Text("Settings"))
-        .refreshable { await session.refresh(ServerSection.settings.refreshScope, trigger: .manual) }
+        #endif
+        .refreshable { await session.refreshSettingsPane(trigger: .manual) }
+        #if os(macOS)
+        .freshnessHeader(session: session, scope: ServerSection.settings.refreshScope) {
+            await session.refreshSettingsPane(trigger: .manual)
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private func container(@ViewBuilder content: () -> some View) -> some View {
+        #if os(macOS)
+        Form(content: content).formStyle(.grouped)
+        #else
+        List(content: content)
+        #endif
+    }
+}
+
+extension ServerSession {
+    func refreshSettingsPane(trigger: RefreshTrigger, dropIfCancelled: Bool = false) async {
+        if profile.authMode == .management {
+            await refresh(.accounts, trigger: trigger, dropIfCancelled: dropIfCancelled)
+        }
+        await refresh(ServerSection.settings.refreshScope, trigger: trigger, dropIfCancelled: dropIfCancelled)
     }
 }
 

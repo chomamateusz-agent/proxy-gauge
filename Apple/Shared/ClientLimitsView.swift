@@ -4,18 +4,6 @@ import SwiftUI
 
 struct ClientLimitsView: View {
     let session: ServerSession
-    @AppStorage(AccountsLayout.storageKey) private var storedLayout = AccountsLayout.cards.rawValue
-    #if os(iOS)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    #endif
-
-    private var compactWidth: Bool {
-        #if os(iOS)
-        BoardWidth.isCompact(horizontalSizeClass)
-        #else
-        false
-        #endif
-    }
 
     var body: some View {
         ScrollView {
@@ -41,21 +29,10 @@ struct ClientLimitsView: View {
             .padding()
         }
         .background(BoardStyle.pageBackground)
-        .toolbar {
-            if session.fleetLimits != nil {
-                ToolbarItem {
-                    AccountsLayoutPicker(storedLayout: $storedLayout, compactWidth: compactWidth)
-                }
-            }
-        }
     }
 
     private var clientKeyNote: Text {
-        #if os(iOS)
         Text("Checking limits with providers needs the management key: a client key cannot ask the server to contact providers.")
-        #else
-        Text("Refresh limits needs the management key: a client key cannot ask the server to contact providers.")
-        #endif
     }
 
     @ViewBuilder
@@ -86,7 +63,9 @@ struct ClientLimitsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .boardCard()
             } else {
-                AccountsBoard(accounts: accounts, layout: AccountsLayout.resolve(storedLayout, compactWidth: compactWidth))
+                VStack(alignment: .leading, spacing: 12) {
+                    AccountCardGroups(session: session, ordered: AccountOrder.ordered(accounts, mode: .stock, now: .now), now: .now)
+                }
             }
         }
         if !limits.exclusions.isEmpty {

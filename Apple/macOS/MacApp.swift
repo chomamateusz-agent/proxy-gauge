@@ -12,6 +12,7 @@ struct MacApp: App {
                 .frame(minWidth: 960, minHeight: 560)
         }
         .defaultSize(width: 1440, height: 900)
+        .commands { PaneRefreshCommands() }
 
         Settings {
             AppSettingsView()
@@ -27,5 +28,21 @@ struct MacApp: App {
                 .environment(model)
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+struct PaneRefreshCommands: Commands {
+    @FocusedValue(\.paneRefresh) private var pane
+
+    var body: some Commands {
+        CommandGroup(before: .toolbar) {
+            Button("Refresh") { pane?.refresh() }
+                .keyboardShortcut("r", modifiers: .command)
+                .disabled(pane == nil || pane?.isRefreshing == true)
+            Button("Check limits with providers…") { pane?.checkLimits?() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+                .disabled(pane?.checkLimits == nil || pane?.checkingLimits == true)
+            Divider()
+        }
     }
 }

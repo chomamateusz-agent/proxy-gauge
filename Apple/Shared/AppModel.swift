@@ -20,14 +20,7 @@ enum ServerSection: String, Hashable, CaseIterable, Identifiable {
     static func sections(for mode: AuthMode) -> [ServerSection] {
         switch mode {
         case .management: [.overview, .accounts, .usage, .models, .settings]
-        case .clientKey: [.limits, .models]
-        }
-    }
-
-    static func sections(for mode: AuthMode, in style: NavigationStyle) -> [ServerSection] {
-        switch (style, mode) {
-        case (.tabs, .clientKey): [.limits, .models, .settings]
-        default: sections(for: mode)
+        case .clientKey: [.limits, .models, .settings]
         }
     }
 
@@ -110,7 +103,7 @@ final class AppModel {
         let loaded = store.load()
         settings = loaded
         selectedServerID = loaded.defaultProfile?.id
-        selectedSection = loaded.defaultProfile.flatMap { ServerSection.sections(for: $0.authMode, in: .platform).first }
+        selectedSection = loaded.defaultProfile.flatMap { ServerSection.sections(for: $0.authMode).first }
     }
 
     var profiles: [ServerProfile] { settings.allProfiles }
@@ -175,7 +168,7 @@ final class AppModel {
     }
 
     func sections(for profile: ServerProfile) -> [ServerSection] {
-        ServerSection.sections(for: profile.authMode, in: navigationStyle)
+        ServerSection.sections(for: profile.authMode)
     }
 
     func select(_ profile: ServerProfile) {
@@ -183,7 +176,7 @@ final class AppModel {
         selectedSection = SectionAfterSwitch.section(
             current: selectedSection,
             available: sections(for: profile),
-            keepsCurrent: navigationStyle == .tabs
+            keepsCurrent: true
         )
     }
 

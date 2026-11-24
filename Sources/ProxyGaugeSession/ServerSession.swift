@@ -471,7 +471,9 @@ public final class ServerSession {
             keyCountersError = error
         }
         accountsLoaded = true
-        dataReceivedAt = .now
+        let receivedAt = Date.now
+        dataReceivedAt = receivedAt
+        lastRefreshByScope[.accounts] = receivedAt
         markLoaded(.accounts)
         reloadProviderChecks()
         publishHeadroom()

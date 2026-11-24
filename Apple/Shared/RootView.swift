@@ -76,37 +76,35 @@ struct RootView: View {
         }
     }
 
+    @ViewBuilder
     private var splitNavigation: some View {
-        NavigationSplitView {
-            serverList
-                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 380)
-        } content: {
-            Group {
-                if let profile = model.selectedProfile {
-                    SectionList(profile: profile, onEdit: { editor = .edit(profile) })
-                } else {
-                    ContentUnavailableView("Choose a server", systemImage: "server.rack")
+        if let profile = model.selectedProfile {
+            NavigationSplitView {
+                SectionList(profile: profile)
+                    .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
+            } detail: {
+                let sections = model.sections(for: profile)
+                let section = model.selectedSection.flatMap { sections.contains($0) ? $0 : nil } ?? sections[0]
+                let session = model.session(for: profile)
+                NavigationStack {
+                    sectionDetail(section, of: profile, session: session)
+                        .modifier(ServerTitleMenu(onAdd: { editor = .add }))
                 }
+                .id("\(session.instanceID)-\(section.rawValue)-\(model.settingsResetCount)-\(model.deepLinkCount)")
             }
-            .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 320)
-        } detail: {
-            Group {
-                if let profile = model.selectedProfile, let section = model.selectedSection {
-                    NavigationStack {
-                        sectionDetail(section, of: profile)
-                    }
-                } else {
-                    ContentUnavailableView("Choose a section", systemImage: "sidebar.left")
-                }
-            }
-            .navigationSplitViewColumnWidth(min: 520, ideal: 1100)
+        } else {
+            FirstRunView(onAdd: { editor = .add })
         }
     }
 
-    private func sectionDetail(_ section: ServerSection, of profile: ServerProfile) -> some View {
-        let session = model.session(for: profile)
-        return SectionDetail(session: session, section: section)
-            .id("\(session.instanceID)-\(section.rawValue)")
+    @ViewBuilder
+    private func sectionDetail(_ section: ServerSection, of profile: ServerProfile, session: ServerSession) -> some View {
+        if section == .settings {
+            SettingsPane(profile: profile, session: session, actions: serverActions)
+                .modifier(ServerTitle(session: session))
+        } else {
+            SectionDetail(session: session, section: section, titledByServer: true)
+        }
     }
 
     private var autoRefreshTarget: AutoRefreshTarget? {
@@ -130,7 +128,12 @@ struct RootView: View {
 
     private func refreshSelection(trigger: RefreshTrigger) async {
         guard let profile = model.selectedProfile, let section = model.selectedSection else { return }
-        await model.session(for: profile).refresh(section.refreshScope, trigger: trigger, dropIfCancelled: true)
+        let session = model.session(for: profile)
+        if section == .settings {
+            await session.refreshSettingsPane(trigger: trigger, dropIfCancelled: true)
+        } else {
+            await session.refresh(section.refreshScope, trigger: trigger, dropIfCancelled: true)
+        }
     }
 
     private func delete(_ profile: ServerProfile) {
@@ -138,38 +141,6 @@ struct RootView: View {
             try model.delete(profile)
         } catch {
             deletionError = error
-        }
-    }
-
-    private var serverList: some View {
-        List(selection: Binding(
-            get: { model.selectedServerID },
-            set: { id in
-                if let profile = model.profiles.first(where: { $0.id == id }) { model.select(profile) }
-            }
-        )) {
-            serverSection
-        }
-        .navigationTitle("Servers")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Add server", systemImage: "plus") { editor = .add }
-            }
-        }
-    }
-
-    private var serverSection: some View {
-        Section {
-            if model.profiles.isEmpty {
-                NoServersRow(onAdd: { editor = .add })
-            }
-            ForEach(model.profiles) { profile in
-                ServerRow(profile: profile, isDefault: profile.id == model.defaultProfile?.id)
-                    .tag(profile.id)
-                    .serverActions(for: profile, actions: serverActions)
-            }
-        } footer: {
-            Text("The default server feeds the widget and the menu bar.")
         }
     }
 }
@@ -255,55 +226,12 @@ struct ServerRow: View {
 struct SectionList: View {
     @Environment(AppModel.self) private var model
     let profile: ServerProfile
-    let onEdit: () -> Void
 
     var body: some View {
-        sectionsList
-            .navigationTitle(Text(verbatim: profile.isDemo ? String(localized: "Demo server") : profile.name))
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Edit server", systemImage: "pencil", action: onEdit)
-                }
-            }
-    }
-
-    private var sectionsList: some View {
-        List(selection: Binding(get: { model.selectedSection }, set: { model.selectedSection = $0 })) {
+        List(selection: Binding(get: { model.selectedSection }, set: { if let section = $0 { model.selectedSection = section } })) {
             ForEach(model.sections(for: profile)) { section in
-                Label { Text(section.title) } icon: { Image(systemName: section.symbol) }
+                Label { Text(section.tabTitle) } icon: { Image(systemName: section.tabSymbol) }
                     .tag(section)
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            ServerStatus(profile: profile)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-struct ServerStatus: View {
-    @Environment(AppModel.self) private var model
-    let profile: ServerProfile
-
-    var body: some View {
-        let session = model.session(for: profile)
-        VStack(alignment: .leading, spacing: 4) {
-            if let version = session.version {
-                Text("CLIProxyAPI \(version.version)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
-            }
-            RefreshFooter(lastRefresh: session.lastRefresh, isRefreshing: session.isRefreshing)
-                .fixedSize(horizontal: false, vertical: true)
-            if !model.refreshesAutomatically(profile) {
-                Label("Automatic refresh is off", systemImage: "pause.circle")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -318,7 +246,7 @@ struct SectionDetail: View {
         #if os(iOS)
         section != .settings
         #else
-        false
+        true
         #endif
     }
 
@@ -389,24 +317,5 @@ struct ServerDeletionMessage: View {
         } else {
             Text("The server and its key are removed from this device. Nothing changes on the server.")
         }
-    }
-}
-
-private struct NoServersRow: View {
-    @Environment(AppModel.self) private var model
-    let onAdd: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("No servers yet")
-                .font(.headline)
-            Text("Add your CLIProxyAPI server, or bring back the demo server to look around.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button("Add server", systemImage: "plus", action: onAdd)
-            Button("Add demo server", systemImage: "play.rectangle") { model.restoreDemo() }
-        }
-        .padding(.vertical, 6)
     }
 }

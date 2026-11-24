@@ -102,7 +102,7 @@ struct RouterBadgeView: View {
 
     var body: some View {
         badge.text
-            .font(.caption.weight(.semibold).monospacedDigit())
+            .font(.board(.caption).weight(.semibold).monospacedDigit())
             .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -118,6 +118,9 @@ struct AccountQuotaCard: View {
     var badge: RouterBadge?
     var session: ServerSession?
     var showsProvider = false
+    var framed = true
+    var showsSources = false
+    var opensDetail = false
     @State private var showsStatus = false
     @State private var showsResets = false
     @State private var limitsRequest: LimitsRefreshRequest?
@@ -130,6 +133,7 @@ struct AccountQuotaCard: View {
             ResetsSheet(account: account)
         }
         .modifier(OptionalLimitsSheet(session: session, request: $limitsRequest))
+        .modifier(LinkedCardActions(isEnabled: opensDetail, showStatus: { showsStatus = true }, showResets: { showsResets = true }))
     }
 
     private func card(now: Date) -> some View {
@@ -140,7 +144,7 @@ struct AccountQuotaCard: View {
             header(status: status)
             if bars.isEmpty {
                 Text("No quota data reported yet")
-                    .font(.subheadline)
+                    .font(.board(.subheadline))
                     .foregroundStyle(.secondary)
             }
             ForEach(bars) { bar in
@@ -148,6 +152,7 @@ struct AccountQuotaCard: View {
                     bar: bar,
                     blocked: status.isBlocked && !isTheLimit(bar, status: status),
                     idle: idle && bar.id == FiveHourWindowState.barID,
+                    showsSource: showsSources,
                     now: now
                 )
             }
@@ -156,7 +161,7 @@ struct AccountQuotaCard: View {
                 footer(status: status, now: now)
             }
         }
-        .boardCard()
+        .modifier(CardFrame(framed: framed))
         .opacity(status == .disabled ? 0.7 : 1)
     }
 
@@ -171,12 +176,13 @@ struct AccountQuotaCard: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: account.label)
-                    .font(.headline)
+                    .font(.board(.headline))
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .modifier(SelectableText(isSelectable: !framed))
                 if let plan = account.plan {
                     Text(verbatim: PlanLabel.display(plan))
-                        .font(.subheadline)
+                        .font(.board(.subheadline))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -192,9 +198,9 @@ struct AccountQuotaCard: View {
                         .imageScale(.small)
                     Text(status.label)
                     Image(systemName: "chevron.down")
-                        .font(.caption2.weight(.bold))
+                        .font(.board(.caption2).weight(.bold))
                 }
-                .font(.caption.weight(.semibold))
+                .font(.board(.caption).weight(.semibold))
                 .lineLimit(1)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 5)
@@ -232,10 +238,10 @@ struct AccountQuotaCard: View {
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(.board(.caption).weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
-            .font(.subheadline)
+            .font(.board(.subheadline))
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -249,6 +255,47 @@ struct AccountQuotaCard: View {
         }
         guard let next = account.nextReset(after: now) else { return Text("No reset reported") }
         return Text("Next reset \(ResetClock.text(next))")
+    }
+}
+
+private struct CardFrame: ViewModifier {
+    let framed: Bool
+
+    func body(content: Content) -> some View {
+        if framed {
+            content.boardCard()
+        } else {
+            content.padding(.vertical, 6)
+        }
+    }
+}
+
+private struct SelectableText: ViewModifier {
+    let isSelectable: Bool
+
+    func body(content: Content) -> some View {
+        if isSelectable {
+            content.textSelection(.enabled)
+        } else {
+            content
+        }
+    }
+}
+
+private struct LinkedCardActions: ViewModifier {
+    let isEnabled: Bool
+    let showStatus: () -> Void
+    let showResets: () -> Void
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.accessibilityActions {
+                Button("Show status", action: showStatus)
+                Button("Show all resets", action: showResets)
+            }
+        } else {
+            content
+        }
     }
 }
 
@@ -269,6 +316,7 @@ struct AccountWindowRow: View {
     let bar: QuotaBar
     let blocked: Bool
     let idle: Bool
+    var showsSource = false
     let now: Date
 
     var body: some View {
@@ -276,11 +324,14 @@ struct AccountWindowRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 bar.title
-                    .font(.subheadline)
+                    .font(.board(.subheadline))
                     .lineLimit(1)
+                if showsSource, bar.isFromProvider {
+                    ProviderSourceMark(sampledAt: bar.sampledAt)
+                }
                 if idle {
                     Text("idle")
-                        .font(.caption2.weight(.semibold))
+                        .font(.board(.caption2).weight(.semibold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
                         .foregroundStyle(.green)
@@ -289,10 +340,10 @@ struct AccountWindowRow: View {
                 Spacer(minLength: 6)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(verbatim: HeadroomStyle.percentText(remaining))
-                        .font(.title3.weight(.semibold).monospacedDigit())
+                        .font(.board(.title3).weight(.semibold).monospacedDigit())
                         .foregroundStyle(numberStyle(remaining))
                     Text("left")
-                        .font(.footnote)
+                        .font(.board(.footnote))
                         .foregroundStyle(.secondary)
                 }
                 .fixedSize()
@@ -319,7 +370,7 @@ struct StatusPopover: View {
     var body: some View {
         let now = Date.now
         let status = CardStatus(account: account, now: now)
-        ScrollView {
+        scrollable {
             VStack(alignment: .leading, spacing: 12) {
                 headline(status: status)
                 Divider()
@@ -339,12 +390,15 @@ struct StatusPopover: View {
                 if let resets = account.providerCheck?.resets, resets.everHadResets {
                     row("Manual resets") { manualResets(resets) }
                 }
+                if let credits = account.creditsBalance {
+                    row("Credits") { Text(credits, format: .number.precision(.fractionLength(0...2))) }
+                }
                 if !account.modelCooldowns.isEmpty {
                     pausedModels
                 }
                 if let checked = account.providerCheck?.observedAt {
                     Text("Checked with the provider \(ElapsedTime.text(from: checked, to: now)) ago")
-                        .font(.footnote)
+                        .font(.board(.footnote))
                         .foregroundStyle(.secondary)
                 }
                 if canCheck {
@@ -359,6 +413,18 @@ struct StatusPopover: View {
         .frame(maxHeight: 520)
     }
 
+    @ViewBuilder
+    private func scrollable(@ViewBuilder content: () -> some View) -> some View {
+        #if os(macOS)
+        ViewThatFits(in: .vertical) {
+            content()
+            ScrollView(content: content)
+        }
+        #else
+        ScrollView(content: content)
+        #endif
+    }
+
     private var canCheck: Bool {
         guard let session else { return false }
         return session.supportsLimitsRefresh && ActiveRefreshPolicy.isSupported(account.provider)
@@ -367,12 +433,12 @@ struct StatusPopover: View {
     private func headline(status: CardStatus) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: status.symbol)
-                .font(.title2)
+                .font(.board(.title2))
                 .foregroundStyle(status.color)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(status.label)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.board(.subheadline).weight(.semibold))
                     .foregroundStyle(status.color)
                 Group {
                     switch status {
@@ -384,11 +450,11 @@ struct StatusPopover: View {
                     case .disabled: Text("Disabled on the server")
                     }
                 }
-                .font(.title3.weight(.bold))
+                .font(.board(.title3).weight(.bold))
                 .fixedSize(horizontal: false, vertical: true)
                 if let back = status.backAt, back > .now {
                     Text(back, format: .relative(presentation: .named, unitsStyle: .wide))
-                        .font(.subheadline)
+                        .font(.board(.subheadline))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -436,18 +502,18 @@ struct StatusPopover: View {
                     Text("\(cooldowns.count) models paused")
                 }
             }
-            .font(.subheadline.weight(.semibold))
+            .font(.board(.subheadline).weight(.semibold))
             FlowLayout(spacing: 6) {
                 ForEach(cooldowns.prefix(Self.listedModels), id: \.self) { cooldown in
                     Text(verbatim: cooldown.model)
-                        .font(.caption.monospaced())
+                        .font(.board(.caption).monospaced())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(HeadroomStyle.track, in: .rect(cornerRadius: 8))
                 }
                 if cooldowns.count > Self.listedModels {
                     Text("and \(cooldowns.count - Self.listedModels) more")
-                        .font(.caption)
+                        .font(.board(.caption))
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 4)
                 }
@@ -465,7 +531,7 @@ struct StatusPopover: View {
                     .multilineTextAlignment(.trailing)
                     .fontWeight(.medium)
             }
-            .font(.subheadline)
+            .font(.board(.subheadline))
             Divider()
         }
     }
@@ -492,6 +558,9 @@ struct ResetsSheet: View {
             }
         }
         .presentationDetents([.medium])
+        #if os(macOS)
+        .frame(minWidth: 420, idealWidth: 460, minHeight: 360, idealHeight: 420)
+        #endif
     }
 
     private func list(now: Date) -> some View {
@@ -507,18 +576,18 @@ struct ResetsSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             title(reset)
                             when(reset, now: now)
-                                .font(.subheadline)
+                                .font(.board(.subheadline))
                                 .foregroundStyle(.secondary)
                         }
                         Spacer(minLength: 8)
                         VStack(alignment: .trailing, spacing: 2) {
                             if let resetsAt = reset.resetsAt, resetsAt > now {
                                 ResetClock.text(resetsAt)
-                                    .font(.headline.monospacedDigit())
+                                    .font(.board(.headline).monospacedDigit())
                             }
                             if let gain = reset.gainAtReset, gain > 0 {
                                 Text("+\(HeadroomStyle.percentText(gain)) back")
-                                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                                    .font(.board(.subheadline).weight(.semibold).monospacedDigit())
                                     .foregroundStyle(.green)
                             }
                         }
@@ -526,11 +595,26 @@ struct ResetsSheet: View {
                     .accessibilityElement(children: .combine)
                 }
             }
+            if !account.modelCooldowns.isEmpty {
+                Section {
+                    ForEach(account.modelCooldowns, id: \.self) { cooldown in
+                        LabeledContent {
+                            pausedUntil(cooldown, now: now)
+                                .font(.board(.subheadline).monospacedDigit())
+                        } label: {
+                            Text(verbatim: cooldown.model)
+                                .font(.board(.subheadline).monospaced())
+                        }
+                    }
+                } header: {
+                    Text("Paused models")
+                }
+            }
             if let resets = account.providerCheck?.resets, resets.everHadResets {
                 Section {
                     LabeledContent {
                         Text(verbatim: resets.total.map { "\(resets.remaining) / \($0)" } ?? "\(resets.remaining)")
-                            .font(.headline.monospacedDigit())
+                            .font(.board(.headline).monospacedDigit())
                     } label: {
                         Text("Manual resets")
                         if let expires = resets.expiresAt {
@@ -546,6 +630,11 @@ struct ResetsSheet: View {
                 }
             }
         }
+    }
+
+    private func pausedUntil(_ cooldown: ModelCooldown, now: Date) -> Text {
+        guard let until = cooldown.until else { return Text("No end time reported") }
+        return until > now ? Text("Back \(ResetClock.text(until))") : Text("Ended")
     }
 
     private func title(_ reset: WindowReset) -> Text {

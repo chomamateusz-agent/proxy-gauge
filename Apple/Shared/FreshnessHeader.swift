@@ -37,6 +37,7 @@ struct FreshnessHeader: View {
     var credentialIDs: [String]?
     var reload: (@MainActor () async -> Void)?
     @State private var limitsRequest: LimitsRefreshRequest?
+    @State private var isOnScreen = false
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 10)) { context in
@@ -50,7 +51,23 @@ struct FreshnessHeader: View {
             )
         }
         .limitsRefreshSheet(session: session, request: $limitsRequest)
+        #if os(macOS)
+        .onAppear { isOnScreen = true }
+        .onDisappear { isOnScreen = false }
+        .focusedSceneValue(\.paneRefresh, isOnScreen ? paneRefresh : nil)
+        #endif
     }
+
+    #if os(macOS)
+    private var paneRefresh: PaneRefresh {
+        PaneRefresh(
+            refresh: { Task { await runReload() } },
+            checkLimits: session.supportsLimitsRefresh ? { limitsRequest = LimitsRefreshRequest(credentialIDs: credentialIDs) } : nil,
+            isRefreshing: session.isRefreshing,
+            checkingLimits: !session.refreshingLimits.isEmpty
+        )
+    }
+    #endif
 
     private func runReload() async {
         if let reload {
@@ -76,7 +93,7 @@ struct FreshnessRow: View {
                 .frame(width: 9, height: 9)
                 .accessibilityHidden(true)
             status
-                .font(.subheadline)
+                .font(.board(.subheadline))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -85,7 +102,7 @@ struct FreshnessRow: View {
         .padding(.leading, 14)
         .padding(.trailing, 6)
         .padding(.vertical, 6)
-        .glassEffect(.regular, in: .capsule)
+        .modifier(FreshnessCapsule())
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
     }
@@ -138,19 +155,48 @@ struct FreshnessRow: View {
                 Image(systemName: "arrow.clockwise")
             }
         }
-        .font(.subheadline.weight(.semibold))
+        .labelStyle(.titleAndIcon)
+        .font(.board(.subheadline).weight(.semibold))
+    }
+}
+
+private struct FreshnessCapsule: ViewModifier {
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content
+            .background(BoardStyle.cardBackground, in: .capsule)
+            .overlay { Capsule().strokeBorder(.separator.opacity(0.6), lineWidth: 0.5) }
+        #else
+        content.glassEffect(.regular, in: .capsule)
+        #endif
     }
 }
 
 extension View {
-    @ViewBuilder
     func freshnessHeader(session: ServerSession, scope: RefreshScope, credentialIDs: [String]? = nil, reload: (@MainActor () async -> Void)? = nil) -> some View {
-        #if os(iOS)
+        #if os(macOS)
+        safeAreaInset(edge: .top, spacing: 0) {
+            FreshnessHeader(session: session, scope: scope, credentialIDs: credentialIDs, reload: reload)
+                .padding(.top, 8)
+                .background(BoardStyle.pageBackground)
+        }
+        #else
         safeAreaBar(edge: .top) {
             FreshnessHeader(session: session, scope: scope, credentialIDs: credentialIDs, reload: reload)
         }
-        #else
-        self
         #endif
     }
 }
+
+#if os(macOS)
+struct PaneRefresh {
+    let refresh: () -> Void
+    let checkLimits: (() -> Void)?
+    let isRefreshing: Bool
+    let checkingLimits: Bool
+}
+
+extension FocusedValues {
+    @Entry var paneRefresh: PaneRefresh?
+}
+#endif

@@ -141,7 +141,7 @@ struct DashboardFootnotes: View {
             #if os(iOS)
             Text("Active data: numbers with \(Image(systemName: "antenna.radiowaves.left.and.right")) come from a check with the provider, where the server asks the provider with the account's own sign-in. That happens only when you hold Refresh and choose Check limits with providers, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings.")
             #else
-            Text("Active data: numbers with \(Image(systemName: "antenna.radiowaves.left.and.right")) come from Refresh limits, where the server asks the provider with the account's own sign-in. That happens only when you press Refresh limits, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings.")
+            Text("Active data: numbers with \(Image(systemName: "antenna.radiowaves.left.and.right")) come from a check with the provider, where the server asks the provider with the account's own sign-in. That happens only when you choose Check limits with providers in the Refresh menu, or on a schedule while the app is visible and automatic provider refresh is on for this server in Settings.")
             #endif
         }
         .font(.callout)
