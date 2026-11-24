@@ -73,7 +73,7 @@ struct RouterOrderTests {
         ], settings: useOrLose, now: now)
         #expect(names(ranked) == ["room", "capped"])
         #expect(ranked[1].placement == .ranked(position: 2, tier: .capped, sampled: true, sampledProvider: true))
-        #expect(AccountOrder.badge(ranked[1].placement) == .shortWindowCap)
+        #expect(AccountOrder.badge(ranked[1].placement) == .ranked(position: 2, tier: .capped))
     }
 
     @Test func theCapFollowsTheConfiguredPercentAndCreditsLiftIt() {
@@ -145,7 +145,7 @@ struct RouterOrderTests {
         ], settings: useOrLose, now: now)
         #expect(names(ranked).first == "sampled")
         #expect(ranked.dropFirst().allSatisfy { AccountOrder.badge($0.placement) == .noReading })
-        #expect(AccountOrder.badge(ranked[0].placement) == .next)
+        #expect(AccountOrder.badge(ranked[0].placement) == .ranked(position: 1, tier: .room))
     }
 
     @Test func anIdleWeekWithoutResetCountsOnlyWhileTheSampleIsFresh() {
@@ -170,12 +170,12 @@ struct RouterOrderTests {
         #expect(positions == [1, 2, 1, 2])
     }
 
-    @Test func otherProvidersKeepListOrderWithoutTheNoReadingBadge() {
+    @Test func otherProvidersKeepListOrderAndSayListOrderLikeThePanel() {
         let ranked = RouterOrder.rankProvider([
             candidate("x1", provider: "xai", nil),
             candidate("x2", provider: "xai", nil)
         ], settings: useOrLose, now: now)
         #expect(names(ranked) == ["x1", "x2"])
-        #expect(ranked.map { AccountOrder.badge($0.placement) } == [.next, .position(2)])
+        #expect(ranked.map { AccountOrder.badge($0.placement) } == [.listOrder, .listOrder])
     }
 }

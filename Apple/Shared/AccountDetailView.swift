@@ -10,6 +10,7 @@ struct AccountDetailView: View {
     @State private var pendingAction: PendingAction?
     @State private var actionError: Error?
     @State private var working = false
+    @State private var showsResets = false
 
     enum PendingAction: Identifiable {
         case disable
@@ -36,11 +37,11 @@ struct AccountDetailView: View {
             #if os(macOS)
             if let account = session.accountSummaries.first(where: { $0.id == credential.id }) {
                 Section {
-                    AccountQuotaCard(account: account, session: session, showsProvider: true, framed: false, showsSources: true)
+                    AccountQuotaCard(account: account, session: session, framed: false, showsSources: true)
                 } footer: {
                     quotaSources(credential)
                 }
-                if let message = credential.statusMessage, !message.isEmpty {
+                if let message = credential.statusMessage, !message.isEmpty, !CardStatus(account: account, now: now).showsMessageOnCard {
                     Section {
                         Text(verbatim: message)
                             .foregroundStyle(.secondary)
@@ -199,6 +200,12 @@ struct AccountDetailView: View {
             }
             ForEach(bars) { bar in
                 QuotaBarRow(bar: bar, provider: credential.provider)
+            }
+            if let account = session.accountSummaries.first(where: { $0.id == credential.id }), !bars.isEmpty {
+                Button("Show all resets", systemImage: "clock") { showsResets = true }
+                    .sheet(isPresented: $showsResets) {
+                        ResetsSheet(account: account)
+                    }
             }
         } header: {
             Text("Quota")

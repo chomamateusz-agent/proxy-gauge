@@ -47,7 +47,7 @@ enum HeadroomStyle {
 
     static func percentText(_ value: Double?) -> String {
         guard let value else { return "–" }
-        return (value / 100).formatted(.percent.precision(.fractionLength(0)))
+        return (value.rounded() / 100).formatted(.percent.precision(.fractionLength(0)))
     }
 
     static func remainingText(_ remaining: Double?) -> Text {

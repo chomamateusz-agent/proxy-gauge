@@ -63,7 +63,7 @@ struct AccountOrderTests {
         ]
         let ordered = AccountOrder.ordered(accounts, mode: .router(RouterSettings(strategy: "use-or-lose")), now: now)
         #expect(ordered.map(\.id) == ["soon", "late", "capped", "cooling"])
-        #expect(ordered.map(\.badge) == [.next, .position(2), .shortWindowCap, .coolingDown])
+        #expect(ordered.map(\.badge) == [.ranked(position: 1, tier: .room), .ranked(position: 2, tier: .room), .ranked(position: 3, tier: .capped), .coolingDown])
     }
 
     @Test func routerModeWithAnotherStrategyKeepsListOrder() {

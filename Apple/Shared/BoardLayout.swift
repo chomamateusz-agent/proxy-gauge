@@ -34,9 +34,11 @@ enum BoardStyle {
 }
 
 struct BoardCard: ViewModifier {
+    var inset: CGFloat = 12
+
     func body(content: Content) -> some View {
         content
-            .padding(12)
+            .padding(inset)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(BoardStyle.cardBackground, in: .rect(cornerRadius: BoardStyle.cornerRadius))
             .overlay {
@@ -47,26 +49,28 @@ struct BoardCard: ViewModifier {
 }
 
 extension View {
-    func boardCard() -> some View {
-        modifier(BoardCard())
+    func boardCard(inset: CGFloat = 12) -> some View {
+        modifier(BoardCard(inset: inset))
     }
 }
 
 struct EqualHeightGrid: Layout {
     var minItemWidth: CGFloat
     var maxItemWidth: CGFloat?
+    var maxColumns: Int?
     var spacing: CGFloat = BoardStyle.spacing
 
     private func columns(for width: CGFloat, count: Int) -> Int {
         guard width.isFinite, width > 0 else { return 1 }
-        let fitting = Int((width + spacing) / (minItemWidth + spacing))
+        let fitting = min(Int((width + spacing) / (minItemWidth + spacing)), maxColumns ?? .max)
         return max(1, maxItemWidth == nil ? min(count, fitting) : fitting)
     }
 
     private func rows(_ subviews: Subviews, width: CGFloat) -> (itemWidth: CGFloat, heights: [CGFloat], columns: Int) {
         let columns = columns(for: width, count: subviews.count)
         let fitted = width.isFinite ? (width - spacing * CGFloat(columns - 1)) / CGFloat(columns) : minItemWidth
-        let itemWidth = min(fitted, maxItemWidth ?? fitted)
+        let fillsRow = columns == 1 || columns == maxColumns
+        let itemWidth = fillsRow ? fitted : min(fitted, maxItemWidth ?? fitted)
         let heights = stride(from: 0, to: subviews.count, by: columns).map { start in
             subviews[start..<min(start + columns, subviews.count)]
                 .map { $0.sizeThatFits(ProposedViewSize(width: itemWidth, height: nil)).height }

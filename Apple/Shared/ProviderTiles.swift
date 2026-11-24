@@ -133,9 +133,10 @@ struct StateCounts: View {
 struct DashboardFootnotes: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Pooled capacity: remaining quota of every enabled account added up the way the management panel adds it, so three accounts make \(HeadroomStyle.percentText(300)). A window whose reset has passed counts as full, and an account without a sample is listed separately.")
-            Text("Usable now: the part of that quota on accounts that can take requests right now. Quota on an account in cooldown, with another window at its limit, or waiting for a new sign-in is shown as blocked, with how much of it comes back first and when.")
-            Text("A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. While it can take requests it counts as a full 5-hour window, because its next request starts one. A blocked account without a 5-hour window is left out of the 5-hour capacity.")
+            Text("Provider percent: what the provider's accounts have left in a window, on a 0 to 100 scale, as the management panel shows it. When every Claude account's plan is known, the average is weighted by plan: Max 20x counts 20, Max 5x counts 5, Pro counts 1. It covers enabled accounts that have not ended and report that window; the caption says how many of the provider's accounts that is. A window whose reset has passed counts as full.")
+            Text("Usable now and blocked, in provider details: the share of that quota on accounts that can take requests right now. Quota on an account in cooldown, with another window at its limit, or waiting for a new sign-in is blocked, with how much of it comes back first and when.")
+            Text("A Claude or Codex account that reports other windows but no 5-hour window has no 5-hour window running. Its card shows the 5-hour window as full, because its next request starts one, but the provider percent leaves it out until the provider reports the window.")
+            Text("Pooled capacity, on the Limits page of a client key: remaining quota of every enabled account added up, so three accounts make \(HeadroomStyle.percentText(300)).")
             Text("Best usable account: the most quota a single account that can take requests right now has left in its tightest window. Shown when at least two accounts can take requests.")
             Text("Passive data: numbers without a mark come from rate-limit headers the proxy already observed while serving requests. Reading them sends nothing to the providers.")
             #if os(iOS)

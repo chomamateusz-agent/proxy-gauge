@@ -9,9 +9,7 @@ public enum CardSection: Int, Sendable, Equatable, Comparable, CaseIterable {
 }
 
 public enum RouterBadge: Sendable, Equatable, Hashable {
-    case next
-    case position(Int)
-    case shortWindowCap
+    case ranked(position: Int, tier: RouterTier)
     case noReading
     case coolingDown
     case disabled
@@ -80,10 +78,9 @@ public enum AccountOrder {
         case .out(.cooling): .coolingDown
         case .out(.disabled): .disabled
         case .out(.ended): .ended
-        case .ranked(_, .capped, _, _): .shortWindowCap
+        case .ranked(_, _, _, false): .listOrder
         case .ranked(_, _, false, true): .noReading
-        case .ranked(1, _, _, _): .next
-        case .ranked(let position, _, _, _): .position(position)
+        case .ranked(let position, let tier, _, _): .ranked(position: position, tier: tier)
         }
     }
 

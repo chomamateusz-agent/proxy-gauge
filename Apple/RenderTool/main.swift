@@ -99,6 +99,7 @@ enum Renderer {
     static let polishFlag = "--polish"
     static let rendersOnlyOverviewLayouts = CommandLine.arguments.contains("--overview-layouts-only")
     static let rendersMacRedesign = CommandLine.arguments.contains("--mac-redesign")
+    static let rendersPanel = CommandLine.arguments.contains("--panel")
     static let renderLocale = Locale(identifier: rendersPolish ? "pl_PL" : "en_US")
     static let phoneSize = CGSize(width: 402, height: 874)
     static let sizes: [(name: String, size: CGSize)] = [("1920x1080", CGSize(width: 1920, height: 1080)), ("1440x900", CGSize(width: 1440, height: 900))]
@@ -123,6 +124,10 @@ enum Renderer {
         await model.session(for: demo).refresh(.accounts, trigger: .manual)
         if rendersMacRedesign {
             try await MacRedesignRenders.run(model: model, defaults: defaults, output: output)
+            return
+        }
+        if rendersPanel {
+            try await PanelRenders.run(model: model, defaults: defaults, output: output)
             return
         }
         try await renderOverviewLayouts(model: model, defaults: defaults, output: output)

@@ -75,7 +75,7 @@ public enum RouterOutOfRotation: Sendable, Equatable, CaseIterable {
     case ended
 }
 
-public enum RouterTier: Sendable, Equatable {
+public enum RouterTier: Sendable, Equatable, Hashable {
     case room
     case capped
     case limited

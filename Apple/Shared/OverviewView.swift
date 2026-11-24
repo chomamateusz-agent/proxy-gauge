@@ -14,8 +14,8 @@ enum BoardWidth {
 struct OverviewView: View {
     let session: ServerSession
     private let routerOrder: RouterOrderStorage
-    @AppStorage(OverviewLayout.storageKey) private var storedOverviewLayout = OverviewLayout.standard.rawValue
     @State private var width: CGFloat = 0
+    @State private var filter = ProviderFilterBar.all
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
@@ -38,10 +38,9 @@ struct OverviewView: View {
     }
 
     var body: some View {
-        let layout = OverviewLayout.resolve(storedOverviewLayout)
         ScrollView {
             TimelineView(.periodic(from: .now, by: BoardWidth.clockTick)) { context in
-                content(layout: layout, now: context.date)
+                content(now: context.date)
             }
         }
         .background(BoardStyle.pageBackground)
@@ -49,41 +48,75 @@ struct OverviewView: View {
         .modifier(ServerTitle(session: session))
     }
 
-    private func content(layout: OverviewLayout, now: Date) -> some View {
+    private func content(now: Date) -> some View {
         let accounts = session.accountSummaries
-        let quota = session.quotaOverview(at: now)
-        let overviews = ProviderOverview.all(pools: quota.pools, accounts: accounts, now: now)
         let ordered = session.orderedAccounts(provider: nil, routerOrder: routerOrder.isOn, now: now)
+        let shown = AccountSummary.shownProvider(filter, in: accounts)
         return VStack(alignment: .leading, spacing: compactWidth ? 12 : 16) {
             SessionStatusBanner(session: session, scope: .accounts)
             ProviderRefreshStatus(session: session)
-            providerCards(overviews, layout: layout, order: ordered.map(\.id))
-            if showsAccountCards {
-                AccountCardGroups(session: session, ordered: ordered, now: now)
+            if !accounts.isEmpty {
+                PageHeaderRow(accounts: accounts, filter: $filter)
+                if showsAccountCards {
+                    AccountCardGroups(session: session, ordered: ordered, now: now, provider: shown, showsPools: true, routerOrder: routerOrder.isOn)
+                } else {
+                    providerHeaders(accounts: accounts, provider: shown, now: now)
+                }
+            } else if let saved = savedAccounts(at: now) {
+                SavedDataNote(savedAt: saved.savedAt, refreshesAutomatically: session.refreshesAutomatically)
+                providerHeaders(accounts: saved.accounts, provider: nil, now: now, opensDetail: false)
+            } else {
+                empty
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
     }
 
+    private func savedAccounts(at now: Date) -> (savedAt: Date, accounts: [AccountSummary])? {
+        guard let savedAt = session.quotaOverview(at: now).savedAt,
+              let poolAccounts = session.savedSnapshot?.poolAccounts, !poolAccounts.isEmpty
+        else { return nil }
+        return (savedAt, AccountSummary.saved(poolAccounts))
+    }
+
     @ViewBuilder
-    private func providerCards(_ overviews: [ProviderOverview], layout: OverviewLayout, order: [String]) -> some View {
+    private var empty: some View {
         let phase = session.loadPhase(for: .accounts, loaded: session.accountsLoaded)
-        if overviews.isEmpty {
-            Group {
-                if phase == .loaded {
-                    Text("No accounts on this server yet.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    NotLoadedRow(phase: phase)
-                }
+        Group {
+            if phase == .loaded {
+                Text("No accounts on this server yet.")
+                    .foregroundStyle(.secondary)
+            } else {
+                NotLoadedRow(phase: phase)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .boardCard()
-        } else {
-            EqualHeightGrid(minItemWidth: layout.cardMinWidth, spacing: compactWidth ? 10 : BoardStyle.spacing) {
-                ForEach(overviews) { overview in
-                    ProviderOverviewCard(overview: overview, layout: layout, session: session, order: order)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .boardCard()
+    }
+
+    private func providerHeaders(accounts: [AccountSummary], provider shown: String?, now: Date, opensDetail: Bool = true) -> some View {
+        let quota = session.quotaOverview(at: now).pools
+        let mode = session.cardOrderMode(routerOrder: routerOrder.isOn)
+        return VStack(spacing: compactWidth ? 10 : BoardStyle.spacing) {
+            ForEach(AccountSummary.providers(accounts).filter { shown == nil || $0 == shown }, id: \.self) { provider in
+                let members = accounts.filter { $0.provider == provider }
+                let header = ProviderPanelHeader(
+                    pools: QuotaSlots.pools(provider: provider, accounts: accounts, at: now),
+                    overview: quota.first { $0.provider == provider }.map { ProviderOverview(pool: $0, accounts: members, now: now) },
+                    mode: mode,
+                    canRefreshLimits: session.supportsLimitsRefresh,
+                    showsChevron: opensDetail
+                )
+                if opensDetail {
+                    NavigationLink {
+                        ProviderDetailView(session: session, provider: provider)
+                    } label: {
+                        header.contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    header
                 }
             }
         }

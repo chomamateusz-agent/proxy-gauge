@@ -78,38 +78,71 @@ enum CardStatus: Equatable {
         case .active, .error, .disabled: false
         }
     }
+
+    var showsMessageOnCard: Bool {
+        self == .needsSignIn || self == .error
+    }
 }
 
 extension RouterBadge {
     var text: Text {
         switch self {
-        case .next: Text("1 · Next")
-        case .position(let position): Text(verbatim: position.formatted())
-        case .shortWindowCap: Text("5-hour cap")
-        case .noReading: Text("No reading")
-        case .coolingDown: Text("Cooling down")
-        case .disabled: Text("Not in rotation")
-        case .ended: Text("Ended")
-        case .listOrder: Text("List order")
+        case .ranked(let position, let tier):
+            let place = position == 1 ? Text("1 Next") : Text(verbatim: position.formatted())
+            return switch tier {
+            case .room: place
+            case .capped: place + Text(verbatim: " · ") + Text("5-hour cap")
+            case .limited: place + Text(verbatim: " · ") + Text("weekly limit")
+            }
+        case .noReading: return Text("No reading")
+        case .coolingDown: return Text("Cooling down")
+        case .disabled: return Text("Not in rotation")
+        case .ended: return Text("Ended")
+        case .listOrder: return Text("List order")
         }
     }
 
-    var isHighlighted: Bool { self == .next }
+    var color: Color {
+        switch self {
+        case .ranked(_, .capped), .ranked(_, .limited), .coolingDown: .orange
+        case .ranked(1, _): .green
+        case .ranked, .noReading, .disabled, .ended, .listOrder: .secondary
+        }
+    }
 }
 
-struct RouterBadgeView: View {
-    let badge: RouterBadge
+struct CardPill: View {
+    let badge: RouterBadge?
+    let status: CardStatus
 
     var body: some View {
-        badge.text
+        if let badge, badge != .listOrder {
+            capsule(badge.text, color: badge.color)
+                .accessibilityLabel(Text("Router position: \(badge.text)"))
+        } else if status == .active {
+            Circle()
+                .fill(.green)
+                .frame(width: 7, height: 7)
+                .padding(6)
+                .background(BoardStyle.cardBackground, in: .circle)
+                .overlay { Circle().strokeBorder(.separator.opacity(0.6), lineWidth: 0.5) }
+                .accessibilityLabel(Text(status.label))
+        } else {
+            capsule(Text(status.label), color: status.color)
+        }
+    }
+
+    private func capsule(_ text: Text, color: Color) -> some View {
+        text
             .font(.board(.caption).weight(.semibold).monospacedDigit())
             .lineLimit(1)
+            .foregroundStyle(color)
             .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .foregroundStyle(badge.isHighlighted ? Color.white : Color.secondary)
-            .background(badge.isHighlighted ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(HeadroomStyle.track), in: .capsule)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.14), in: .capsule)
+            .background(BoardStyle.cardBackground, in: .capsule)
+            .overlay { Capsule().strokeBorder(color.opacity(0.45), lineWidth: 0.75) }
             .fixedSize()
-            .accessibilityLabel(Text("Router position: \(badge.text)"))
     }
 }
 
@@ -117,7 +150,7 @@ struct AccountQuotaCard: View {
     let account: AccountSummary
     var badge: RouterBadge?
     var session: ServerSession?
-    var showsProvider = false
+    var slots: [WindowSlot]?
     var framed = true
     var showsSources = false
     var opensDetail = false
@@ -138,123 +171,218 @@ struct AccountQuotaCard: View {
 
     private func card(now: Date) -> some View {
         let status = CardStatus(account: account, now: now)
-        let bars = account.cardBars(at: now)
-        let idle = account.hasIdleFiveHourWindow(at: now)
+        let slots = slots ?? QuotaSlots.slots(provider: account.provider, accounts: [account])
         return VStack(alignment: .leading, spacing: 12) {
-            header(status: status)
-            if bars.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                nameLine(status: status)
+                facts
+            }
+            if slots.isEmpty {
                 Text("No quota data reported yet")
-                    .font(.board(.subheadline))
+                    .font(.board(.footnote))
                     .foregroundStyle(.secondary)
             }
-            ForEach(bars) { bar in
-                AccountWindowRow(
-                    bar: bar,
-                    blocked: status.isBlocked && !isTheLimit(bar, status: status),
-                    idle: idle && bar.id == FiveHourWindowState.barID,
-                    showsSource: showsSources,
-                    now: now
-                )
+            ForEach(QuotaSlots.readings(account, slots: slots, at: now)) { reading in
+                SlotReadingRow(reading: reading, showsSource: showsSources, now: now)
             }
-            if !bars.isEmpty || status.backAt != nil {
-                Divider()
-                footer(status: status, now: now)
+            if let problem = problem(status) {
+                Text(verbatim: problem)
+                    .font(.board(.footnote))
+                    .foregroundStyle(.red)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.red.opacity(0.1), in: .rect(cornerRadius: 6))
+                    .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(.red.opacity(0.35), lineWidth: 0.75) }
+            }
+            footer(now: now)
+        }
+        .padding(.top, framed ? 4 : 0)
+        .modifier(CardFrame(framed: framed))
+        .overlay(alignment: .topTrailing) {
+            if framed {
+                pill(status: status)
+                    .alignmentGuide(.top) { $0[VerticalAlignment.center] }
+                    .padding(.trailing, 12)
             }
         }
-        .modifier(CardFrame(framed: framed))
         .opacity(status == .disabled ? 0.7 : 1)
     }
 
-    private func isTheLimit(_ bar: QuotaBar, status: CardStatus) -> Bool {
-        bar.id == status.limitBarID
-    }
-
-    private func header(status: CardStatus) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            if showsProvider {
-                ProviderBadge(provider: account.provider, size: 28)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: account.label)
-                    .font(.board(.headline))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .modifier(SelectableText(isSelectable: !framed))
-                if let plan = account.plan {
-                    Text(verbatim: PlanLabel.display(plan))
-                        .font(.board(.subheadline))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 6)
-            if let badge {
-                RouterBadgeView(badge: badge)
-            }
-            Button {
-                showsStatus = true
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: status.symbol)
-                        .imageScale(.small)
-                    Text(status.label)
-                    Image(systemName: "chevron.down")
-                        .font(.board(.caption2).weight(.bold))
-                }
-                .font(.board(.caption).weight(.semibold))
+    private func nameLine(status: CardStatus) -> some View {
+        HStack(spacing: 6) {
+            ProviderBadge(provider: account.provider, size: 18)
+            Text(verbatim: account.label)
+                .font(.board(.subheadline).weight(.semibold))
                 .lineLimit(1)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
-                .foregroundStyle(status.color)
-                .background(status.color.opacity(0.13), in: .capsule)
-                .fixedSize()
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(Text("Shows why and when the account is back"))
-            .popover(isPresented: $showsStatus) {
-                StatusPopover(account: account, session: session) {
-                    showsStatus = false
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(400))
-                        limitsRequest = LimitsRefreshRequest(credentialIDs: [account.id])
-                    }
-                }
-                .presentationCompactAdaptation(.popover)
+                .truncationMode(.middle)
+                .modifier(SelectableText(isSelectable: !framed))
+            if !framed {
+                Spacer(minLength: 6)
+                pill(status: status)
             }
         }
     }
 
-    private func footer(status: CardStatus, now: Date) -> some View {
+    private func pill(status: CardStatus) -> some View {
         Button {
-            showsResets = true
+            showsStatus = true
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: status.isBlocked ? "hourglass" : "clock")
-                    .foregroundStyle(status.isBlocked ? .orange : .secondary)
-                footerLead(status: status, now: now)
-                    .lineLimit(1)
-                Text(verbatim: "·").foregroundStyle(.secondary).accessibilityHidden(true)
-                Text("all resets")
-                    .foregroundStyle(.tint)
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.right")
-                    .font(.board(.caption).weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
-            .font(.board(.subheadline))
-            .contentShape(.rect)
+            CardPill(badge: badge, status: status)
+                .padding(12)
+                .contentShape(.rect)
+                .padding(-12)
         }
         .buttonStyle(.plain)
+        .accessibilityHint(Text("Shows why and when the account is back"))
+        .popover(isPresented: $showsStatus) {
+            StatusPopover(account: account, session: session, checkNow: {
+                showsStatus = false
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    limitsRequest = LimitsRefreshRequest(credentialIDs: [account.id])
+                }
+            }, showResets: {
+                showsStatus = false
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    showsResets = true
+                }
+            })
+            .presentationCompactAdaptation(.popover)
+        }
     }
 
-    private func footerLead(status: CardStatus, now: Date) -> Text {
-        if status == .needsSignIn { return Text("Needs a new sign-in") }
-        if status.isBlocked {
-            guard let back = status.backAt else { return Text("No end time reported") }
-            return Text("Back \(ResetClock.text(back))")
+    @ViewBuilder
+    private var facts: some View {
+        if account.plan == nil, manualResets == nil, paidUntil == nil {
+            Text(verbatim: " ")
+                .font(.board(.footnote))
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) { factItems(short: false) }
+                HStack(spacing: 10) { factItems(short: true) }
+                FlowLayout(spacing: 10) { factItems(short: true) }
+            }
+            .font(.board(.footnote))
+            .lineLimit(1)
         }
-        guard let next = account.nextReset(after: now) else { return Text("No reset reported") }
-        return Text("Next reset \(ResetClock.text(next))")
+    }
+
+    @ViewBuilder
+    private func factItems(short: Bool) -> some View {
+        if let plan = account.plan {
+            HStack(spacing: 4) {
+                if !short {
+                    Text("Plan").foregroundStyle(.secondary)
+                }
+                Text(verbatim: PlanLabel.display(plan))
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 6)
+                    .background(PlanTint.color(account).opacity(0.22), in: .capsule)
+            }
+            .fixedSize()
+        }
+        if let resets = manualResets {
+            HStack(spacing: 4) {
+                (short ? Text("Resets") : Text("Resets remaining")).foregroundStyle(.secondary)
+                Text(verbatim: resets.remaining.formatted())
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+            }
+            .fixedSize()
+        }
+        if let paidUntil {
+            HStack(spacing: 4) {
+                Text("Paid until").foregroundStyle(.secondary)
+                Text(verbatim: PanelDate.day(paidUntil))
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+            }
+            .fixedSize()
+        }
+    }
+
+    private var manualResets: ManualResets? {
+        account.providerCheck?.resets
+    }
+
+    private var paidUntil: Date? {
+        account.provider.lowercased() == "codex" ? account.providerCheck?.planActiveUntil : nil
+    }
+
+    private func problem(_ status: CardStatus) -> String? {
+        switch status {
+        case .needsSignIn: account.statusMessage ?? String(localized: "Needs a new sign-in")
+        case .error: account.statusMessage ?? String(localized: "Reports an error")
+        case .active, .cooling, .limitReached: account.providerCheckFailure.map(\.cardText)
+        case .disabled: nil
+        }
+    }
+
+    @ViewBuilder
+    private func footer(now: Date) -> some View {
+        let extra = account.providerCheck?.extraUsage?.isEnabled
+        if account.endsAt != nil || extra != nil {
+            VStack(alignment: .leading, spacing: 6) {
+                Divider()
+                if let endsAt = account.endsAt {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("Ends")
+                            .textCase(.uppercase)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                        Text(verbatim: PanelDate.day(endsAt))
+                            .monospacedDigit()
+                        Text(verbatim: PanelDate.relative(endsAt, now: now))
+                            .foregroundStyle(.secondary)
+                    }
+                    .lineLimit(1)
+                }
+                if let extra {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 4) {
+                            Text("Extra usage")
+                            Spacer(minLength: 4)
+                            Text(extra ? "Enabled" : "Disabled")
+                                .foregroundStyle(.secondary)
+                        }
+                        .lineLimit(1)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Extra usage")
+                            Text(extra ? "Enabled" : "Disabled")
+                                .foregroundStyle(.secondary)
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .font(.board(.footnote))
+        }
+    }
+}
+
+extension ActiveRefreshFailure {
+    var cardText: String {
+        switch self {
+        case .rateLimited: String(localized: "Failed to load quota: the provider is rate limiting checks.")
+        case .rejected(let status): String(localized: "Failed to load quota: the provider rejected this account (HTTP \(status)).")
+        case .upstream(let status): String(localized: "Failed to load quota: HTTP \(status).")
+        case .unreadable: String(localized: "Failed to load quota: no readable limits in the answer.")
+        case .management: String(localized: "Failed to load quota: the server could not run the check.")
+        case .refusedByProxy(let refusal): String(localized: refusal.explanation)
+        }
+    }
+}
+
+enum PlanTint {
+    static func color(_ account: AccountSummary) -> Color {
+        let plan = (account.plan ?? "").lowercased()
+        if account.planWeight == 20 || plan.contains("500") || plan.contains("heavy") || plan.contains("ultra") { return .orange }
+        if account.planWeight == 5 || plan.hasPrefix("max") || plan.contains("200") || plan.contains("100") || plan.contains("supergrok") { return .yellow }
+        return .gray
     }
 }
 
@@ -263,7 +391,7 @@ private struct CardFrame: ViewModifier {
 
     func body(content: Content) -> some View {
         if framed {
-            content.boardCard()
+            content.boardCard(inset: PanelStyle.cardInset)
         } else {
             content.padding(.vertical, 6)
         }
@@ -312,58 +440,11 @@ private struct OptionalLimitsSheet: ViewModifier {
     }
 }
 
-struct AccountWindowRow: View {
-    let bar: QuotaBar
-    let blocked: Bool
-    let idle: Bool
-    var showsSource = false
-    let now: Date
-
-    var body: some View {
-        let remaining = bar.remainingPercent(at: now)
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                bar.title
-                    .font(.board(.subheadline))
-                    .lineLimit(1)
-                if showsSource, bar.isFromProvider {
-                    ProviderSourceMark(sampledAt: bar.sampledAt)
-                }
-                if idle {
-                    Text("idle")
-                        .font(.board(.caption2).weight(.semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
-                        .foregroundStyle(.green)
-                        .background(.green.opacity(0.13), in: .capsule)
-                }
-                Spacer(minLength: 6)
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(verbatim: HeadroomStyle.percentText(remaining))
-                        .font(.board(.title3).weight(.semibold).monospacedDigit())
-                        .foregroundStyle(numberStyle(remaining))
-                    Text("left")
-                        .font(.board(.footnote))
-                        .foregroundStyle(.secondary)
-                }
-                .fixedSize()
-            }
-            ShareBar(remainingPercent: remaining, fill: blocked ? .blocked : idle ? .idle : .level)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private func numberStyle(_ remaining: Double?) -> Color {
-        guard let remaining else { return .secondary }
-        if remaining <= 0 { return .red }
-        return blocked ? .secondary : .primary
-    }
-}
-
 struct StatusPopover: View {
     let account: AccountSummary
     let session: ServerSession?
     let checkNow: () -> Void
+    var showResets: (() -> Void)?
 
     static let listedModels = 6
 
@@ -400,6 +481,10 @@ struct StatusPopover: View {
                     Text("Checked with the provider \(ElapsedTime.text(from: checked, to: now)) ago")
                         .font(.board(.footnote))
                         .foregroundStyle(.secondary)
+                }
+                if let showResets {
+                    Button("Show all resets", systemImage: "clock", action: showResets)
+                        .buttonStyle(.bordered)
                 }
                 if canCheck {
                     Button("Check this account now", systemImage: "arrow.triangle.2.circlepath.circle", action: checkNow)
