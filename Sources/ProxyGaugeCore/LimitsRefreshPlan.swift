@@ -41,6 +41,8 @@ public struct LimitsRefreshPlan: Sendable, Equatable {
 
     public var isEmpty: Bool { groups.isEmpty }
 
+    public var readyCount: Int { groups.reduce(0) { $0 + $1.accounts.count } }
+
     public var maximumRequests: Int {
         groups.reduce(0) { $0 + $1.accounts.count * $1.maximumRequestsPerAccount }
     }
@@ -58,13 +60,17 @@ public struct LimitsRefreshPlan: Sendable, Equatable {
         return skipped.filter { $0.reason == .unsupported }.map(\.provider).filter { seen.insert($0).inserted }
     }
 
-    public static func make(targets: [ActiveTarget], states: [String: ActiveRefreshState], readings: Set<String> = [], mode: ActiveRefreshMode = .manual, now: Date) -> LimitsRefreshPlan {
+    public static func make(targets: [ActiveTarget], states: [String: ActiveRefreshState], readings: Set<String> = [], mode: ActiveRefreshMode = .manual, proxyRefusedUntil: Date? = nil, now: Date) -> LimitsRefreshPlan {
         var plan = LimitsRefreshPlan()
         var groups: [String: ProviderGroup] = [:]
         var order: [String] = []
         for target in targets {
             switch ActiveRefreshPolicy.decide(target, state: states[target.credentialID] ?? ActiveRefreshState(), mode: mode, hasReading: readings.contains(target.credentialID), now: now) {
             case .run(let scope):
+                if let until = proxyRefusedUntil, until > now {
+                    plan.waiting.append(Waiting(credentialID: target.id, label: target.label, provider: target.provider, until: until, because: .proxyRefused))
+                    continue
+                }
                 if groups[target.provider] == nil { order.append(target.provider) }
                 var group = groups[target.provider] ?? ProviderGroup(provider: target.provider, accounts: [], requests: [], maximumRequestsPerAccount: 0)
                 group.accounts.append(target.label)

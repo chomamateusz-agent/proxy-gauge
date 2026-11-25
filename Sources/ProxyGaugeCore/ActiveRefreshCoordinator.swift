@@ -108,11 +108,25 @@ public enum ActiveRefreshOutcome: Sendable, Equatable {
     case managementFailed(APIError)
     case stopped(partial: ActiveQuota?)
     case notSent
+
+    public var countsAsCheck: Bool {
+        switch self {
+        case .refreshed, .rateLimited, .rejected, .failed, .managementFailed, .stopped: true
+        case .waiting, .skipped, .notSent: false
+        }
+    }
 }
 
 public struct ActiveRefreshResult: Sendable, Equatable {
     public var credentialID: String
     public var outcome: ActiveRefreshOutcome
+    public var paidKeyConsentAttemptAt: Date?
+
+    public init(credentialID: String, outcome: ActiveRefreshOutcome, paidKeyConsentAttemptAt: Date? = nil) {
+        self.credentialID = credentialID
+        self.outcome = outcome
+        self.paidKeyConsentAttemptAt = paidKeyConsentAttemptAt
+    }
 }
 
 public actor ActiveRefreshCoordinator {
@@ -141,6 +155,7 @@ public actor ActiveRefreshCoordinator {
         case decided(ActiveRefreshOutcome)
         case pausedByProxyRefusal(until: Date)
         case refusedByProxy(APIError)
+        case needsPaidKeyConsent(attemptedAt: Date?)
         case performed(Performed, kept: ActiveQuota?)
 
         var neverReachedTheProvider: Bool {
@@ -156,9 +171,10 @@ public actor ActiveRefreshCoordinator {
         var interested: [ActiveRefreshServer]
     }
 
-    private struct Job {
+    private struct Job: Sendable {
         let task: Task<Completion, Never>
         let joinedAnotherCheck: Bool
+        let checksProvider: Bool
     }
 
     private let store: any ActiveRefreshStore
@@ -188,23 +204,45 @@ public actor ActiveRefreshCoordinator {
         mayContactServer: @escaping Admission = { true },
         mayStillContactServer: @escaping BoundaryCheck = { true },
         onManagementRejection: @escaping RejectionHandler = { _ in },
+        onProgress: @escaping @Sendable (Int, Int) async -> Void = { _, _ in },
         send: @escaping Sender
     ) async -> [ActiveRefreshResult] {
         let batch = Batch(mayContactServer: mayContactServer, mayStillContactServer: mayStillContactServer, onRejection: onManagementRejection)
         let jobs = targets.map { target in
             (target, job(for: target, server: server, mode: mode, batch: batch, send: send))
         }
-        var results: [ActiveRefreshResult] = []
-        for (target, first) in jobs {
-            var job = first
-            var completion = await job.task.value
-            while job.joinedAnotherCheck, completion.neverReachedTheProvider {
-                job = self.job(for: target, server: server, mode: mode, batch: batch, send: send)
-                completion = await job.task.value
+        let ready = jobs.filter { $0.1.checksProvider }.count
+        await onProgress(0, ready)
+        return await withTaskGroup(of: (Int, ActiveRefreshResult).self) { group in
+            for (index, (target, job)) in jobs.enumerated() {
+                group.addTask {
+                    let result = await self.result(for: target, first: job, server: server, mode: mode, batch: batch, send: send)
+                    return (index, result)
+                }
             }
-            results.append(ActiveRefreshResult(credentialID: target.credentialID, outcome: outcome(completion)))
+            var results = Array<ActiveRefreshResult?>(repeating: nil, count: jobs.count)
+            var total = ready
+            var completed = 0
+            for await (index, result) in group {
+                results[index] = result
+                if jobs[index].1.checksProvider {
+                    if result.outcome.countsAsCheck { completed += 1 } else { total -= 1 }
+                    await onProgress(completed, total)
+                }
+            }
+            return results.compactMap { $0 }
         }
-        return results
+    }
+
+    private func result(for target: ActiveTarget, first: Job, server: ActiveRefreshServer, mode: ActiveRefreshMode, batch: Batch, send: @escaping Sender) async -> ActiveRefreshResult {
+        var job = first
+        var completion = await job.task.value
+        while job.joinedAnotherCheck, completion.neverReachedTheProvider {
+            job = self.job(for: target, server: server, mode: mode, batch: batch, send: send)
+            completion = await job.task.value
+        }
+        let consentAttemptAt: Date? = if case .needsPaidKeyConsent(let date) = completion { date } else { nil }
+        return ActiveRefreshResult(credentialID: target.credentialID, outcome: outcome(completion), paidKeyConsentAttemptAt: consentAttemptAt)
     }
 
     public func isRefreshing(_ credentialID: String, proxy: String) -> Bool {
@@ -220,23 +258,23 @@ public actor ActiveRefreshCoordinator {
         if var running = inFlight[key] {
             running.interested.append(server)
             inFlight[key] = running
-            return Job(task: running.task, joinedAnotherCheck: true)
+            return Job(task: running.task, joinedAnotherCheck: true, checksProvider: true)
         }
         let hasReading = store.activeQuotas(proxy: server.proxy)[target.credentialID] != nil
         switch ActiveRefreshPolicy.decide(target, state: state(target.credentialID, proxy: server.proxy), mode: mode, hasReading: hasReading, now: clock()) {
         case .skip(let reason):
-            return Job(task: Task { .decided(.skipped(reason)) }, joinedAnotherCheck: false)
+            return Job(task: Task { .decided(.skipped(reason)) }, joinedAnotherCheck: false, checksProvider: false)
         case .wait(let until, let reason):
-            return Job(task: Task { .decided(.waiting(until: until, because: reason)) }, joinedAnotherCheck: false)
+            return Job(task: Task { .decided(.waiting(until: until, because: reason)) }, joinedAnotherCheck: false, checksProvider: false)
         case .run(let scope):
-            if let until = automaticChecksPaused(mode, proxy: server.proxy) {
-                return Job(task: Task { .decided(.waiting(until: until, because: .proxyRefused)) }, joinedAnotherCheck: false)
+            if let until = proxyRefusalWait(mode, proxy: server.proxy) {
+                return Job(task: Task { .decided(.waiting(until: until, because: .proxyRefused)) }, joinedAnotherCheck: false, checksProvider: false)
             }
             let task = Task {
                 await self.check(target, scope: scope, server: server, mode: mode, batch: batch, send: send)
             }
             inFlight[key] = Running(task: task, interested: [server])
-            return Job(task: task, joinedAnotherCheck: false)
+            return Job(task: task, joinedAnotherCheck: false, checksProvider: true)
         }
     }
 
@@ -248,6 +286,8 @@ public actor ActiveRefreshCoordinator {
         case .notSent: return .decided(.notSent)
         case .pausedByProxyRefusal(let until): return .pausedByProxyRefusal(until: until)
         case .refusedByProxy(let error): return .refusedByProxy(error)
+        case .performed(.failed(.requiresPaidKeyConsent)):
+            return .needsPaidKeyConsent(attemptedAt: state(target.id, proxy: server.proxy).lastAttemptAt)
         case .performed(let performed): return .performed(performed, kept: keepReadings(partial, for: interested))
         }
     }
@@ -257,6 +297,7 @@ public actor ActiveRefreshCoordinator {
         case .decided(let outcome): outcome
         case .pausedByProxyRefusal(let until): .waiting(until: until, because: .proxyRefused)
         case .refusedByProxy(let error): .managementFailed(error)
+        case .needsPaidKeyConsent: .failed(.requiresPaidKeyConsent)
         case .performed(let performed, let kept): outcome(performed, kept: kept)
         }
     }
@@ -279,7 +320,7 @@ public actor ActiveRefreshCoordinator {
             authIndex: target.authIndex ?? "",
             scope: scope,
             send: { _, call in
-                try await self.send(call, for: target, server: server, mode: mode, batch: batch, attempt: attempt, send: send)
+                try await self.send(call, for: target, server: server, mode: mode, batch: batch, attempt: attempt, consumesPaidKeyApproval: scope.isPaidKeyContinuation, send: send)
             },
             pause: pause,
             partial: partial
@@ -309,11 +350,14 @@ public actor ActiveRefreshCoordinator {
                 case .unreadable:
                     state.recordFailure(.unreadable)
                     return .failed(.unreadable)
+                case .requiresPaidKeyConsent:
+                    state.recordFailure(.requiresPaidKeyConsent)
+                    return .failed(.requiresPaidKeyConsent)
                 }
             })
         } catch BatchStop.notSent {
             if attempt.wasSent { return .performed(.stopped) }
-            return automaticChecksPaused(mode, proxy: server.proxy).map { .pausedByProxyRefusal(until: $0) } ?? .notSent
+            return proxyRefusalWait(mode, proxy: server.proxy).map { .pausedByProxyRefusal(until: $0) } ?? .notSent
         } catch BatchStop.cancelledInTransport {
             return .performed(.stopped)
         } catch let refusal as APIError where refusal.isAuthenticationFailure && !attempt.wasSent {
@@ -331,11 +375,11 @@ public actor ActiveRefreshCoordinator {
         }
     }
 
-    private func send(_ call: UpstreamCall, for target: ActiveTarget, server: ActiveRefreshServer, mode: ActiveRefreshMode, batch: Batch, attempt: Attempt, send: Sender) async throws -> ReceivedReply {
+    private func send(_ call: UpstreamCall, for target: ActiveTarget, server: ActiveRefreshServer, mode: ActiveRefreshMode, batch: Batch, attempt: Attempt, consumesPaidKeyApproval: Bool, send: Sender) async throws -> ReceivedReply {
         await providerLanes.acquire(target.provider)
         await serverLanes.acquire(server.proxy)
         do {
-            guard automaticChecksPaused(mode, proxy: server.proxy) == nil else { throw BatchStop.notSent }
+            guard proxyRefusalWait(mode, proxy: server.proxy) == nil else { throw BatchStop.notSent }
             try await batch.admit()
         } catch {
             await releaseLanes(target: target, server: server)
@@ -344,8 +388,8 @@ public actor ActiveRefreshCoordinator {
         let start = TransportStart()
         let hooks = SendHooks(
             admit: { await batch.mayStillSend() },
-            started: { self.recordStart(start, of: target.credentialID, proxy: server.proxy, attempt: attempt) },
-            stillAdmitted: { batch.mayStillSendNow && self.automaticChecksPaused(mode, proxy: server.proxy) == nil },
+            started: { self.recordStart(start, of: target.credentialID, proxy: server.proxy, attempt: attempt, consumesPaidKeyApproval: consumesPaidKeyApproval) },
+            stillAdmitted: { batch.mayStillSendNow && self.proxyRefusalWait(mode, proxy: server.proxy) == nil },
             withdraw: { self.undoStart(start, of: target.credentialID, proxy: server.proxy, attempt: attempt) }
         )
         let result: Result<UpstreamReply, any Error>
@@ -360,7 +404,7 @@ public actor ActiveRefreshCoordinator {
             await releaseLanes(target: target, server: server)
             throw BatchStop.notSent
         }
-        recordStart(start, of: target.credentialID, proxy: server.proxy, attempt: attempt)
+        recordStart(start, of: target.credentialID, proxy: server.proxy, attempt: attempt, consumesPaidKeyApproval: consumesPaidKeyApproval)
         if case .failure(let rejection as APIError) = result, rejection.isAuthenticationFailure {
             undoStart(start, of: target.credentialID, proxy: server.proxy, attempt: attempt)
         }
@@ -377,13 +421,13 @@ public actor ActiveRefreshCoordinator {
         return ReceivedReply(reply: reply, receivedAt: receivedAt)
     }
 
-    private nonisolated func recordStart(_ start: TransportStart, of credentialID: String, proxy: String, attempt: Attempt) {
+    private nonisolated func recordStart(_ start: TransportStart, of credentialID: String, proxy: String, attempt: Attempt, consumesPaidKeyApproval: Bool) {
         guard !start.hasHappened else { return }
         let stateBefore = store.activeRefreshStates(proxy: proxy)[credentialID]
         let isFirstSend = attempt.markSent()
         start.record(isFirstSend ? .firstSend(stateBefore: stateBefore) : .laterSend)
         if isFirstSend {
-            recordAttempt(credentialID, proxy: proxy)
+            recordAttempt(credentialID, proxy: proxy, consumesPaidKeyApproval: consumesPaidKeyApproval)
         }
     }
 
@@ -404,8 +448,11 @@ public actor ActiveRefreshCoordinator {
         }
     }
 
-    private nonisolated func automaticChecksPaused(_ mode: ActiveRefreshMode, proxy: String) -> Date? {
-        guard mode != .manual else { return nil }
+    private nonisolated func proxyRefusalWait(_ mode: ActiveRefreshMode, proxy: String) -> Date? {
+        switch mode {
+        case .automatic, .approvedSurface: break
+        case .manual, .manualReadOnly: return nil
+        }
         return store.proxyRefusalBackoff(proxy: proxy)?.automaticChecksResume(after: clock())
     }
 
@@ -424,9 +471,10 @@ public actor ActiveRefreshCoordinator {
         return merged
     }
 
-    private nonisolated func recordAttempt(_ credentialID: String, proxy: String) {
+    private nonisolated func recordAttempt(_ credentialID: String, proxy: String, consumesPaidKeyApproval: Bool) {
         var state = state(credentialID, proxy: proxy)
         state.recordAttempt(now: clock(), jitter: jitter())
+        if consumesPaidKeyApproval { state.lastFailure = nil }
         store.saveActiveRefreshState(state, credentialID: credentialID, proxy: proxy)
     }
 

@@ -281,7 +281,7 @@ private struct SectionRefresh: ViewModifier {
         } else {
             content.toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Refresh", systemImage: "arrow.clockwise") {
+                    Button("Reload from API", systemImage: "arrow.clockwise") {
                         Task { await session.refresh(scope, trigger: .manual) }
                     }
                     .disabled(session.isRefreshing)

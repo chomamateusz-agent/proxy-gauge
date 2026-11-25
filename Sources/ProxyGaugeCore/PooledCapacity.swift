@@ -108,10 +108,6 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
         }
     }
 
-    func countsIdleFiveHourWindowAsFull(at now: Date) -> Bool {
-        countsTowardCapacity && contribution(in: FiveHourWindowState.barID, at: now) == .noWindowRunning(blockedBy: nil)
-    }
-
     func hasIdleFiveHourWindow(at now: Date) -> Bool {
         guard countsTowardCapacity, case .noWindowRunning = contribution(in: FiveHourWindowState.barID, at: now) else { return false }
         return true
@@ -124,10 +120,11 @@ public struct PoolAccount: Codable, Sendable, Equatable, Hashable {
     func contribution(in barID: String, at now: Date) -> Contribution {
         let bar = bars.first { $0.id == barID }
         let tracksFiveHourWindow = barID == FiveHourWindowState.barID && ProviderCatalog.reportsFiveHourWindow(provider)
-        if tracksFiveHourWindow, !bars.isEmpty, bar.map({ $0.startsOnUse(provider: provider, at: now) }) ?? true {
+        if bar?.startsOnUse(provider: provider, at: now) == true {
             return .noWindowRunning(blockedBy: block(for: barID, at: now))
         }
-        guard let remaining = bar?.remainingPercent(at: now) else { return tracksFiveHourWindow ? .leftOut : .unknown }
+        if tracksFiveHourWindow, bar?.usedPercent == nil, bar?.status != QuotaBar.rejectedStatus { return .leftOut }
+        guard let remaining = bar?.remainingPercent(at: now) else { return .unknown }
         return .remaining(remaining, blockedBy: block(for: barID, at: now))
     }
 

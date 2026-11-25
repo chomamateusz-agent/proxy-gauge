@@ -119,7 +119,7 @@ struct AccountOrderTests {
         #expect(ServerLab.routerOrderKey(serverID: id) != ServerLab.routerOrderKey(serverID: UUID()))
     }
 
-    @Test func segmentsFollowCardOrderAndMarkIdleBlockedLeftOutAndDisabled() throws {
+    @Test func segmentsFollowCardOrderAndMarkUnreportedWindowsAndDisabledAccounts() throws {
         let idle = AccountSummary(id: "idle", provider: "claude", label: "idle", state: .active, bars: [QuotaBar(id: "weekly_all", usedPercent: 10)])
         let idleCooling = AccountSummary(id: "idle-cooling", provider: "claude", label: "idle-cooling", state: .cooldown, bars: [QuotaBar(id: "weekly_all", usedPercent: 10)], blockedUntil: now.addingTimeInterval(3_600))
         let noData = AccountSummary(id: "no-data", provider: "claude", label: "no-data", state: .active, bars: [])
@@ -130,15 +130,15 @@ struct AccountOrderTests {
         let overview = ProviderOverview(pool: pool, accounts: accounts, now: now)
         let segments = overview.segments("session_5h", order: ["running", "idle-cooling", "idle"])
         #expect(segments.map(\.id) == ["running", "idle-cooling", "idle", "disabled", "no-data"])
-        #expect(segments.map(\.kind) == [.counted, .idle, .idle, .disabled, .leftOut])
-        #expect(segments.map(\.remainingPercent) == [75, 100, 100, 0, 0])
-        #expect(segments.map(\.isBlocked) == [false, true, false, false, false])
+        #expect(segments.map(\.kind) == [.counted, .leftOut, .leftOut, .disabled, .leftOut])
+        #expect(segments.map(\.remainingPercent) == [75, 0, 0, 0, 0])
+        #expect(segments.map(\.isBlocked) == [false, false, false, false, false])
         let session = try #require(pool.window(.session5h))
-        #expect(session.accountsCountedAsFull == 2)
-        #expect(session.accountsLeftOut == 1)
-        #expect(session.capacityPercent == 300)
-        #expect(session.remainingPercent == 275)
-        #expect(session.usablePercent == 175)
+        #expect(session.accountsCountedAsFull == 0)
+        #expect(session.accountsLeftOut == 3)
+        #expect(session.capacityPercent == 100)
+        #expect(session.remainingPercent == 75)
+        #expect(session.usablePercent == 75)
     }
 
     @Test func chipsSplitSignInFromOtherErrors() throws {
@@ -162,15 +162,14 @@ struct AccountOrderTests {
         #expect(summary.nextReset(after: now) == now.addingTimeInterval(3_600))
     }
 
-    @Test func resetsListTheIdleFiveHourWindowThatStartsOnFirstUse() {
+    @Test func resetsOmitAnUnreportedFiveHourWindow() {
         let idle = AccountSummary(id: "i", provider: "claude", label: "i", state: .active, bars: [
             QuotaBar(id: "weekly_all", usedPercent: 30, resetsAt: now.addingTimeInterval(86_400 * 4))
         ])
         let resets = idle.resets(at: now)
-        #expect(resets.map(\.barID) == ["session_5h", "weekly_all"])
-        #expect(resets.map(\.startsOnFirstUse) == [true, false])
-        #expect(resets.first?.remainingPercent == 100)
-        #expect(resets.first?.gainAtReset == nil)
+        #expect(resets.map(\.barID) == ["weekly_all"])
+        #expect(resets.first?.remainingPercent == 70)
+        #expect(resets.first?.gainAtReset == 30)
     }
 
     @Test func comebackGainsSayWhatTheBlockedAccountBringsBack() {
@@ -180,11 +179,9 @@ struct AccountOrderTests {
         ], blockedUntil: now.addingTimeInterval(7_200))
         let gains = cooling.comebackGains(at: now)
         #expect(gains == [
-            Comeback.Gain(barID: "session_5h", percent: 100),
             Comeback.Gain(barID: "weekly_all", percent: 70),
             Comeback.Gain(barID: "weekly_fable", percent: 44)
         ])
-        #expect(cooling.cardBars(at: now).map(\.id) == ["session_5h", "weekly_all", "weekly_fable"])
         #expect(account("usable").comebackGains(at: now).isEmpty)
     }
 

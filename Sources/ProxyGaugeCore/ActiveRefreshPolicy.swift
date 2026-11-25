@@ -73,6 +73,7 @@ public struct ActiveScope: Sendable, Equatable {
     public var includesProfile: Bool
     public var includesResetInventory: Bool
     public var allowsPaidKeyCheck: Bool
+    var isPaidKeyContinuation = false
 
     public init(includesProfile: Bool, includesResetInventory: Bool, allowsPaidKeyCheck: Bool) {
         self.includesProfile = includesProfile
@@ -81,6 +82,12 @@ public struct ActiveScope: Sendable, Equatable {
     }
 
     public static let manual = ActiveScope(includesProfile: true, includesResetInventory: true, allowsPaidKeyCheck: true)
+    public static let manualReadOnly = ActiveScope(includesProfile: true, includesResetInventory: true, allowsPaidKeyCheck: false)
+    static let paidKeyContinuation: ActiveScope = {
+        var scope = ActiveScope(includesProfile: false, includesResetInventory: false, allowsPaidKeyCheck: true)
+        scope.isPaidKeyContinuation = true
+        return scope
+    }()
 
     public static func automatic(includesProfile: Bool) -> ActiveScope {
         ActiveScope(includesProfile: includesProfile, includesResetInventory: false, allowsPaidKeyCheck: false)
@@ -96,6 +103,8 @@ public enum ActiveRefreshOrigin: Sendable, Equatable {
 
 public enum ActiveRefreshMode: Sendable, Equatable {
     case manual
+    case manualReadOnly
+    case approvedSurface(paidKeyAttempts: [String: Date])
     case automatic(interval: TimeInterval, origin: ActiveRefreshOrigin)
 }
 
@@ -104,6 +113,7 @@ public enum ActiveRefreshFailure: Codable, Sendable, Equatable, Hashable {
     case rejected(status: Int)
     case upstream(status: Int)
     case unreadable
+    case requiresPaidKeyConsent
     case management
     case refusedByProxy(ProxyAccountRefusal)
 }
@@ -245,7 +255,7 @@ public struct ActiveRefreshState: Codable, Sendable, Equatable {
         case .upstream(let status): .upstream(status: status)
         case .unreadable: .unreadable
         case .refusedByProxy(let refusal): .refusedByProxy(refusal)
-        case .rateLimited, .rejected, .management, nil: nil
+        case .rateLimited, .rejected, .requiresPaidKeyConsent, .management, nil: nil
         }
     }
 }
@@ -261,6 +271,8 @@ public enum ActiveRefreshSkip: Sendable, Equatable {
     case disabled
     case missingAuthIndex
     case missingProject
+    case requiresConsent
+    case approvalExpired
     case notVisible
     case excludedFromAutomatic
     case automaticSuspended
@@ -359,9 +371,19 @@ public enum ActiveRefreshPolicy {
         guard target.authIndex?.isEmpty == false else { return .skip(.missingAuthIndex) }
         guard target.provider != "antigravity" || target.projectID?.isEmpty == false else { return .skip(.missingProject) }
         switch mode {
-        case .manual:
+        case .manual, .manualReadOnly:
             if let wait = waitForAllowance(state, now: now), !mayCheckOnceWithoutReading(state, hasReading: hasReading, now: now) { return wait }
-            return .run(.manual)
+            if mode == .manualReadOnly, usesUnofficialGoogleEndpoints(target.provider) { return .skip(.requiresConsent) }
+            return .run(mode == .manualReadOnly ? .manualReadOnly : .manual)
+        case .approvedSurface(let paidKeyAttempts):
+            if mayRunPaidCompletion(target.provider) {
+                if state.isRateLimited(at: now), let until = state.rateLimitedUntil { return .wait(until: until, because: .rateLimited) }
+                guard let attemptedAt = paidKeyAttempts[target.id], state.lastAttemptAt == attemptedAt,
+                      state.lastFailure == .requiresPaidKeyConsent, state.rejectedStatus == nil else { return .skip(.approvalExpired) }
+                return .run(.paidKeyContinuation)
+            }
+            guard usesUnofficialGoogleEndpoints(target.provider) else { return .skip(.approvalExpired) }
+            return decide(target, state: state, mode: .manual, hasReading: hasReading, now: now)
         case .automatic(let interval, let origin):
             guard origin == .visibleApp else { return .skip(.notVisible) }
             guard refreshesAutomatically(target.provider) else { return .skip(.excludedFromAutomatic) }

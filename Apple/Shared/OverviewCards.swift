@@ -94,11 +94,7 @@ struct NoQuotaDataReason: View {
         } else if !signIn.isEmpty {
             Text(verbatim: String(localized: "\(OverviewWording.names(signIn)) needs a new sign-in"))
         } else if fetchable {
-            #if os(iOS)
-            Text("Hold Refresh, then Check limits with providers")
-            #else
-            Text("Open the Refresh menu, then Check limits with providers")
-            #endif
+            Text("Choose Refresh from provider to load quota")
         } else {
             Text("No quota data reported yet")
         }

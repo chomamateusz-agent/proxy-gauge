@@ -78,23 +78,6 @@ struct QuotaTimelineTests {
         #expect(runningLane.windowStartingAfter(nil, now: now) == nil)
     }
 
-    @Test func usableAccountWithoutAFiveHourWindowListsItAsStartingOnUse() {
-        let weekly = QuotaBar(id: "weekly_all", usedPercent: 20, resetsAt: now.addingTimeInterval(86_400))
-        let idle = AccountSummary(id: "a", provider: "claude", label: "a", state: .active, bars: [weekly])
-        let pool = ProviderPool(provider: "claude", accounts: 2, windows: [PooledWindow(barID: "session_5h", accounts: 2, unknownAccounts: 0, remainingPercent: 180, nextIncreaseAt: nil, latestSampleAt: nil)])
-        #expect(idle.countsIdleFiveHourWindowAsFull(in: pool, at: now))
-        let bars = idle.barsIncludingIdleFiveHourWindow(in: pool, at: now)
-        #expect(bars.map(\.id) == ["session_5h", "weekly_all"])
-        #expect(bars.first?.startsOnUse(provider: "claude", at: now) == true)
-        #expect(bars.first?.remainingPercent(at: now) == 100)
-
-        let blocked = AccountSummary(id: "b", provider: "claude", label: "b", state: .active, bars: [
-            QuotaBar(id: "weekly_all", usedPercent: 100, status: "rejected", resetsAt: now.addingTimeInterval(86_400))
-        ])
-        #expect(blocked.barsIncludingIdleFiveHourWindow(in: pool, at: now) == blocked.bars)
-        let untracked = AccountSummary(id: "c", provider: "gemini", label: "c", state: .active, bars: [weekly])
-        #expect(untracked.barsIncludingIdleFiveHourWindow(in: pool, at: now) == untracked.bars)
-    }
 
     @Test func rangesCoverTwoWeeksOrADay() {
         var calendar = Calendar(identifier: .gregorian)

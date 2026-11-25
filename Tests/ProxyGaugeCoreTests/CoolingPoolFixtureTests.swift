@@ -43,21 +43,21 @@ struct CoolingPoolFixtureTests {
         #expect(fable.blockReason == .windowAtLimit("weekly_all"))
 
         let session = try #require(claude.window(.session5h))
-        #expect(session.remainingPercent == 300)
-        #expect(session.capacityPercent == 300)
-        #expect(session.usablePercent == 100)
-        #expect(session.blockedPercent == 200)
+        #expect(session.remainingPercent == 100)
+        #expect(session.capacityPercent == 100)
+        #expect(session.usablePercent == 0)
+        #expect(session.blockedPercent == 100)
         #expect(session.blockedUntil == fridayUnblock)
-        #expect(!session.blockClearsAtOnce)
-        #expect(session.accountsCountedAsFull == 3)
-        #expect(session.accountsLeftOut == 0)
+        #expect(session.blockClearsAtOnce)
+        #expect(session.accountsCountedAsFull == 1)
+        #expect(session.accountsLeftOut == 2)
     }
 
     @Test func widgetsLeadWithTheProviderThatCanTakeTheLeastRequests() throws {
         let pools = try clientKeyPools()
         #expect(PooledCapacity.mostConstrained(pools)?.provider == "codex")
         let claude = try #require(pools.first { $0.provider == "claude" })
-        #expect(claude.bindingWindow?.window == .weekly)
+        #expect(claude.bindingWindow?.window == .session5h)
     }
 
     @Test func codexWeeklyIsUsedUp() throws {

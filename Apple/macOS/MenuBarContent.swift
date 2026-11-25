@@ -66,7 +66,7 @@ struct MenuBarContent: View {
                     NSApp.activate()
                 }
                 Spacer()
-                Button("Refresh", systemImage: "arrow.clockwise") {
+                Button("Reload from API", systemImage: "arrow.clockwise") {
                     Task { await model.refreshDefaultHeadroom(trigger: .manual) }
                 }
                 .labelStyle(.iconOnly)
@@ -148,7 +148,7 @@ struct MenuBarServerSummary: View {
                             if let headroom = quota.headroom.first(where: { $0.provider == pool.provider }), headroom.isWorthShowingBesideThePool {
                                 BestAccountLine(headroom: headroom, compact: true)
                             }
-                            MenuBarAccountList(accounts: accounts.filter { $0.provider == pool.provider }, pool: pool)
+                            MenuBarAccountList(accounts: accounts.filter { $0.provider == pool.provider })
                         }
                     }
                 }
@@ -175,13 +175,12 @@ struct CappedScrollView<Content: View>: View {
 
 struct MenuBarAccountList: View {
     let accounts: [AccountSummary]
-    let pool: ProviderPool
 
     var body: some View {
         if !accounts.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(accounts) { account in
-                    MenuBarAccountRow(account: account, pool: pool)
+                    MenuBarAccountRow(account: account)
                 }
             }
             .padding(8)
@@ -192,7 +191,6 @@ struct MenuBarAccountList: View {
 
 struct MenuBarAccountRow: View {
     let account: AccountSummary
-    let pool: ProviderPool
 
     var body: some View {
         let now = Date.now
@@ -223,8 +221,8 @@ struct MenuBarAccountRow: View {
                 .foregroundStyle(.secondary)
             } else {
                 Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 1) {
-                    ForEach(account.barsIncludingIdleFiveHourWindow(in: pool, at: now)) { bar in
-                        MenuBarWindowRow(bar: bar, provider: account.provider, now: now)
+                    ForEach(account.bars) { bar in
+                        MenuBarWindowRow(bar: bar, now: now)
                     }
                 }
             }
@@ -236,7 +234,6 @@ struct MenuBarAccountRow: View {
 
 private struct MenuBarWindowRow: View {
     let bar: QuotaBar
-    let provider: String
     let now: Date
 
     var body: some View {
@@ -250,9 +247,7 @@ private struct MenuBarWindowRow: View {
                 .foregroundStyle(remaining == nil ? .secondary : HeadroomStyle.color(forRemaining: remaining))
                 .gridColumnAlignment(.trailing)
             Group {
-                if bar.startsOnUse(provider: provider, at: now) {
-                    Text("starts on use")
-                } else if let resetsAt = bar.resetsAt, resetsAt > now {
+                if let resetsAt = bar.resetsAt, resetsAt > now {
                     Text("resets \(ResetClock.text(resetsAt))")
                 } else if bar.hasReset(at: now) {
                     Text("reset passed")

@@ -368,6 +368,10 @@ struct StoredActiveQuota: Decodable {
 
     init(from decoder: Decoder) throws {
         quota = try? ActiveQuota(from: decoder)
+        if let quota, ["claude", "codex"].contains(quota.provider.lowercased()),
+           let resets = quota.resets, resets.remaining > 0, !resets.hasUsabilityDetails {
+            self.quota?.resets = nil
+        }
     }
 }
 

@@ -22,15 +22,15 @@ public enum ScopeLoader {
 
     public static let usageWindow: TimeInterval = 7 * 86_400
 
-    public static func load(_ scope: RefreshScope, authMode: AuthMode, management: ManagementClient, client: ClientKeyClient, readsRouterSettings: Bool = true, now: Date = Date(), publish: Publish) async throws {
+    public static func load(_ scope: RefreshScope, authMode: AuthMode, management: ManagementClient, client: ClientKeyClient, readsRouterSettings: Bool = true, now: Date = Date(), onCredentialsReceived: @Sendable () async -> Void = {}, publish: Publish) async throws {
         switch (authMode, scope) {
         case (.management, .accounts), (.management, .limits), (.management, .accountDetail):
-            await publish(.accounts(try await accounts(management, readsRouterSettings: readsRouterSettings)))
+            await publish(.accounts(try await accounts(management, readsRouterSettings: readsRouterSettings, onCredentialsReceived: onCredentialsReceived)))
         case (.management, .usage):
-            await publish(.accounts(try await accounts(management, readsRouterSettings: readsRouterSettings)))
+            await publish(.accounts(try await accounts(management, readsRouterSettings: readsRouterSettings, onCredentialsReceived: onCredentialsReceived)))
             await publish(.tokenUsage(try await management.clientKeyUsage(since: now.addingTimeInterval(-usageWindow))))
         case (.management, .models):
-            let list = try await accounts(management, readsRouterSettings: readsRouterSettings)
+            let list = try await accounts(management, readsRouterSettings: readsRouterSettings, onCredentialsReceived: onCredentialsReceived)
             await publish(.accounts(list))
             await publish(.catalog(try await ModelCatalog.load(from: management, credentials: list.credentials.value.files)))
         case (.management, .settings):
@@ -50,8 +50,9 @@ public enum ScopeLoader {
         }
     }
 
-    public static func accounts(_ management: ManagementClient, readsRouterSettings: Bool = true) async throws -> AccountList {
+    public static func accounts(_ management: ManagementClient, readsRouterSettings: Bool = true, onCredentialsReceived: @Sendable () async -> Void = {}) async throws -> AccountList {
         let credentials = try await management.credentials()
+        await onCredentialsReceived()
         var list: AccountList
         do {
             list = AccountList(credentials: credentials, keyCounters: .success(try await management.upstreamKeyCounters()))

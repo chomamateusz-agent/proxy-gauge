@@ -119,12 +119,13 @@ struct PanelQuotaTests {
         #expect(partial[1].resetsAt == now.addingTimeInterval(86_400))
     }
 
-    @Test func idleFiveHourReadsFullAndStartsOnFirstUse() {
+    @Test func anUnreportedFiveHourSlotReadsNoData() {
         let account = claude("idle", session: nil, weekly: 40)
         let reading = QuotaSlots.reading(account, slot: WindowSlot(barID: "session_5h"), at: now)
-        #expect(reading.remainingPercent == 100)
-        #expect(reading.startsOnFirstUse)
+        #expect(reading.remainingPercent == nil)
+        #expect(!reading.isReported)
         #expect(reading.resetsAt == nil)
+        #expect(AccountOrder.routerReadings(account, now: now)?.short == nil)
     }
 
     @Test func windowThatAlreadyResetReadsFullWithoutAResetTime() {
@@ -135,7 +136,7 @@ struct PanelQuotaTests {
         #expect(reading.resetsAt == nil)
     }
 
-    @Test func anInferredIdleFiveHourShowsOnTheCardButStaysOutOfThePool() throws {
+    @Test func anUnreportedFiveHourSlotStaysOutOfThePool() throws {
         let reported = AccountSummary(id: "a", provider: "codex", label: "a", state: .active, bars: [
             QuotaBar(id: "session_5h", usedPercent: 80, resetsAt: now.addingTimeInterval(3_600)),
             QuotaBar(id: "weekly_all", usedPercent: 10, resetsAt: now.addingTimeInterval(86_400))
@@ -148,7 +149,7 @@ struct PanelQuotaTests {
         #expect(fiveHour.remainingPercent == 20)
         #expect(fiveHour.covered == 1)
         #expect(fiveHour.total == 2)
-        #expect(QuotaSlots.reading(weeklyOnly, slot: fiveHour.slot, at: now).startsOnFirstUse)
+        #expect(QuotaSlots.reading(weeklyOnly, slot: fiveHour.slot, at: now).remainingPercent == nil)
     }
 
     @Test func aReportedIdleFiveHourCountsAsFullInThePool() throws {
@@ -160,6 +161,9 @@ struct PanelQuotaTests {
         let fiveHour = try #require(result.pools.first { $0.slot.window == .session5h })
         #expect(fiveHour.covered == 2)
         #expect(fiveHour.remainingPercent == 50)
+        let reading = QuotaSlots.reading(withBar, slot: fiveHour.slot, at: now)
+        #expect(reading.remainingPercent == 100)
+        #expect(reading.resetsAt == nil)
     }
 
     @Test func monthlyWindowsFillTheWeeklySlotOfTheSameProviderAsThePanel() throws {

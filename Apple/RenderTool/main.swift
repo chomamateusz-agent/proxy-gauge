@@ -100,6 +100,7 @@ enum Renderer {
     static let rendersOnlyOverviewLayouts = CommandLine.arguments.contains("--overview-layouts-only")
     static let rendersMacRedesign = CommandLine.arguments.contains("--mac-redesign")
     static let rendersPanel = CommandLine.arguments.contains("--panel")
+    static let rendersProviderRefresh = CommandLine.arguments.contains("--provider-refresh")
     static let renderLocale = Locale(identifier: rendersPolish ? "pl_PL" : "en_US")
     static let phoneSize = CGSize(width: 402, height: 874)
     static let sizes: [(name: String, size: CGSize)] = [("1920x1080", CGSize(width: 1920, height: 1080)), ("1440x900", CGSize(width: 1440, height: 900))]
@@ -128,6 +129,10 @@ enum Renderer {
         }
         if rendersPanel {
             try await PanelRenders.run(model: model, defaults: defaults, output: output)
+            return
+        }
+        if rendersProviderRefresh {
+            try await renderProviderRefresh(model: model, defaults: defaults, output: output)
             return
         }
         try await renderOverviewLayouts(model: model, defaults: defaults, output: output)
@@ -229,7 +234,7 @@ enum Renderer {
         ]
         let strip = VStack(spacing: 12) {
             ForEach(states.indices, id: \.self) { index in
-                FreshnessRow(freshness: states[index].0, isRefreshing: states[index].1, now: now, refresh: {}, checkLimits: {})
+                FreshnessRow(freshness: states[index].0, now: now, reload: .init(action: {}, enabled: !states[index].1), provider: .init(action: {}, enabled: !states[index].1), activity: .init(progress: states[index].1 ? .api(0.65) : nil))
             }
         }
         .padding(.vertical, 16)
@@ -262,22 +267,20 @@ enum Renderer {
     }
 
     static func renderProviderRefresh(model: AppModel, defaults: UserDefaults, output: URL) async throws {
-        let planned = providerSession("Provider plan", transport: ProviderRenderTransport(addsGoogleAndKimi: true))
+        let planned = providerSession("Provider plan", transport: ProviderRenderTransport(includesApprovalFixtures: true))
         await planned.refresh(.accounts, trigger: .manual)
+        await planned.refreshProviderFromSurface()
         let refreshed = providerSession("Provider results", transport: ProviderRenderTransport())
         await refreshed.refreshLimits(trigger: .manual, origin: .visibleApp)
-        let notLoaded = providerSession("Not loaded", transport: ProviderRenderTransport())
-        guard let demo = model.defaultProfile else { return }
+        guard let demo = model.defaultProfile, let report = planned.providerRefreshReport else { return }
         let clientKey = ServerSession(profile: .demo(authMode: .clientKey), secrets: MemorySecretStore(), latchStore: nil)
         await clientKey.refresh(.limits, trigger: .manual)
         for appearance in [NSAppearance.Name.darkAqua, .aqua] {
             let scheme = appearance == .darkAqua ? "dark" : "light"
-            let sheet = LimitsRefreshSheet(session: planned, credentialIDs: nil).environment(model)
-            try await renderInWindow(sheet, size: CGSize(width: 560, height: 1180), appearance: appearance, to: output.appending(path: "mac-refresh-limits-sheet-560x1180-\(scheme).png"))
-            let single = LimitsRefreshSheet(session: refreshed, credentialIDs: [ProviderRenderTransport.rateLimitedAuthIndex, "a1f3c9"]).environment(model)
-            try await renderInWindow(single, size: CGSize(width: 560, height: 720), appearance: appearance, to: output.appending(path: "mac-refresh-limits-sheet-waiting-560x720-\(scheme).png"))
-            let loadFirst = LimitsRefreshSheet(session: notLoaded, credentialIDs: nil).environment(model)
-            try await renderInWindow(loadFirst, size: CGSize(width: 560, height: 620), appearance: appearance, to: output.appending(path: "mac-refresh-limits-sheet-load-accounts-560x620-\(scheme).png"))
+            let sheet = LimitsRefreshSheet(session: planned, report: report).environment(model)
+            try await renderInWindow(sheet, size: CGSize(width: 560, height: 860), appearance: appearance, to: output.appending(path: "mac-provider-approval-560x860-\(scheme).png"))
+            let results = ProviderRefreshResults(session: planned, report: report).environment(model)
+            try await renderInWindow(results, size: CGSize(width: 560, height: 620), appearance: appearance, to: output.appending(path: "mac-provider-refresh-results-560x620-\(scheme).png"))
             let overview = NavigationStack { OverviewView(session: refreshed) }.environment(model).defaultAppStorage(defaults)
             try await render(overview, size: CGSize(width: 1440, height: 1300), appearance: appearance, to: output.appending(path: "mac-overview-provider-results-1440x1300-\(scheme).png"))
             let detail = NavigationStack { AccountDetailView(session: refreshed, credentialID: "a1f3c9") }.environment(model).defaultAppStorage(defaults)

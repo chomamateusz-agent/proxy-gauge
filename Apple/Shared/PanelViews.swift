@@ -114,9 +114,7 @@ struct SlotReadingRow: View {
 
     @ViewBuilder
     private var foot: some View {
-        if reading.startsOnFirstUse {
-            Text("Starts on first use")
-        } else if let resetsAt = reading.resetsAt {
+        if let resetsAt = reading.resetsAt {
             ViewThatFits(in: .horizontal) {
                 Text(verbatim: "\(PanelDate.absolute(resetsAt)) · \(PanelDate.relative(resetsAt, now: now))")
                 Text(verbatim: PanelDate.absolute(resetsAt))
@@ -129,7 +127,6 @@ struct SlotReadingRow: View {
     private var accessibilityValue: String {
         guard reading.remainingPercent != nil else { return String(localized: "No data") }
         let left = String(localized: "\(HeadroomStyle.percentText(reading.remainingPercent)) left")
-        if reading.startsOnFirstUse { return [left, String(localized: "Starts on first use")].joined(separator: ", ") }
         guard let resetsAt = reading.resetsAt else { return left }
         return [left, PanelDate.absolute(resetsAt), PanelDate.relative(resetsAt, now: now)].joined(separator: ", ")
     }

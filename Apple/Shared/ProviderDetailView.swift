@@ -33,7 +33,7 @@ struct ProviderCardsView: View {
         .toolbarTitleDisplayMode(.inline)
         #endif
         .refreshable { await session.refresh(.accounts, trigger: .manual) }
-        .freshnessHeader(session: session, scope: session.headroomScope)
+        .freshnessHeader(session: session, scope: session.headroomScope, credentialIDs: session.accountSummaries.filter { $0.provider == provider }.map(\.id))
     }
 
     private func content(now: Date) -> some View {

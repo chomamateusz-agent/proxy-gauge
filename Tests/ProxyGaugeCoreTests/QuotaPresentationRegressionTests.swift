@@ -92,23 +92,15 @@ struct QuotaPresentationRegressionTests {
         #expect(account.block(for: nil, at: now)?.reason == .windowAtLimit("session_5h"))
     }
 
-    @Test func idleRowsFollowTheProvidersActualPoolAndUsability() throws {
+    @Test func weeklyOnlyAccountsAreLeftOutOfTheFiveHourPool() throws {
         let weekly = QuotaBar(id: "weekly_all", usedPercent: 20, resetsAt: now.addingTimeInterval(86_400))
-        let codex = AccountSummary(id: "c", provider: "codex", label: "c", state: .active, bars: [weekly])
-        let codexPool = try #require(PooledCapacity.pools([codex.poolAccount], now: now).first)
-        #expect(codexPool.window(.session5h) == nil)
-        #expect(codex.barsIncludingIdleFiveHourWindow(in: codexPool, at: now) == codex.bars)
-        let idle = AccountSummary(id: "a", provider: "claude", label: "a", state: .active, bars: [weekly])
+        let unreported = PoolAccount(provider: "claude", availability: .available, bars: [weekly])
         let sampled = PoolAccount(provider: "claude", availability: .available, bars: [QuotaBar(id: "session_5h", usedPercent: 20)])
-        let pool = try #require(PooledCapacity.pools([idle.poolAccount, sampled], now: now).first)
-        #expect(pool.window(.session5h)?.accountsCountedAsFull == 1)
-        #expect(idle.barsIncludingIdleFiveHourWindow(in: pool, at: now).map(\.id) == ["session_5h", "weekly_all"])
-        let unsampledPool = try #require(PooledCapacity.pools([idle.poolAccount], now: now).first)
-        #expect(idle.barsIncludingIdleFiveHourWindow(in: unsampledPool, at: now) == idle.bars)
-        var blocked = idle
-        blocked.availability = .blocked(until: now.addingTimeInterval(3_600))
-        #expect(blocked.barsIncludingIdleFiveHourWindow(in: pool, at: now) == blocked.bars)
-        #expect(idle.barsIncludingIdleFiveHourWindow(in: codexPool, at: now) == idle.bars)
+        let pool = try #require(PooledCapacity.pools([unreported, sampled], now: now).first)
+        #expect(pool.window(.session5h)?.accountsLeftOut == 1)
+        #expect(pool.window(.session5h)?.remainingPercent == 80)
+        let unsampledPool = try #require(PooledCapacity.pools([unreported], now: now).first)
+        #expect(unsampledPool.window(.session5h) == nil)
     }
 
     @Test func blockEndGroupsUseTheirLatestEndAndOneMinuteTolerance() throws {

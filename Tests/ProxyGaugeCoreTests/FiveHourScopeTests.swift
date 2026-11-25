@@ -19,14 +19,14 @@ struct FiveHourScopeTests {
         #expect(session.unknownAccounts == 1)
     }
 
-    @Test func usableClaudeAccountWithoutAFiveHourBarCountsAsFull() throws {
+    @Test func usableClaudeAccountWithoutAFiveHourBarIsLeftOut() throws {
         let reporting = PoolAccount(provider: "claude", availability: .available, bars: [QuotaBar(id: "session_5h", usedPercent: 40), QuotaBar(id: "weekly_all", usedPercent: 10)])
         let weeklyOnly = PoolAccount(provider: "claude", availability: .available, bars: [QuotaBar(id: "weekly_all", usedPercent: 20)])
         let session = try #require(PooledCapacity.pools([reporting, weeklyOnly], now: now).first?.window(.session5h))
-        #expect(session.accountsCountedAsFull == 1)
-        #expect(session.accountsLeftOut == 0)
-        #expect(session.accounts == 2)
-        #expect(session.remainingPercent == 160)
+        #expect(session.accountsCountedAsFull == 0)
+        #expect(session.accountsLeftOut == 1)
+        #expect(session.accounts == 1)
+        #expect(session.remainingPercent == 60)
     }
 
     @Test func startsOnUseIsOnlyForTheProvidersWithAFiveHourWindow() {

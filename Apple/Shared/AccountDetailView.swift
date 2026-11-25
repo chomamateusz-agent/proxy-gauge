@@ -134,9 +134,7 @@ struct AccountDetailView: View {
         .refreshable {
             await session.refreshAccountDetail(credential.name)
         }
-        .freshnessHeader(session: session, scope: .accounts, credentialIDs: [credential.id]) {
-            await session.refreshAccountDetail(credential.name)
-        }
+        .freshnessHeader(session: session, scope: .accountDetail(credential.name), credentialIDs: [credential.id])
         .confirmationDialog(
             Text(confirmationTitle),
             isPresented: Binding(get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }),
@@ -154,11 +152,7 @@ struct AccountDetailView: View {
     }
 
     private var notCheckedYet: Text {
-        #if os(iOS)
-        Text("Not checked with the provider yet. Hold Refresh and choose Check limits with providers to ask the provider for this account's current limits, plan and resets.")
-        #else
-        Text("Not checked with the provider yet. Open the Refresh menu and choose Check limits with providers to ask the provider for this account's current limits, plan and resets.")
-        #endif
+        Text("Not checked with the provider yet. Choose Refresh from provider to ask for this account's current limits, plan and resets.")
     }
 
     @ViewBuilder
@@ -199,7 +193,7 @@ struct AccountDetailView: View {
                 Text("This provider has not reported quota headers yet.").foregroundStyle(.secondary)
             }
             ForEach(bars) { bar in
-                QuotaBarRow(bar: bar, provider: credential.provider)
+                QuotaBarRow(bar: bar)
             }
             if let account = session.accountSummaries.first(where: { $0.id == credential.id }), !bars.isEmpty {
                 Button("Show all resets", systemImage: "clock") { showsResets = true }

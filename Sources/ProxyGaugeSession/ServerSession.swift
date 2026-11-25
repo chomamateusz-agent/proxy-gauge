@@ -65,9 +65,11 @@ public final class ServerSession {
     public private(set) var modelsLoaded = false
     public private(set) var accountModels: [String: [ModelInfo]] = [:]
     public private(set) var accountModelsFailed: Set<String> = []
+    private var accountModelsLoadedAt: [String: Date] = [:]
     public private(set) var fleetLimits: FleetLimits?
     public private(set) var limitsLoaded = false
     public private(set) var accountsLoaded = false
+    public private(set) var accountsLoadedAt: Date?
     public private(set) var lastRefresh: Date?
     private var lastRefreshByScope: [RefreshScope: Date] = [:]
     public private(set) var authLatch: AuthFailureLatch
@@ -79,6 +81,8 @@ public final class ServerSession {
     public private(set) var refreshingLimits: Set<String> = []
     public private(set) var limitsRefreshError: APIError?
     public private(set) var lastLimitsResults: [ActiveRefreshResult] = []
+    public private(set) var providerRefreshProgress: ProviderRefreshProgress?
+    public private(set) var providerRefreshReport: ProviderRefreshReport?
     public private(set) var proxyRefusalBackoff: ProxyRefusalBackoff?
     private var scopesWhoseLastLoadFailed: Set<RefreshScope> = []
 
@@ -159,6 +163,7 @@ public final class ServerSession {
         case .management: AccountSummary.board(credentials.map { credential in
             var summary = AccountSummary(credential: credential, active: activeQuotas[credential.stableID], now: now)
             summary.providerCheckState = providerCheckStates[credential.stableID]
+            summary.accountsLoadedAt = accountsLoadedAt
             return summary
         })
         case .clientKey: AccountSummary.board((fleetLimits?.credentials ?? []).map { AccountSummary(fleet: $0, now: now) })
@@ -226,6 +231,10 @@ public final class ServerSession {
         )
     }
 
+    public func surfaceLimitsRefreshPlan(for credentialIDs: [String]? = nil, now: Date) -> LimitsRefreshPlan {
+        LimitsRefreshPlan.make(targets: limitsTargets(credentialIDs, now: now), states: providerCheckStates, readings: Set(activeQuotas.keys), now: now)
+    }
+
     private var refreshServer: ActiveRefreshServer {
         ActiveRefreshServer(serverID: profile.id, baseURL: profile.baseURL, generation: latchGeneration)
     }
@@ -246,20 +255,86 @@ public final class ServerSession {
         }
     }
 
+    public func refreshProviderFromSurface(_ credentialIDs: [String]? = nil) async {
+        await refreshProviderFromSurface(limitsCredentials(credentialIDs), mode: .manualReadOnly)
+    }
+
+    public func providerApprovalPlan(for report: ProviderRefreshReport, now: Date) -> LimitsRefreshPlan {
+        guard report.id == providerRefreshReport?.id else { return LimitsRefreshPlan() }
+        return providerPlan(for: approvalCredentials(for: report), mode: approvalMode(for: report), now: now)
+    }
+
+    public func approveProviderRefresh(_ report: ProviderRefreshReport) async {
+        guard !isAutomaticRefreshPaused, !providerApprovalPlan(for: report, now: .now).isEmpty else { return }
+        await refreshProviderFromSurface(approvalCredentials(for: report), mode: approvalMode(for: report))
+    }
+
+    private func approvalCredentials(for report: ProviderRefreshReport) -> [Credential] {
+        credentials.filter { credential in
+            report.entries.contains { entry in
+                entry.needsConsent && entry.id == credential.stableID && entry.account.authIndex == credential.authIndex
+                    && entry.account.provider == credential.provider.lowercased()
+            }
+        }
+    }
+
+    private func approvalMode(for report: ProviderRefreshReport) -> ActiveRefreshMode {
+        let attempts = report.entries.compactMap { entry in entry.paidKeyConsentAttemptAt.map { (entry.id, $0) } }
+        return .approvedSurface(paidKeyAttempts: Dictionary(attempts, uniquingKeysWith: { _, new in new }))
+    }
+
+    private func providerPlan(for credentials: [Credential], mode: ActiveRefreshMode, now: Date) -> LimitsRefreshPlan {
+        let proxy = refreshServer.proxy
+        let proxyRefusedUntil: Date? = if case .approvedSurface = mode { activeStore?.proxyRefusalBackoff(proxy: proxy)?.until } else { nil }
+        return LimitsRefreshPlan.make(
+            targets: credentials.map { ActiveTarget(credential: $0, now: now) },
+            states: activeStore?.activeRefreshStates(proxy: proxy) ?? [:],
+            readings: Set(sharedReadings().keys), mode: mode, proxyRefusedUntil: proxyRefusedUntil, now: now
+        )
+    }
+
+    private func refreshProviderFromSurface(_ chosen: [Credential], mode: ActiveRefreshMode) async {
+        guard supportsLimitsRefresh, accountsLoaded, providerRefreshProgress == nil, refreshingLimits.isEmpty, !chosen.isEmpty else { return }
+        let now = Date.now
+        let targets = chosen.map { ActiveTarget(credential: $0, now: now) }
+        let ready = providerPlan(for: chosen, mode: mode, now: now).readyCount
+        providerRefreshReport = nil
+        providerRefreshProgress = ProviderRefreshProgress(completed: 0, total: ready)
+        let results = await runLimitsRefresh(chosen.map(\.id), trigger: .manual, mode: mode, surface: true)
+        let byID = Dictionary(results.map { ($0.credentialID, $0) }, uniquingKeysWith: { _, new in new })
+        providerRefreshReport = ProviderRefreshReport(entries: targets.map { target in
+            let result = byID[target.id]
+            return ProviderRefreshReport.Entry(account: target, outcome: result?.outcome ?? .notSent, paidKeyConsentAttemptAt: result?.paidKeyConsentAttemptAt)
+        })
+        providerRefreshProgress = nil
+    }
+
     public func refreshLimits(_ credentialIDs: [String]? = nil, trigger: RefreshTrigger, origin: ActiveRefreshOrigin) async {
-        guard supportsLimitsRefresh, !isRetired, let coordinator else { return }
+        let mode: ActiveRefreshMode = trigger == .manual ? .manual : .automatic(interval: providerRefreshInterval, origin: origin)
+        _ = await runLimitsRefresh(credentialIDs, trigger: trigger, mode: mode, surface: false)
+    }
+
+    private func runLimitsRefresh(_ credentialIDs: [String]?, trigger: RefreshTrigger, mode: ActiveRefreshMode, surface: Bool) async -> [ActiveRefreshResult] {
+        guard supportsLimitsRefresh, !isRetired, let coordinator else { return [] }
         switch trigger {
         case .manual:
-            _ = admit(.manual)
+            if case .approvedSurface = mode {
+                syncLatchFromStore()
+                guard !authLatch.isBlocked else { return [] }
+            } else {
+                _ = admit(.manual)
+            }
             limitsRefreshError = nil
             if !accountsLoaded { await refresh(.accounts, trigger: .manual) }
         case .automatic:
-            guard origin == .visibleApp, mayRefreshLimitsAutomatically(), accountsLoaded, admit(.automatic) else { return }
+            guard !surface, providerRefreshProgress == nil, case .automatic(_, .visibleApp) = mode, mayRefreshLimitsAutomatically(), accountsLoaded, admit(.automatic) else { return [] }
         }
         let chosen = limitsCredentials(credentialIDs)
         let targets = chosen.map { ActiveTarget(credential: $0, now: .now) }
-        guard !targets.isEmpty, !isRetired, let live = liveConnection() else { return }
-        let mode: ActiveRefreshMode = trigger == .manual ? .manual : .automatic(interval: providerRefreshInterval, origin: origin)
+        guard !targets.isEmpty, !isRetired else { return [] }
+        guard let live = liveConnection() else {
+            return targets.map { ActiveRefreshResult(credentialID: $0.id, outcome: connectionError.map(ActiveRefreshOutcome.managementFailed) ?? .notSent) }
+        }
         let ids = Set(chosen.map(\.id))
         let ticket = sendGate.ticket()
         let stop = SharedFlag()
@@ -275,13 +350,21 @@ public final class ServerSession {
                     !stop.isSet && (trigger == .manual || automaticLimitsPermit.isSet)
                 },
                 onManagementRejection: { [weak self] rejection in await self?.recordAuthFailure(rejection) },
+                onProgress: { [weak self] completed, total in
+                    if surface { await self?.setProviderProgress(completed, total: total) }
+                },
                 send: { try await management.apiCall($0, hooks: $1) }
             )
         } onCancel: {
             stop.set(true)
         }
         refreshingLimits.subtract(ids)
-        applyLimitsResults(results, authFailuresAtStart: ticket.epoch)
+        applyLimitsResults(results, authFailuresAtStart: ticket.epoch, surface: surface)
+        return results
+    }
+
+    private func setProviderProgress(_ completed: Int, total: Int) {
+        providerRefreshProgress = ProviderRefreshProgress(completed: completed, total: total)
     }
 
     private func mayRefreshLimitsAutomatically() -> Bool {
@@ -299,10 +382,10 @@ public final class ServerSession {
         return !authLatch.isBlocked
     }
 
-    private func applyLimitsResults(_ results: [ActiveRefreshResult], authFailuresAtStart: Int) {
+    private func applyLimitsResults(_ results: [ActiveRefreshResult], authFailuresAtStart: Int, surface: Bool) {
         guard !isRetired else { return }
         lastLimitsResults = results
-        reloadProviderChecks()
+        readProviderChecks(publishingSurfaceResult: surface)
         let managementFailure = results.lazy.compactMap { result -> APIError? in
             if case .managementFailed(let error) = result.outcome, !error.isAuthenticationFailure { error } else { nil }
         }.first
@@ -317,6 +400,11 @@ public final class ServerSession {
     }
 
     public func reloadProviderChecks() {
+        readProviderChecks(publishingSurfaceResult: false)
+    }
+
+    private func readProviderChecks(publishingSurfaceResult: Bool) {
+        guard publishingSurfaceResult || providerRefreshProgress == nil else { return }
         let readings = sharedReadings()
         if readings != activeQuotas { activeQuotas = readings }
         let states = activeStore?.activeRefreshStates(proxy: refreshServer.proxy) ?? [:]
@@ -335,23 +423,39 @@ public final class ServerSession {
         runner.cancel()
     }
 
-    public func refresh(_ scope: RefreshScope, trigger: RefreshTrigger, dropIfCancelled: Bool = false) async {
+    public func reloadFromAPI(_ scope: RefreshScope, progress: @escaping @MainActor (Double) -> Void) async -> Bool {
+        let previous = lastRefresh(for: scope)
+        if case .accountDetail(let name) = scope {
+            let previousModels = accountModelsLoadedAt[name]
+            await refreshAccountDetail(name, forceModels: true, progress: progress)
+            guard accountModelsLoadedAt[name] != previousModels, !accountModelsFailed.contains(name) else { return false }
+        } else if scope == .settings, profile.authMode == .management {
+            await refresh(.accounts, trigger: .manual) { progress($0 * 0.65) }
+            await refresh(scope, trigger: .manual) { progress(0.65 + $0 * 0.35) }
+        } else {
+            await refresh(scope, trigger: .manual, progress: progress)
+        }
+        return lastRefresh(for: scope) != previous && failure(for: scope.freshnessKey(authMode: profile.authMode)) == nil
+    }
+
+    public func refresh(_ scope: RefreshScope, trigger: RefreshTrigger, dropIfCancelled: Bool = false, progress: (@MainActor (Double) -> Void)? = nil) async {
         await runner.run(scope, trigger: trigger, dropIfCancelled: dropIfCancelled, admit: { [self] in admit($0) }) { [self] in
-            await load(scope)
+            await load(scope, progress: progress)
         }
     }
 
-    public func refreshAccountDetail(_ accountName: String) async {
+    public func refreshAccountDetail(_ accountName: String, forceModels: Bool = false, progress: (@MainActor (Double) -> Void)? = nil) async {
         await runner.run(.accountDetail(accountName), trigger: .manual, admit: { [self] in admit($0) }) { [self] in
             let epochAtStart = sendGate.epoch
-            await load(.accounts)
+            await load(.accounts) { progress?($0 * 0.65) }
             guard !isRetired, sendGate.epoch == epochAtStart else { return }
-            guard accountModels[accountName] == nil || refreshesAutomatically else { return }
+            guard forceModels || accountModels[accountName] == nil || refreshesAutomatically else { return }
+            progress?(0.65)
             await load(.accountModels(accountName))
         }
     }
 
-    private func load(_ scope: RefreshScope) async {
+    private func load(_ scope: RefreshScope, progress: (@MainActor (Double) -> Void)? = nil) async {
         guard !isRetired else { return }
         guard let live = liveConnection() else {
             markLastLoadFailed(scope)
@@ -359,8 +463,11 @@ public final class ServerSession {
         }
         let ticket = sendGate.ticket()
         do {
-            try await ScopeLoader.load(scope, authMode: profile.authMode, management: live.management.sending(under: ticket), client: live.client.sending(under: ticket), readsRouterSettings: readsRouterSettings(for: scope)) { [self] stage in
+            try await ScopeLoader.load(scope, authMode: profile.authMode, management: live.management.sending(under: ticket), client: live.client.sending(under: ticket), readsRouterSettings: readsRouterSettings(for: scope), onCredentialsReceived: {
+                await progress?(0.33)
+            }) { [self] stage in
                 await apply(stage, authFailuresAtStart: ticket.epoch)
+                await progress?(0.66)
             }
             guard !isRetired else { return }
             markLoaded(scope)
@@ -452,6 +559,7 @@ public final class ServerSession {
             publishHeadroom()
         case .accountModels(let name, let list):
             accountModels[name] = list
+            accountModelsLoadedAt[name] = .now
             accountModelsFailed.remove(name)
         case .routerSettings(let settings):
             routerSettings = settings
@@ -472,6 +580,7 @@ public final class ServerSession {
         }
         accountsLoaded = true
         let receivedAt = Date.now
+        accountsLoadedAt = receivedAt
         dataReceivedAt = receivedAt
         lastRefreshByScope[.accounts] = receivedAt
         markLoaded(.accounts)

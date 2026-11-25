@@ -162,7 +162,7 @@ struct ErrorBanner: View {
 struct ManualRefreshHint: View {
     var body: some View {
         Label {
-            Text("Automatic refresh is off — pull to refresh or press Refresh.")
+            Text("Automatic refresh is off — pull to refresh or choose Reload from API.")
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: "pause.circle")
@@ -193,7 +193,7 @@ struct SavedDataNote: View {
                 if refreshesAutomatically {
                     Text("Showing data saved \(elapsed) ago while the server is loaded.")
                 } else {
-                    Text("Showing data saved \(elapsed) ago. Automatic refresh is off — pull to refresh or press Refresh.")
+                    Text("Showing data saved \(elapsed) ago. Automatic refresh is off — pull to refresh or choose Reload from API.")
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -286,7 +286,6 @@ struct ResetNote: View {
 
 struct QuotaBarRow: View {
     let bar: QuotaBar
-    let provider: String
     var compact = false
 
     var body: some View {
@@ -305,15 +304,9 @@ struct QuotaBarRow: View {
                         .foregroundStyle(.red)
                 }
                 Spacer(minLength: 4)
-                Group {
-                    if bar.startsOnUse(provider: provider, at: now) {
-                        Text("Starts on use, \(HeadroomStyle.percentText(100)) left")
-                    } else {
-                        HeadroomStyle.remainingText(remaining)
-                    }
-                }
-                .font(.caption.monospacedDigit().weight(.semibold))
-                .foregroundStyle(remaining == nil ? .secondary : HeadroomStyle.color(forRemaining: remaining))
+                HeadroomStyle.remainingText(remaining)
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(remaining == nil ? .secondary : HeadroomStyle.color(forRemaining: remaining))
             }
             RemainingBar(remainingPercent: remaining, height: compact ? 5 : 6)
             if let resetsAt = bar.resetsAt {

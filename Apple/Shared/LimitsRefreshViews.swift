@@ -2,26 +2,21 @@ import ProxyGaugeCore
 import ProxyGaugeSession
 import SwiftUI
 
-struct LimitsRefreshRequest: Identifiable {
-    let id = UUID()
-    let credentialIDs: [String]?
-}
-
-extension View {
-    func limitsRefreshSheet(session: ServerSession, request: Binding<LimitsRefreshRequest?>) -> some View {
-        sheet(item: request) { pending in
-            LimitsRefreshSheet(session: session, credentialIDs: pending.credentialIDs)
-        }
-    }
-}
-
 struct LimitsRefreshSheet: View {
     let session: ServerSession
-    let credentialIDs: [String]?
+    let report: ProviderRefreshReport
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        let plan = session.limitsRefreshPlan(for: credentialIDs)
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            form(now: context.date)
+        }
+    }
+
+    @ViewBuilder
+
+    private func form(now: Date) -> some View {
+        let plan = session.providerApprovalPlan(for: report, now: now)
         let needsAccounts = !session.accountsLoaded || session.isAutomaticRefreshPaused
         NavigationStack {
             Form {
@@ -96,8 +91,7 @@ struct LimitsRefreshSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(LimitsCheckWording.confirm) {
-                        let ids = credentialIDs
-                        Task { await session.refreshLimits(ids, trigger: .manual, origin: .visibleApp) }
+                        Task { await session.approveProviderRefresh(report) }
                         dismiss()
                     }
                     .disabled(plan.isEmpty || needsAccounts)
@@ -268,6 +262,8 @@ extension ActiveRefreshSkip {
         case .disabled: "Disabled on the server."
         case .missingAuthIndex: "The server did not report an auth index for this account."
         case .missingProject: "The server did not report a Google Cloud project for this account."
+        case .requiresConsent: "This provider uses unofficial Google endpoints and needs approval."
+        case .approvalExpired: "Check was not sent."
         case .notVisible, .excludedFromAutomatic, .automaticSuspended, .rejectedByProvider: "Checked only when you refresh limits by hand."
         }
     }
@@ -329,7 +325,7 @@ struct ProviderCheckNotes: View {
             }
         }
         if let check = account.providerCheck {
-            if let resets = check.resets, resets.everHadResets {
+            if let resets = check.resets?.usable(at: .now), resets.remaining > 0 {
                 ResetsLine(resets: resets)
             }
             if let extra = check.extraUsage, extra.isEnabled != false, let limit = extra.limit {
@@ -395,9 +391,9 @@ struct ProviderRefreshStatus: View {
     let session: ServerSession
 
     var body: some View {
-        if !session.refreshingLimits.isEmpty {
+        if !session.refreshingLimits.isEmpty, session.providerRefreshProgress == nil {
             Label {
-                Text("Checking limits with the providers…")
+                Text("Refreshing from provider…")
             } icon: {
                 ProgressView().controlSize(.small)
             }
@@ -416,7 +412,7 @@ struct ProviderRefreshStatus: View {
         }
         if let error = session.limitsRefreshError {
             Label {
-                Text("Checking limits with providers failed: \(Text(error.userMessage))")
+                Text("Provider refresh failed: \(Text(error.userMessage))")
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -437,6 +433,68 @@ struct ProviderRefreshLoopID: Hashable {
 }
 
 enum LimitsCheckWording {
-    static let title: LocalizedStringResource = "Check limits with providers"
-    static let confirm: LocalizedStringResource = "Check limits"
+    static let title: LocalizedStringResource = "Refresh from provider"
+    static let confirm: LocalizedStringResource = "Approve and refresh"
+}
+
+struct ProviderRefreshResults: View {
+    let session: ServerSession
+    let report: ProviderRefreshReport
+    @Environment(\.dismiss) private var dismiss
+    @State private var approval: ProviderRefreshReport?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(report.entries.filter { $0.failed || !$0.wasChecked }) { entry in
+                    LabeledAccountRow(provider: entry.account.provider, label: entry.account.label) {
+                        outcome(entry)
+                    }
+                }
+                if report.needsConsent {
+                    Button("Review checks that need approval") {
+                        approval = report
+                    }
+                }
+                if report.entries.allSatisfy({ $0.wasChecked && !$0.failed }) {
+                    Text("All accounts checked successfully.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Provider refresh results")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .sheet(item: $approval) { LimitsRefreshSheet(session: session, report: $0) }
+        #if os(macOS)
+        .frame(minWidth: 520, minHeight: 340)
+        #endif
+    }
+
+    @ViewBuilder
+    private func outcome(_ entry: ProviderRefreshReport.Entry) -> some View {
+        switch entry.outcome {
+        case .refreshed:
+            EmptyView()
+        case .rateLimited(let date, _):
+            WaitText(until: date, because: .rateLimited)
+        case .waiting(let date, let reason):
+            WaitText(until: date, because: reason)
+        case .skipped(let reason):
+            Text(reason.explanation)
+        case .rejected(let status):
+            Text("The provider rejected the check (HTTP \(status)).")
+        case .failed(let failure):
+            Text(verbatim: failure.cardText)
+        case .managementFailed(let error):
+            Text(error.userMessage)
+        case .stopped:
+            Text("Check stopped before it finished.")
+        case .notSent:
+            Text("Check was not sent.")
+        }
+    }
 }

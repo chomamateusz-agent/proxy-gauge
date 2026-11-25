@@ -1,4 +1,4 @@
 public enum AppVersion {
     public static let marketing = "1.0.0"
-    public static let build = 8
+    public static let build = 9
 }

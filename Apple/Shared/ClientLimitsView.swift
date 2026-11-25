@@ -32,7 +32,7 @@ struct ClientLimitsView: View {
     }
 
     private var clientKeyNote: Text {
-        Text("Checking limits with providers needs the management key: a client key cannot ask the server to contact providers.")
+        Text("Refresh from provider requires a management key. A client key cannot ask the server to contact providers.")
     }
 
     @ViewBuilder

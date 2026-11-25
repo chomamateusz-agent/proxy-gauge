@@ -198,7 +198,7 @@ struct PooledWindowNotes: View {
             Text("Accounts without data: \(window.unknownAccounts)")
         }
         if window.accountsCountedAsFull > 0 {
-            Text("\(window.accountsCountedAsFull) account has no 5-hour window running, counted as full")
+            Text("\(window.accountsCountedAsFull) account reported an unused 5-hour window")
         }
         if window.accountsLeftOut > 0 {
             Text("No 5-hour reading, left out: \(window.accountsLeftOut)")

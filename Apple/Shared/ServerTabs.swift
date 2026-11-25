@@ -182,9 +182,7 @@ struct SettingsPane: View {
         #endif
         .refreshable { await session.refreshSettingsPane(trigger: .manual) }
         #if os(macOS)
-        .freshnessHeader(session: session, scope: ServerSection.settings.refreshScope) {
-            await session.refreshSettingsPane(trigger: .manual)
-        }
+        .freshnessHeader(session: session, scope: ServerSection.settings.refreshScope)
         #endif
     }
 

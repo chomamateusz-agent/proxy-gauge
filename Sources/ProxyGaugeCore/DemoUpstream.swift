@@ -31,9 +31,11 @@ enum DemoUpstream {
         let sessionReset = WireDate.format(now.addingTimeInterval(Double(account.sessionResetMinutes) * 60))
         let weeklyReset = WireDate.format(now.addingTimeInterval(Double(account.weeklyResetHours) * 3_600))
         var usage: [String: Any] = [
-            "five_hour": ["utilization": min(100, (account.sessionUsed ?? 0) + 2), "resets_at": sessionReset],
             "seven_day": ["utilization": min(100, (account.weeklyUsed ?? 0) + 1), "resets_at": weeklyReset]
         ]
+        if let sessionUsed = account.sessionUsed {
+            usage["five_hour"] = ["utilization": min(100, sessionUsed + 2), "resets_at": sessionReset]
+        }
         if let model = account.weeklyModelUsed {
             usage["limits"] = [["kind": "weekly_scoped", "percent": model + 1, "resets_at": weeklyReset, "is_active": true, "scope": ["model": ["display_name": "Fable"]]]]
         }
@@ -52,22 +54,30 @@ enum DemoUpstream {
     }
 
     private static func claudeGrants(_ account: DemoAccount, now: Date) -> [String: Any] {
-        let grants: [[String: Any]] = account.label == "Studio"
-            ? [["id": "grant_demo_1", "resets_total": 3, "resets_left": 2, "ends_at": WireDate.format(now.addingTimeInterval(6 * 86_400)), "usable_now": true]]
-            : []
+        let grants: [[String: Any]] = switch account.label {
+        case "Studio": [["id": "grant_demo_1", "resets_total": 3, "resets_left": 2, "ends_at": WireDate.format(now.addingTimeInterval(6 * 86_400)), "usable_now": true]]
+        case "Team": [
+            ["id": "grant_demo_expired", "resets_total": 2, "resets_left": 2, "ends_at": WireDate.format(now.addingTimeInterval(-86_400))],
+            ["id": "grant_demo_paused", "resets_total": 1, "resets_left": 1, "paused": true]
+        ]
+        default: []
+        }
         return ["cedar_ember": ["eligible": account.label != "Lab", "grants": grants]]
     }
 
     private static func codexUsage(_ account: DemoAccount, now: Date) -> [String: Any] {
-        [
+        var rateLimit: [String: Any] = [
+            "allowed": true,
+            "limit_reached": false,
+            "secondary_window": ["used_percent": (account.weeklyUsed ?? 0) + 1, "limit_window_seconds": 604_800, "reset_at": Int(now.addingTimeInterval(Double(account.weeklyResetHours) * 3_600).timeIntervalSince1970)]
+        ]
+        if let sessionUsed = account.sessionUsed {
+            rateLimit["primary_window"] = ["used_percent": sessionUsed + 3, "limit_window_seconds": 18_000, "reset_after_seconds": account.sessionResetMinutes * 60]
+        }
+        return [
             "plan_type": "pro",
             "credits": ["balance": "12.5", "unlimited": false, "has_credits": true],
-            "rate_limit": [
-                "allowed": true,
-                "limit_reached": false,
-                "primary_window": ["used_percent": (account.sessionUsed ?? 0) + 3, "limit_window_seconds": 18_000, "reset_after_seconds": account.sessionResetMinutes * 60],
-                "secondary_window": ["used_percent": (account.weeklyUsed ?? 0) + 1, "limit_window_seconds": 604_800, "reset_at": Int(now.addingTimeInterval(Double(account.weeklyResetHours) * 3_600).timeIntervalSince1970)]
-            ]
+            "rate_limit": rateLimit
         ]
     }
 

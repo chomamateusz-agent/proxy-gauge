@@ -212,7 +212,7 @@ struct ProviderStatusTests {
         let model = try #require(results.first?.outcome.quota?.windows.first { $0.id == "weekly_fable" })
         #expect(model.usedPercent == nil)
         #expect(model.remainingPercent(at: activeStart) == nil)
-        #expect(model.remainingPercent(at: date("2099-01-04T00:00:00Z")) == 100)
+        #expect(model.remainingPercent(at: date("2099-01-04T00:00:00Z")) == nil)
     }
 
     @Test func resetCountsShowOnlyForAccountsThatHadResets() {

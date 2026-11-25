@@ -49,7 +49,7 @@ struct AppSettingsSections: View {
                 ForEach(managed) { profile in
                     Toggle(isOn: Binding(get: { model.refreshesLimitsFromProviders(profile) }, set: { model.setRefreshesLimitsFromProviders($0, for: profile) })) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Check limits with providers automatically")
+                            Text("Refresh automatically from providers")
                             DisplayName(profile: profile)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -67,9 +67,9 @@ struct AppSettingsSections: View {
                 Text("Limits from providers")
             } footer: {
                 #if os(iOS)
-                Text("Off by default. While Proxy Gauge is visible on screen and automatic refresh is on, the server checks Claude, Codex, Kimi and Devin accounts with their providers at this interval: Claude at most every 30 minutes, plans at most once a day. xAI and Google accounts, reset grants and reset credits are checked only when you choose Check limits with providers. The widget never contacts providers, and rate limits from a provider pause the checks for that account.")
+                Text("Off by default. While Proxy Gauge is visible on screen and automatic refresh is on, the server checks Claude, Codex, Kimi and Devin accounts with their providers at this interval: Claude at most every 30 minutes, plans at most once a day. Choose Refresh from provider to check xAI billing and reset balances. Unofficial Google requests and the paid xAI key check need separate approval. The widget never contacts providers, and rate limits from a provider pause the checks for that account.")
                 #else
-                Text("Off by default. While Proxy Gauge is visible on screen and automatic refresh is on, the server checks Claude, Codex, Kimi and Devin accounts with their providers at this interval: Claude at most every 30 minutes, plans at most once a day. xAI and Google accounts, reset grants and reset credits are checked only when you choose Check limits with providers. The widget and the menu bar never contact providers, and rate limits from a provider pause the checks for that account.")
+                Text("Off by default. While Proxy Gauge is visible on screen and automatic refresh is on, the server checks Claude, Codex, Kimi and Devin accounts with their providers at this interval: Claude at most every 30 minutes, plans at most once a day. Choose Refresh from provider to check xAI billing and reset balances. Unofficial Google requests and the paid xAI key check need separate approval. The widget and the menu bar never contact providers, and rate limits from a provider pause the checks for that account.")
                 #endif
             }
             Section("Privacy") {

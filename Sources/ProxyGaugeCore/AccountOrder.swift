@@ -108,7 +108,11 @@ public enum AccountOrder {
         case "claude":
             windows = (account.bar("weekly_all"), account.bar("weekly_fable") ?? account.bar("7d_oi"), account.bar(FiveHourWindowState.barID))
         case "codex":
-            windows = (account.bar("weekly_all"), nil, account.bar(FiveHourWindowState.barID))
+            windows = (
+                routerBar(account.bar("weekly_all"), requiring: 7 * 24 * 3_600),
+                nil,
+                routerBar(account.bar(FiveHourWindowState.barID), requiring: 5 * 3_600)
+            )
         default:
             return nil
         }
@@ -124,6 +128,11 @@ public enum AccountOrder {
         )
     }
 
+    private static func routerBar(_ bar: QuotaBar?, requiring duration: TimeInterval) -> QuotaBar? {
+        guard let bar, !bar.isFromProvider || bar.reportedPeriodSeconds == duration else { return nil }
+        return bar
+    }
+
     private static func routerWindow(_ bar: QuotaBar) -> RouterWindow {
         let used = bar.usedPercent ?? (bar.status == QuotaBar.rejectedStatus ? 100 : nil)
         return RouterWindow(usedPercent: used, resetsAt: bar.resetsAt)
@@ -136,18 +145,13 @@ public struct WindowReset: Sendable, Equatable, Identifiable {
     public var resetsAt: Date?
     public var remainingPercent: Double?
     public var gainAtReset: Double?
-    public var startsOnFirstUse = false
 
     public var id: String { barID }
 }
 
 public extension AccountSummary {
     func resets(at now: Date) -> [WindowReset] {
-        let idle = hasIdleFiveHourWindow(at: now)
-        return cardBars(at: now).map { bar in
-            if idle, bar.id == FiveHourWindowState.barID {
-                return WindowReset(barID: bar.id, label: bar.label, resetsAt: nil, remainingPercent: 100, gainAtReset: nil, startsOnFirstUse: true)
-            }
+        bars.map { bar in
             let remaining = bar.remainingPercent(at: now)
             let upcoming = bar.resetsAt.flatMap { $0 > now ? $0 : nil }
             let gain = upcoming != nil ? remaining.map { max(0, 100 - $0) } : nil
@@ -162,11 +166,7 @@ public extension AccountSummary {
     func comebackGains(at now: Date) -> [Comeback.Gain] {
         let pooled = poolAccount
         guard let until = pooled.block(for: nil, at: now)?.until, until > now else { return [] }
-        var barIDs = bars.map(\.id)
-        if pooled.hasIdleFiveHourWindow(at: now), !barIDs.contains(FiveHourWindowState.barID) {
-            barIDs.insert(FiveHourWindowState.barID, at: 0)
-        }
-        return barIDs.compactMap { barID in
+        return bars.map(\.id).compactMap { barID in
             let gain = (pooled.usablePercent(in: barID, at: until) ?? 0) - (pooled.usablePercent(in: barID, at: now) ?? 0)
             return gain > 0 ? Comeback.Gain(barID: barID, percent: gain) : nil
         }
@@ -176,8 +176,4 @@ public extension AccountSummary {
         poolAccount.hasIdleFiveHourWindow(at: now)
     }
 
-    func cardBars(at now: Date) -> [QuotaBar] {
-        guard hasIdleFiveHourWindow(at: now), bar(FiveHourWindowState.barID) == nil else { return bars }
-        return (bars + [QuotaBar(id: FiveHourWindowState.barID, usedPercent: 0)]).sortedForDisplay()
-    }
 }

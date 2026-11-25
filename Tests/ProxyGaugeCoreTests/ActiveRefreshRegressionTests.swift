@@ -220,7 +220,7 @@ struct ActiveQuotaParsingTests {
         let session = try #require(claude?.quota?.windows.first { $0.id == "session_5h" })
         #expect(session.usedPercent == nil)
         #expect(session.remainingPercent(at: activeStart) == nil)
-        #expect(session.remainingPercent(at: date("2099-01-02T00:00:00Z")) == 100)
+        #expect(session.remainingPercent(at: date("2099-01-02T00:00:00Z")) == nil)
 
         let (codex, _) = await refresh(target("codex", "x1")) { url in
             url.path() == "/backend-api/wham/usage" ? .json(#"{"rate_limit":{"limit_reached":true,"primary_window":{"limit_window_seconds":18000}}}"#) : nil
@@ -236,7 +236,7 @@ struct ActiveQuotaParsingTests {
         let clock = TestClock(activeStart)
         _ = await refresh(target("codex", "x1"), store: store, clock: clock) { _ in nil }
         #expect(store.activeQuotas(proxy: activeServer.proxy)["x1"]?.credits == ProviderCredits(balance: 3.5))
-        #expect(store.activeQuotas(proxy: activeServer.proxy)["x1"]?.resets?.remaining == 2)
+        #expect(store.activeQuotas(proxy: activeServer.proxy)["x1"]?.resets?.remaining == 1)
 
         clock.advance(by: 10 * 60)
         _ = await refresh(target("codex", "x1"), store: store, clock: clock) { url in
@@ -261,8 +261,39 @@ struct ActiveQuotaParsingTests {
         }
         let kept = try #require(store.activeQuotas(proxy: activeServer.proxy)["x1"])
         #expect(kept.credits == nil)
-        #expect(kept.resets?.remaining == 0)
+        #expect(kept.resets == nil)
         #expect(kept.windows.first?.usedPercent == 30)
+    }
+
+    @Test func newerInventoryAnswerWithoutTheResetBlockClearsTheSavedCount() async throws {
+        let store = MemoryActiveRefreshStore()
+        let clock = TestClock(activeStart)
+        _ = await refresh(target("claude", "c1"), store: store, clock: clock) { _ in nil }
+        #expect(store.activeQuotas(proxy: activeServer.proxy)["c1"]?.resets?.remaining == 2)
+        clock.advance(by: 10 * 60)
+        _ = await refresh(target("claude", "c1"), store: store, clock: clock) { url in
+            url.query()?.contains("cedar_ember") == true ? .json(#"{"seven_day":{"utilization":5}}"#) : nil
+        }
+        let quota = try #require(store.activeQuotas(proxy: activeServer.proxy)["c1"])
+        #expect(quota.resets == nil)
+        #expect(quota.windows.isEmpty == false)
+    }
+
+    @Test func readOnlyManualRefreshDoesNotSendUnofficialOrPaidKeyRequests() async {
+        let store = MemoryActiveRefreshStore()
+        let stub = UpstreamStub { _, _ in .json("{}") }
+        let results = await run(coordinator(store, clock: TestClock(activeStart)), [
+            target("antigravity", "a1", projectID: "p"),
+            target("xai", "g1")
+        ], mode: .manualReadOnly, through: stub)
+        #expect(results.map(\.outcome) == [.skipped(.requiresConsent), .failed(.requiresPaidKeyConsent)])
+        #expect(stub.upstreamURLs.count == 2)
+        #expect(stub.upstreamURLs.allSatisfy { $0.path() == "/v1/billing" })
+
+        let invalid = UpstreamStub { _, _ in .json("invalid") }
+        let invalidResults = await run(coordinator(MemoryActiveRefreshStore(), clock: TestClock(activeStart)), [target("xai", "g1")], mode: .manualReadOnly, through: invalid)
+        #expect(invalidResults.first?.outcome == .failed(.unreadable))
+        #expect(invalid.upstreamURLs.allSatisfy { $0.path() == "/v1/billing" })
     }
 
     @Test func absentFieldsKeepTheLastReading() {

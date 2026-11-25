@@ -156,7 +156,6 @@ struct AccountQuotaCard: View {
     var opensDetail = false
     @State private var showsStatus = false
     @State private var showsResets = false
-    @State private var limitsRequest: LimitsRefreshRequest?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: BoardWidth.clockTick)) { context in
@@ -165,7 +164,6 @@ struct AccountQuotaCard: View {
         .sheet(isPresented: $showsResets) {
             ResetsSheet(account: account)
         }
-        .modifier(OptionalLimitsSheet(session: session, request: $limitsRequest))
         .modifier(LinkedCardActions(isEnabled: opensDetail, showStatus: { showsStatus = true }, showResets: { showsResets = true }))
     }
 
@@ -175,7 +173,7 @@ struct AccountQuotaCard: View {
         return VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 nameLine(status: status)
-                facts
+                facts(now: now)
             }
             if slots.isEmpty {
                 Text("No quota data reported yet")
@@ -240,10 +238,7 @@ struct AccountQuotaCard: View {
         .popover(isPresented: $showsStatus) {
             StatusPopover(account: account, session: session, checkNow: {
                 showsStatus = false
-                Task {
-                    try? await Task.sleep(for: .milliseconds(400))
-                    limitsRequest = LimitsRefreshRequest(credentialIDs: [account.id])
-                }
+                Task { await session?.refreshProviderFromSurface([account.id]) }
             }, showResets: {
                 showsStatus = false
                 Task {
@@ -256,15 +251,17 @@ struct AccountQuotaCard: View {
     }
 
     @ViewBuilder
-    private var facts: some View {
-        if account.plan == nil, manualResets == nil, paidUntil == nil {
+    private func facts(now: Date) -> some View {
+        let resets = account.cardResets(at: now)
+        if account.cardPlan == nil, resets == nil, paidUntil == nil {
             Text(verbatim: " ")
                 .font(.board(.footnote))
+                .accessibilityHidden(true)
         } else {
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 10) { factItems(short: false) }
-                HStack(spacing: 10) { factItems(short: true) }
-                FlowLayout(spacing: 10) { factItems(short: true) }
+                HStack(spacing: 10) { factItems(short: false, resets: resets) }
+                HStack(spacing: 10) { factItems(short: true, resets: resets) }
+                FlowLayout(spacing: 10) { factItems(short: true, resets: resets) }
             }
             .font(.board(.footnote))
             .lineLimit(1)
@@ -272,8 +269,8 @@ struct AccountQuotaCard: View {
     }
 
     @ViewBuilder
-    private func factItems(short: Bool) -> some View {
-        if let plan = account.plan {
+    private func factItems(short: Bool, resets: ManualResets?) -> some View {
+        if let plan = account.cardPlan {
             HStack(spacing: 4) {
                 if !short {
                     Text("Plan").foregroundStyle(.secondary)
@@ -281,11 +278,11 @@ struct AccountQuotaCard: View {
                 Text(verbatim: PlanLabel.display(plan))
                     .fontWeight(.semibold)
                     .padding(.horizontal, 6)
-                    .background(PlanTint.color(account).opacity(0.22), in: .capsule)
+                    .background(PlanTint.color(account, plan: plan).opacity(0.22), in: .capsule)
             }
             .fixedSize()
         }
-        if let resets = manualResets {
+        if let resets {
             HStack(spacing: 4) {
                 (short ? Text("Resets") : Text("Resets remaining")).foregroundStyle(.secondary)
                 Text(verbatim: resets.remaining.formatted())
@@ -305,12 +302,8 @@ struct AccountQuotaCard: View {
         }
     }
 
-    private var manualResets: ManualResets? {
-        account.providerCheck?.resets
-    }
-
     private var paidUntil: Date? {
-        account.provider.lowercased() == "codex" ? account.providerCheck?.planActiveUntil : nil
+        account.provider.lowercased() == "codex" ? account.cardPaidUntil : nil
     }
 
     private func problem(_ status: CardStatus) -> String? {
@@ -324,7 +317,7 @@ struct AccountQuotaCard: View {
 
     @ViewBuilder
     private func footer(now: Date) -> some View {
-        let extra = account.providerCheck?.extraUsage?.isEnabled
+        let extra = account.cardExtraUsage?.isEnabled
         if account.endsAt != nil || extra != nil {
             VStack(alignment: .leading, spacing: 6) {
                 Divider()
@@ -371,6 +364,7 @@ extension ActiveRefreshFailure {
         case .rejected(let status): String(localized: "Failed to load quota: the provider rejected this account (HTTP \(status)).")
         case .upstream(let status): String(localized: "Failed to load quota: HTTP \(status).")
         case .unreadable: String(localized: "Failed to load quota: no readable limits in the answer.")
+        case .requiresPaidKeyConsent: String(localized: "No billing data was reported. A paid-key check needs approval.")
         case .management: String(localized: "Failed to load quota: the server could not run the check.")
         case .refusedByProxy(let refusal): String(localized: refusal.explanation)
         }
@@ -378,10 +372,11 @@ extension ActiveRefreshFailure {
 }
 
 enum PlanTint {
-    static func color(_ account: AccountSummary) -> Color {
-        let plan = (account.plan ?? "").lowercased()
-        if account.planWeight == 20 || plan.contains("500") || plan.contains("heavy") || plan.contains("ultra") { return .orange }
-        if account.planWeight == 5 || plan.hasPrefix("max") || plan.contains("200") || plan.contains("100") || plan.contains("supergrok") { return .yellow }
+    static func color(_ account: AccountSummary, plan rawPlan: String) -> Color {
+        let plan = rawPlan.lowercased()
+        let weight = PlanWeight.multiplier(provider: account.provider, plan: rawPlan)
+        if weight == 20 || plan.contains("500") || plan.contains("heavy") || plan.contains("ultra") { return .orange }
+        if weight == 5 || plan.hasPrefix("max") || plan.contains("200") || plan.contains("100") || plan.contains("supergrok") { return .yellow }
         return .gray
     }
 }
@@ -427,19 +422,6 @@ private struct LinkedCardActions: ViewModifier {
     }
 }
 
-private struct OptionalLimitsSheet: ViewModifier {
-    let session: ServerSession?
-    @Binding var request: LimitsRefreshRequest?
-
-    func body(content: Content) -> some View {
-        if let session {
-            content.limitsRefreshSheet(session: session, request: $request)
-        } else {
-            content
-        }
-    }
-}
-
 struct StatusPopover: View {
     let account: AccountSummary
     let session: ServerSession?
@@ -449,9 +431,12 @@ struct StatusPopover: View {
     static let listedModels = 6
 
     var body: some View {
-        let now = Date.now
+        TimelineView(.periodic(from: .now, by: 1)) { content(at: $0.date) }
+    }
+
+    private func content(at now: Date) -> some View {
         let status = CardStatus(account: account, now: now)
-        scrollable {
+        return scrollable {
             VStack(alignment: .leading, spacing: 12) {
                 headline(status: status)
                 Divider()
@@ -468,28 +453,29 @@ struct StatusPopover: View {
                         }
                     }
                 }
-                if let resets = account.providerCheck?.resets, resets.everHadResets {
-                    row("Manual resets") { manualResets(resets) }
-                }
+                if let check = account.providerCheck { providerFacts(check, now: now) }
                 if let credits = account.creditsBalance {
                     row("Credits") { Text(credits, format: .number.precision(.fractionLength(0...2))) }
                 }
                 if !account.modelCooldowns.isEmpty {
                     pausedModels
                 }
-                if let checked = account.providerCheck?.observedAt {
-                    Text("Checked with the provider \(ElapsedTime.text(from: checked, to: now)) ago")
-                        .font(.board(.footnote))
-                        .foregroundStyle(.secondary)
-                }
                 if let showResets {
                     Button("Show all resets", systemImage: "clock", action: showResets)
                         .buttonStyle(.bordered)
                 }
-                if canCheck {
-                    Button("Check this account now", systemImage: "arrow.triangle.2.circlepath.circle", action: checkNow)
-                        .buttonStyle(.bordered)
-                        .disabled(session?.refreshingLimits.contains(account.id) == true)
+                if canCheck, let session {
+                    let plan = session.surfaceLimitsRefreshPlan(for: [account.id], now: now)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Button("Refresh from provider", systemImage: "antenna.radiowaves.left.and.right", action: checkNow)
+                            .buttonStyle(.bordered)
+                            .disabled(!session.refreshingLimits.isEmpty || session.providerRefreshProgress != nil || plan.isEmpty)
+                        if plan.isEmpty, let until = plan.waiting.map(\.until).min() {
+                            Text("Available in \(Int(max(1, ceil(until.timeIntervalSince(now))))) s")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
             .padding(18)
@@ -569,8 +555,55 @@ struct StatusPopover: View {
         }
     }
 
+    private struct ProviderFact {
+        let field: ActiveQuotaField
+        let title: LocalizedStringResource
+        let value: Text
+    }
+
+    private func facts(_ check: ProviderCheck, now: Date) -> [ProviderFact] {
+        var facts: [ProviderFact] = []
+        if let resets = check.resets?.usable(at: now) {
+            facts.append(ProviderFact(field: .resets, title: "Manual resets", value: manualResets(resets)))
+        }
+        if !account.isCurrentProviderFact(.plan), let plan = check.plan {
+            facts.append(ProviderFact(field: .plan, title: "Plan", value: Text(verbatim: PlanLabel.display(plan))))
+        }
+        if !account.isCurrentProviderFact(.planActiveUntil), let date = check.planActiveUntil {
+            facts.append(ProviderFact(field: .planActiveUntil, title: "Paid until", value: Text(verbatim: PanelDate.day(date))))
+        }
+        if !account.isCurrentProviderFact(.extraUsage), let enabled = check.extraUsage?.isEnabled {
+            facts.append(ProviderFact(field: .extraUsage, title: "Extra usage", value: Text(enabled ? "Enabled" : "Disabled")))
+        }
+        return facts
+    }
+
+    private func providerFacts(_ check: ProviderCheck, now: Date) -> some View {
+        let latestAge = ElapsedTime.text(from: check.observedAt, to: now)
+        let latestCheckSpan: TimeInterval = 10
+        let timedFacts = facts(check, now: now).map { ($0, check.sampledAt(for: $0.field)) }.sorted { $0.1 > $1.1 }
+        var orderedAges = [latestAge]
+        var byAge: [String: [ProviderFact]] = [:]
+        for (fact, sampledAt) in timedFacts {
+            let age = check.observedAt.timeIntervalSince(sampledAt) <= latestCheckSpan ? latestAge : ElapsedTime.text(from: sampledAt, to: now)
+            if !orderedAges.contains(age) { orderedAges.append(age) }
+            byAge[age, default: []].append(fact)
+        }
+        return ForEach(orderedAges, id: \.self) { age in
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(byAge[age, default: []], id: \.field) { fact in
+                    row(fact.title) { fact.value }
+                }
+                Text("Checked with the provider \(age) ago")
+                    .font(.board(.footnote))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private func manualResets(_ resets: ManualResets) -> Text {
-        if let total = resets.total {
+        guard resets.remaining > 0 else { return Text("None") }
+        if !resets.hasUsabilityDetails, let total = resets.total, total > 0 {
             return Text("\(resets.remaining) of \(total) left")
         }
         return Text("\(resets.remaining) left")
@@ -695,7 +728,7 @@ struct ResetsSheet: View {
                     Text("Paused models")
                 }
             }
-            if let resets = account.providerCheck?.resets, resets.everHadResets {
+            if let resets = account.providerCheck?.resets?.usable(at: now), resets.remaining > 0 {
                 Section {
                     LabeledContent {
                         Text(verbatim: resets.total.map { "\(resets.remaining) / \($0)" } ?? "\(resets.remaining)")
@@ -727,7 +760,6 @@ struct ResetsSheet: View {
     }
 
     private func when(_ reset: WindowReset, now: Date) -> Text {
-        if reset.startsOnFirstUse { return Text("Starts on first use") }
         guard let resetsAt = reset.resetsAt else { return Text("No reset time reported") }
         guard resetsAt > now else { return Text("Reset at \(ResetClock.text(resetsAt)); waiting for a new sample") }
         let left = HeadroomStyle.percentText(reset.remainingPercent)

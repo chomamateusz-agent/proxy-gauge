@@ -34,14 +34,12 @@ public struct SlotReading: Sendable, Equatable, Identifiable {
     public var slot: WindowSlot
     public var remainingPercent: Double?
     public var resetsAt: Date?
-    public var startsOnFirstUse: Bool
     public var bar: QuotaBar?
 
-    public init(slot: WindowSlot, remainingPercent: Double?, resetsAt: Date? = nil, startsOnFirstUse: Bool = false, bar: QuotaBar? = nil) {
+    public init(slot: WindowSlot, remainingPercent: Double?, resetsAt: Date? = nil, bar: QuotaBar? = nil) {
         self.slot = slot
         self.remainingPercent = remainingPercent
         self.resetsAt = resetsAt
-        self.startsOnFirstUse = startsOnFirstUse
         self.bar = bar
     }
 
@@ -185,11 +183,7 @@ public enum QuotaSlots {
     }
 
     public static func reading(_ account: AccountSummary, slot: WindowSlot, at now: Date) -> SlotReading {
-        let bar = bar(account, slot: slot)
-        if slot.window == .session5h, account.hasIdleFiveHourWindow(at: now), bar.map({ $0.startsOnUse(provider: account.provider, at: now) }) ?? true {
-            return SlotReading(slot: slot, remainingPercent: 100, startsOnFirstUse: true, bar: bar)
-        }
-        guard let bar else { return SlotReading(slot: slot, remainingPercent: nil) }
+        guard let bar = bar(account, slot: slot) else { return SlotReading(slot: slot, remainingPercent: nil) }
         let upcoming = bar.resetsAt.flatMap { $0 > now ? $0 : nil }
         return SlotReading(slot: slot, remainingPercent: bar.remainingPercent(at: now), resetsAt: upcoming, bar: bar)
     }

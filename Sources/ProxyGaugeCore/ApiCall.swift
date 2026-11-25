@@ -73,6 +73,7 @@ public enum UpstreamFailure: Error, Equatable, Sendable {
     case rejected(status: Int)
     case upstream(status: Int)
     case unreadable
+    case requiresPaidKeyConsent
 
     public static func classify(_ reply: UpstreamReply, now: Date) -> UpstreamFailure? {
         switch reply.statusCode {
@@ -86,7 +87,7 @@ public enum UpstreamFailure: Error, Equatable, Sendable {
     public var stopsTheRefresh: Bool {
         switch self {
         case .rateLimited, .rejected: true
-        case .upstream, .unreadable: false
+        case .upstream, .unreadable, .requiresPaidKeyConsent: false
         }
     }
 }

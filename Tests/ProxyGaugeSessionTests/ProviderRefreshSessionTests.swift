@@ -144,6 +144,56 @@ struct ProviderRefreshSessionTests {
         #expect(relaunched.providerCheckStates["a.json"]?.lastSuccessAt != nil)
     }
 
+    @Test func surfaceRefreshProgressStaysVisibleUntilSelectedReadingsAreApplied() async throws {
+        let harness = harness()
+        let session = session(harness)
+        await session.refresh(.accounts, trigger: .manual)
+        let held = Gate()
+        harness.server.heldAfterAnswer[Self.apiCallRoute] = held
+        let refresh = Task { await session.refreshProviderFromSurface(["1"]) }
+        await eventually { harness.server.requests(Self.apiCallRoute) == 1 }
+        #expect(session.providerRefreshProgress == ProviderRefreshProgress(completed: 0, total: 1))
+        #expect(session.providerRefreshReport == nil)
+        #expect(session.activeQuotas.isEmpty)
+        held.open()
+        await refresh.value
+
+        #expect(session.providerRefreshProgress == nil)
+        let report = try #require(session.providerRefreshReport)
+        #expect(report.entries.map(\.id) == ["a.json"])
+        #expect(report.checked == 1)
+        #expect(report.failed == 0)
+        #expect(session.accountSummaries.first { $0.id == "1" }?.bar("weekly_all")?.usedPercent == 70)
+        #expect(session.surfaceLimitsRefreshPlan(for: ["1"], now: .now).waiting.first?.because == .recentlyChecked)
+    }
+
+    @Test func anAccountsReloadMovesAnOlderStoredResetFactOffTheCard() async throws {
+        let harness = harness()
+        let session = session(harness)
+        harness.server.overrides[Self.apiCallRoute] = Self.envelope(200, #"{"seven_day":{"utilization":70},"cedar_ember":{"eligible":true,"grants":[{"id":"grant_a","resets_left":2,"resets_total":2}]}}"#)
+        await session.refresh(.accounts, trigger: .manual)
+        await session.refreshProviderFromSurface(["1"])
+
+        let fresh = try #require(session.accountSummaries.first { $0.id == "1" })
+        #expect(fresh.cardResets(at: .now)?.remaining == 2)
+        await session.refresh(.accounts, trigger: .manual)
+
+        let older = try #require(session.accountSummaries.first { $0.id == "1" })
+        #expect(older.cardResets(at: .now) == nil)
+        #expect(older.providerCheck?.resets?.usable(at: .now).remaining == 2)
+    }
+
+    @Test func apiReloadReportsCompletedMilestonesAndNeverChecksProviders() async {
+        let harness = harness()
+        let session = session(harness)
+        var milestones: [Double] = []
+        let success = await session.reloadFromAPI(.accounts) { milestones.append($0) }
+        #expect(success)
+        #expect(milestones == [0.33, 0.66])
+        #expect(session.accountsLoadedAt != nil)
+        #expect(harness.server.requests(Self.apiCallRoute) == 0)
+    }
+
     @Test func throttleStateFollowsTheAuthFileWhenItsAuthIndexChanges() async throws {
         let harness = harness()
         let session = session(harness)

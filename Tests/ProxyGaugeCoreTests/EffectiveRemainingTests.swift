@@ -10,7 +10,7 @@ struct EffectiveRemainingTests {
 
     @Test func oneRuleDecidesWhatIsLeft() {
         #expect(QuotaBar(id: "session_5h", usedPercent: 100, status: "rejected", resetsAt: past).remainingPercent(at: now) == 100)
-        #expect(QuotaBar(id: "session_5h", usedPercent: nil, resetsAt: past).remainingPercent(at: now) == 100)
+        #expect(QuotaBar(id: "session_5h", usedPercent: nil, resetsAt: past).remainingPercent(at: now) == nil)
         #expect(QuotaBar(id: "session_5h", usedPercent: 70, status: "rejected", resetsAt: future).remainingPercent(at: now) == 0)
         #expect(QuotaBar(id: "session_5h", usedPercent: nil, status: "rejected", resetsAt: future).remainingPercent(at: now) == 0)
         #expect(QuotaBar(id: "session_5h", usedPercent: 42, resetsAt: future).remainingPercent(at: now) == 58)

@@ -20,6 +20,7 @@ final class PartialQuota: Sendable {
         state.withLock { readings in
             change(&readings.quota)
             readings.fields.formUnion(fields)
+            readings.quota.record(fields, at: receivedAt)
             readings.quota.observedAt = max(readings.quota.observedAt, receivedAt)
         }
     }
@@ -54,7 +55,7 @@ struct ProviderAnswer {
         keys.contains { object.keys.contains($0) }
     }
 
-    func bar(_ id: String, used: Double?, resetsAt: Date?, label: String? = nil) -> QuotaBar {
+    func bar(_ id: String, used: Double?, resetsAt: Date?, label: String? = nil, reportedPeriodSeconds: TimeInterval? = nil) -> QuotaBar {
         let clamped = used.map { max(0, ProviderJSON.rounded($0)) }
         return QuotaBar(
             id: id,
@@ -63,7 +64,8 @@ struct ProviderAnswer {
             resetsAt: resetsAt,
             sampledAt: receivedAt,
             label: label,
-            source: .provider
+            source: .provider,
+            reportedPeriodSeconds: reportedPeriodSeconds
         )
     }
 
@@ -116,7 +118,8 @@ enum ActiveQuotaAdapters {
     }
 
     static func requests(for target: ActiveTarget, scope: ActiveScope) -> [ActiveRequestKind] {
-        switch target.provider {
+        if scope.isPaidKeyContinuation { return [.paidKeyCheck] }
+        return switch target.provider {
         case "claude":
             [.usage] + (scope.includesProfile ? [.profile] : []) + (scope.includesResetInventory ? [.resetGrants] : [])
         case "codex":
@@ -135,7 +138,8 @@ enum ActiveQuotaAdapters {
     }
 
     static func maximumRequests(for target: ActiveTarget, scope: ActiveScope) -> Int {
-        switch target.provider {
+        if scope.isPaidKeyContinuation { return 2 }
+        return switch target.provider {
         case "claude": requests(for: target, scope: scope).count
         case "codex": requests(for: target, scope: scope).count
         case "antigravity": AntigravityAdapter.summaryURLs.count + (scope.includesProfile ? 1 : 0)
@@ -164,21 +168,17 @@ enum ClaudeAdapter {
         usageHeaders["Accept"] = "application/json"
         let usage = try await context.json(.usage, usageURL, headers: usageHeaders)
         let windows = self.windows(usage)
-        let reportsExtraUsage = usage.has("extra_usage")
-        guard !windows.isEmpty || reportsExtraUsage else { throw UpstreamFailure.unreadable }
+        guard !windows.isEmpty || usage.has("five_hour", "seven_day", "extra_usage") else { throw UpstreamFailure.unreadable }
         let extra = extraUsage(usage.object)
-        var fields: Set<ActiveQuotaField> = []
-        if !windows.isEmpty { fields.insert(.windows) }
-        if reportsExtraUsage { fields.insert(.extraUsage) }
-        context.partial.record(fields, receivedAt: usage.receivedAt) {
-            if !windows.isEmpty { $0.windows = windows }
-            if reportsExtraUsage { $0.extraUsage = extra }
+        context.partial.record([.windows, .extraUsage], receivedAt: usage.receivedAt) {
+            $0.recordReportedWindows(windows, at: usage.receivedAt)
+            $0.extraUsage = extra
         }
         if context.scope.includesProfile {
             try await context.optional {
                 let profile = try await context.json(.profile, profileURL, headers: headers)
                 context.partial.markProfileChecked()
-                guard let plan = plan(profile.object) else { return }
+                let plan = plan(profile.object)
                 context.partial.record([.plan], receivedAt: profile.receivedAt) { $0.plan = plan }
             }
         }
@@ -186,8 +186,7 @@ enum ClaudeAdapter {
             await context.pause(resetGrantsDelay)
             try await context.optional {
                 let grants = try await context.json(.resetGrants, resetGrantsURL, headers: headers)
-                guard grants.has("cedar_ember") else { return }
-                let resets = try resets(grants["cedar_ember"])
+                let resets = try? resets(grants["cedar_ember"], at: grants.receivedAt)
                 context.partial.record([.resets], receivedAt: grants.receivedAt) { $0.resets = resets }
             }
         }
@@ -253,16 +252,54 @@ enum ClaudeAdapter {
         return nil
     }
 
-    static func resets(_ block: Any?) throws -> ManualResets? {
-        guard let block = ProviderJSON.object(block), ProviderJSON.bool(block["eligible"]) != nil else { return nil }
-        let grants = ProviderJSON.array(block["grants"]).compactMap(ProviderJSON.object)
-        let left = grants.compactMap { ProviderJSON.number($0["resets_left"]) }.reduce(0, +)
-        let total = grants.compactMap { ProviderJSON.number($0["resets_total"]) }.reduce(0, +)
-        let expiry = grants
-            .filter { (ProviderJSON.number($0["resets_left"]) ?? 0) > 0 }
-            .compactMap { ProviderJSON.date($0["ends_at"]) }
-            .min()
-        return ManualResets(remaining: try ProviderJSON.wholeNumber(left), total: try ProviderJSON.wholeNumber(total), expiresAt: expiry)
+    static func resets(_ block: Any?, at now: Date) throws -> ManualResets? {
+        guard let block = ProviderJSON.object(block), jsonBool(block["eligible"]) != nil,
+              isMissing(block["ineligible_reason"]) || block["ineligible_reason"] is String,
+              isMissing(block["at_limit"]) || jsonBool(block["at_limit"]) != nil,
+              isMissing(block["cooldown_until"]) || resetGrantDate(block["cooldown_until"]) != nil,
+              isMissing(block["weekly_resets_at"]) || resetGrantDate(block["weekly_resets_at"]) != nil,
+              isMissing(block["grants"]) || block["grants"] is [Any] else { return nil }
+        var seen: Set<String> = []
+        var supplies: [ManualResets.Supply] = []
+        var total = 0.0
+        for raw in ProviderJSON.array(block["grants"]) {
+            guard let grant = ProviderJSON.object(raw), let id = grant["id"] as? String,
+                  id.wholeMatch(of: /^[a-z0-9_-]{1,40}$/) != nil, seen.insert(id).inserted,
+                  let left = try resetCount(grant["resets_left"]),
+                  let granted = try resetCount(grant["resets_total"]), left <= granted,
+                  isMissing(grant["clears"]) || grant["clears"] is [Any],
+                  ["paused", "usable_now", "use_requires_limit", "gives_back_weekly"].allSatisfy({ isMissing(grant[$0]) || jsonBool(grant[$0]) != nil }) else { return nil }
+            let startsAt = resetGrantDate(grant["starts_at"])
+            let endsAt = resetGrantDate(grant["ends_at"])
+            guard isMissing(grant["starts_at"]) || startsAt != nil,
+                  isMissing(grant["ends_at"]) || endsAt != nil else { return nil }
+            total += Double(granted)
+            if left > 0 {
+                supplies.append(ManualResets.Supply(count: left, startsAt: startsAt, endsAt: endsAt, paused: jsonBool(grant["paused"]) == true))
+            }
+        }
+        return try ManualResets(supplies: supplies, total: ProviderJSON.wholeNumber(total), at: now)
+    }
+
+    private static func resetCount(_ value: Any?) throws -> Int? {
+        guard value is NSNumber, let number = ProviderJSON.number(value), number == number.rounded(.towardZero), number >= 0 else { return nil }
+        return try ProviderJSON.wholeNumber(number)
+    }
+
+    private static func isMissing(_ value: Any?) -> Bool {
+        value == nil || value is NSNull
+    }
+
+    private static func jsonBool(_ value: Any?) -> Bool? {
+        value is NSNumber ? ProviderJSON.bool(value) : nil
+    }
+
+    private static func resetGrantDate(_ value: Any?) -> Date? {
+        guard let raw = value as? String else { return nil }
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.wholeMatch(of: /^\d{4}-\d{2}-\d{2}$/) != nil { return WireDate.parse(text + "T00:00:00Z") }
+        let zoneLess = text.wholeMatch(of: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/) != nil
+        return WireDate.parse(zoneLess ? text + "Z" : text)
     }
 }
 
@@ -291,19 +328,17 @@ enum CodexAdapter {
         let windows = try self.windows(usage)
         let note: ActiveQuotaNote? = isBlockedBeyondItsWindows(usage, windows: windows) ? .limitReached : nil
         let plan = ProviderJSON.string(ProviderJSON.first(usage.object, "plan_type", "planType"))?.lowercased()
-        guard !windows.isEmpty || plan != nil else { throw UpstreamFailure.unreadable }
+        let reportsWindows = usage.has("rate_limit", "rateLimit")
+        guard reportsWindows || plan != nil else { throw UpstreamFailure.unreadable }
         let resetsKey = resetCreditKeys.first { usage.has($0) }
-        let resets = try resetsKey.flatMap { try resetCredits(usage[$0]) }
-        var fields: Set<ActiveQuotaField> = [.note]
-        if !windows.isEmpty { fields.insert(.windows) }
-        if plan != nil { fields.insert(.plan) }
-        if usage.has("credits") { fields.insert(.credits) }
-        if resetsKey != nil { fields.insert(.resets) }
+        let resets = try resetsKey.flatMap { try resetCredits(usage[$0], at: usage.receivedAt) }
+        var fields: Set<ActiveQuotaField> = [.windows, .note, .plan, .credits]
+        if resetsKey != nil || context.scope.includesResetInventory { fields.insert(.resets) }
         let credits = credits(usage["credits"])
         context.partial.record(fields, receivedAt: usage.receivedAt) {
             $0.note = note
-            if !windows.isEmpty { $0.windows = windows }
-            if let plan { $0.plan = plan }
+            $0.recordReportedWindows(windows, at: usage.receivedAt)
+            $0.plan = plan
             $0.credits = credits
             $0.resets = resets
         }
@@ -313,7 +348,6 @@ enum CodexAdapter {
                 components.queryItems = [URLQueryItem(name: "account_id", value: accountID)]
                 let subscription = try await context.json(.subscription, components.url!, headers: headers)
                 context.partial.markProfileChecked()
-                guard subscription.has("active_until", "activeUntil") else { return }
                 let activeUntil = ProviderJSON.date(ProviderJSON.first(subscription.object, "active_until", "activeUntil"))
                 context.partial.record([.planActiveUntil], receivedAt: subscription.receivedAt) { $0.planActiveUntil = activeUntil }
             }
@@ -325,7 +359,7 @@ enum CodexAdapter {
                 inventoryHeaders["OpenAI-Beta"] = "codex-1"
                 inventoryHeaders["Originator"] = "Codex Desktop"
                 let inventory = try await context.json(.resetCredits, resetCreditsURL, headers: inventoryHeaders)
-                let resets = try resetCredits(inventory.object)
+                let resets = try resetCredits(inventory.object, at: inventory.receivedAt)
                 context.partial.record([.resets], receivedAt: inventory.receivedAt) { $0.resets = resets }
             }
         }
@@ -345,23 +379,28 @@ enum CodexAdapter {
         guard let limit = rateLimit(usage) else { return [] }
         let primary = ProviderJSON.object(ProviderJSON.first(limit, "primary_window", "primaryWindow"))
         let secondary = ProviderJSON.object(ProviderJSON.first(limit, "secondary_window", "secondaryWindow"))
+        let candidates = [(primary, "session_5h"), (secondary, "weekly_all")].compactMap { window, fallbackID in
+            window.map { window in (window, fallbackID, ProviderJSON.number(ProviderJSON.first(window, "limit_window_seconds", "limitWindowSeconds"))) }
+        }
+        let explicit = candidates.filter { $0.2 == fiveHourSeconds || $0.2 == weekSeconds }
+        let fallback = candidates.filter { $0.2 != fiveHourSeconds && $0.2 != weekSeconds }
         var seen = Set<String>()
         var bars: [QuotaBar] = []
-        for (window, fallbackID) in [(primary, "session_5h"), (secondary, "weekly_all")] {
-            guard let window else { continue }
-            let id = try barID(window) ?? fallbackID
+        for (window, fallbackID, seconds) in explicit + fallback {
+            let id = try barID(seconds) ?? fallbackID
             guard seen.insert(id).inserted else { continue }
             bars.append(usage.bar(
                 id,
                 used: ProviderJSON.number(ProviderJSON.first(window, "used_percent", "usedPercent")),
-                resetsAt: resetDate(window, usage: usage)
+                resetsAt: resetDate(window, usage: usage),
+                reportedPeriodSeconds: seconds
             ))
         }
-        return bars
+        return bars.sortedForDisplay()
     }
 
-    private static func barID(_ window: [String: Any]) throws -> String? {
-        guard let seconds = ProviderJSON.number(ProviderJSON.first(window, "limit_window_seconds", "limitWindowSeconds")), seconds >= 60 else { return nil }
+    private static func barID(_ seconds: TimeInterval?) throws -> String? {
+        guard let seconds, seconds >= 60 else { return nil }
         if seconds == fiveHourSeconds { return "session_5h" }
         if seconds == weekSeconds { return "weekly_all" }
         return SignalQuotaParser.codexBarID(minutes: try ProviderJSON.wholeNumber(seconds / 60))
@@ -380,16 +419,20 @@ enum CodexAdapter {
         return ProviderCredits(balance: balance, unlimited: unlimited)
     }
 
-    static func resetCredits(_ value: Any?) throws -> ManualResets? {
+    static func resetCredits(_ value: Any?, at now: Date) throws -> ManualResets? {
         guard let inventory = ProviderJSON.object(value) else { return nil }
-        let available = ProviderJSON.array(inventory["credits"]).compactMap(ProviderJSON.object).filter {
-            ProviderJSON.string(ProviderJSON.first($0, "reset_type", "resetType")) == "codex_rate_limits"
-                && ProviderJSON.string($0["status"]) == "available"
-                && ProviderJSON.date(ProviderJSON.first($0, "expires_at", "expiresAt")) != nil
+        let credits = inventory["credits"] as? [Any]
+        let reported = ProviderJSON.number(ProviderJSON.first(inventory, "available_count", "availableCount"))
+        if credits == nil {
+            guard let reported, try ProviderJSON.wholeNumber(reported) == 0 else { return nil }
         }
-        let reported = try ProviderJSON.number(ProviderJSON.first(inventory, "available_count", "availableCount")).map { try ProviderJSON.wholeNumber($0) }
-        let expiry = available.compactMap { ProviderJSON.date(ProviderJSON.first($0, "expires_at", "expiresAt")) }.min()
-        return ManualResets(remaining: reported ?? available.count, expiresAt: expiry)
+        let supplies = (credits ?? []).compactMap(ProviderJSON.object).compactMap { credit -> ManualResets.Supply? in
+            guard ProviderJSON.string(ProviderJSON.first(credit, "reset_type", "resetType")) == "codex_rate_limits",
+                  ProviderJSON.string(credit["status"]) == "available",
+                  let end = ProviderJSON.date(ProviderJSON.first(credit, "expires_at", "expiresAt")) else { return nil }
+            return ManualResets.Supply(count: 1, endsAt: end)
+        }
+        return try ManualResets(supplies: supplies, at: now)
     }
 }
 
@@ -591,6 +634,10 @@ enum XAIAdapter {
     }
 
     static func run(_ context: AdapterContext) async throws {
+        if context.scope.isPaidKeyContinuation {
+            try await paidKeyCheck(context)
+            return
+        }
         var summary: Billing?
         var billingFailure: UpstreamFailure?
         for url in [weeklyBillingURL, monthlyBillingURL] {
@@ -606,15 +653,8 @@ enum XAIAdapter {
         }
         if summary == nil {
             if let billingFailure { throw billingFailure }
-            guard context.scope.allowsPaidKeyCheck else { throw UpstreamFailure.unreadable }
-            try await context.optional { _ = try await context.call(.paidKeyCheck, apiProfileURL, headers: apiHeaders) }
-            var completionHeaders = apiHeaders
-            completionHeaders["Content-Type"] = "application/json"
-            let completion = try await context.call(.paidKeyCheck, completionURL, method: .post, headers: completionHeaders, data: completionBody)
-            context.partial.record([.note, .plan], receivedAt: completion.receivedAt) {
-                $0.note = .paidKeyAnswered
-                $0.plan = "paid"
-            }
+            guard context.scope.allowsPaidKeyCheck else { throw UpstreamFailure.requiresPaidKeyConsent }
+            try await paidKeyCheck(context)
         }
         if context.scope.includesProfile {
             var tier: String?
@@ -635,6 +675,17 @@ enum XAIAdapter {
             if let plan = display ?? tier, let receivedAt {
                 context.partial.record([.plan], receivedAt: receivedAt) { $0.plan = plan }
             }
+        }
+    }
+
+    private static func paidKeyCheck(_ context: AdapterContext) async throws {
+        try await context.optional { _ = try await context.call(.paidKeyCheck, apiProfileURL, headers: apiHeaders) }
+        var completionHeaders = apiHeaders
+        completionHeaders["Content-Type"] = "application/json"
+        let completion = try await context.call(.paidKeyCheck, completionURL, method: .post, headers: completionHeaders, data: completionBody)
+        context.partial.record([.note, .plan], receivedAt: completion.receivedAt) {
+            $0.note = .paidKeyAnswered
+            $0.plan = "paid"
         }
     }
 

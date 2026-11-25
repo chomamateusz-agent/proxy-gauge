@@ -15,8 +15,9 @@ public struct QuotaBar: Codable, Sendable, Equatable, Identifiable, Hashable {
     public var sampledAt: Date?
     public var label: String?
     public var source: QuotaSource?
+    public var reportedPeriodSeconds: TimeInterval?
 
-    public init(id: String, usedPercent: Double?, status: String? = nil, resetsAt: Date? = nil, sampledAt: Date? = nil, label: String? = nil, source: QuotaSource? = nil) {
+    public init(id: String, usedPercent: Double?, status: String? = nil, resetsAt: Date? = nil, sampledAt: Date? = nil, label: String? = nil, source: QuotaSource? = nil, reportedPeriodSeconds: TimeInterval? = nil) {
         self.id = id
         self.usedPercent = usedPercent
         self.status = status
@@ -24,6 +25,7 @@ public struct QuotaBar: Codable, Sendable, Equatable, Identifiable, Hashable {
         self.sampledAt = sampledAt
         self.label = label
         self.source = source
+        self.reportedPeriodSeconds = reportedPeriodSeconds
     }
 
     public var isFromProvider: Bool { source == .provider }
@@ -44,6 +46,7 @@ public struct QuotaBar: Codable, Sendable, Equatable, Identifiable, Hashable {
     }
 
     public func remainingPercent(at now: Date) -> Double? {
+        guard usedPercent != nil || status == Self.rejectedStatus else { return nil }
         if hasReset(at: now) { return 100 }
         if isAtLimit(at: now) { return 0 }
         return headroomPercent

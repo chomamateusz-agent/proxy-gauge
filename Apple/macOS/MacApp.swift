@@ -36,12 +36,12 @@ struct PaneRefreshCommands: Commands {
 
     var body: some Commands {
         CommandGroup(before: .toolbar) {
-            Button("Refresh") { pane?.refresh() }
+            Button("Reload from API") { pane?.reload.action() }
                 .keyboardShortcut("r", modifiers: .command)
-                .disabled(pane == nil || pane?.isRefreshing == true)
-            Button("Check limits with providers…") { pane?.checkLimits?() }
+                .disabled(pane?.reload.enabled != true)
+            Button("Refresh from provider") { pane?.provider.action() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
-                .disabled(pane?.checkLimits == nil || pane?.checkingLimits == true)
+                .disabled(pane?.provider.enabled != true)
             Divider()
         }
     }

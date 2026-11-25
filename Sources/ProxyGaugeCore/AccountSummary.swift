@@ -18,6 +18,7 @@ public struct ProviderCheck: Sendable, Equatable {
     public var extraUsage: ExtraUsage?
     public var resets: ManualResets?
     public var note: ActiveQuotaNote?
+    private var sampledTimes: [ActiveQuotaField: Date]
 
     public init(_ quota: ActiveQuota) {
         observedAt = quota.observedAt
@@ -27,6 +28,11 @@ public struct ProviderCheck: Sendable, Equatable {
         extraUsage = quota.extraUsage
         resets = quota.resets
         note = quota.note
+        sampledTimes = Dictionary(uniqueKeysWithValues: ActiveQuotaField.allCases.map { ($0, quota.sampledAt(for: $0)) })
+    }
+
+    public func sampledAt(for field: ActiveQuotaField) -> Date {
+        sampledTimes[field] ?? observedAt
     }
 }
 
@@ -45,6 +51,8 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     public var modelCooldowns: [ModelCooldown]
     public var providerCheck: ProviderCheck?
     public var providerCheckState: ActiveRefreshState?
+    public var accountsLoadedAt: Date?
+    private var passivePlan: String?
     public var priority = 0
     public var endsAt: Date?
     public var hasEnded = false
@@ -70,6 +78,7 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
         self.label = label
         self.state = state
         self.plan = plan
+        passivePlan = plan
         self.bars = bars.sortedForDisplay()
         self.blockedUntil = blockedUntil
         self.availability = availability ?? PoolAccount.Availability(
@@ -104,6 +113,7 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
             },
             providerCheck: active.map(ProviderCheck.init)
         )
+        self.passivePlan = passivePlan
         priority = credential.priority ?? 0
         endsAt = credential.endsAt
         hasEnded = credential.hasEnded
@@ -152,13 +162,26 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
         PoolAccount(provider: provider, availability: availability, bars: bars)
     }
 
-    public func countsIdleFiveHourWindowAsFull(in pool: ProviderPool, at now: Date) -> Bool {
-        pool.provider == provider && pool.window(.session5h) != nil && poolAccount.countsIdleFiveHourWindowAsFull(at: now)
+    public var cardPlan: String? {
+        isCurrentProviderFact(.plan) ? plan : passivePlan
     }
 
-    public func barsIncludingIdleFiveHourWindow(in pool: ProviderPool, at now: Date) -> [QuotaBar] {
-        guard countsIdleFiveHourWindowAsFull(in: pool, at: now), bar(FiveHourWindowState.barID) == nil else { return bars }
-        return (bars + [QuotaBar(id: FiveHourWindowState.barID, usedPercent: 0)]).sortedForDisplay()
+    public var cardPaidUntil: Date? {
+        isCurrentProviderFact(.planActiveUntil) ? providerCheck?.planActiveUntil : nil
+    }
+
+    public var cardExtraUsage: ExtraUsage? {
+        isCurrentProviderFact(.extraUsage) ? providerCheck?.extraUsage : nil
+    }
+
+    public func cardResets(at now: Date) -> ManualResets? {
+        guard isCurrentProviderFact(.resets), let resets = providerCheck?.resets?.usable(at: now), resets.remaining > 0 else { return nil }
+        return resets
+    }
+
+    public func isCurrentProviderFact(_ field: ActiveQuotaField) -> Bool {
+        guard let providerCheck else { return true }
+        return accountsLoadedAt.map { providerCheck.sampledAt(for: field) >= $0 } ?? true
     }
 
     public func fiveHourWindow(at now: Date) -> FiveHourWindowState {
